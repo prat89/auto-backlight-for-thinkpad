@@ -161,6 +161,7 @@
     </Compile>
     <Compile Include="Backlight.cs" />
     <Compile Include="KeyboardBacklightBackend.cs" />
+    <Compile Include="BackendDetection.cs" />
     <Compile Include="DiagnosticsLog.cs" />
     <Compile Include="DiagnosticsReport.cs" />
     <Compile Include="AutoScreenBrightnessController.cs" />

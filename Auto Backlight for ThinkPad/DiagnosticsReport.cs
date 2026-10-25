@@ -59,6 +59,9 @@ namespace Auto_Backlight_for_ThinkPad
                             sb.AppendLine("Driver: " + item["Name"] + " / " + item["State"]);
                 }
                 catch (Exception ex) { DiagnosticsLog.Error("Driver diagnostic failed", ex); }
+                sb.AppendLine("--- Backend discovery (read-only) ---");
+                foreach (string line in BackendDetection.GetReportLines())
+                    sb.AppendLine(line);
                 File.WriteAllText(Path.Combine(dir,"hardware-report.txt"), sb.ToString(), Encoding.UTF8);
                 DiagnosticsLog.Info("Hardware report written to Logs/hardware-report.txt");
             }

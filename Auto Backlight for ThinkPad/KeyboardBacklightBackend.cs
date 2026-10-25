@@ -28,6 +28,9 @@ namespace Auto_Backlight_for_ThinkPad
     {
         public static IKeyboardBacklightBackend Create()
         {
+            // Diagnostic probe: Windows service state only; no IOCTL or write.
+            foreach (string line in BackendDetection.GetReportLines())
+                DiagnosticsLog.Info(line);
             DiagnosticsLog.Info("Backlight backend selection: trying IBMPmDrv");
             // Constructor performs the same read-only hardware initialization
             // as the v4.3 controller. Errors propagate to existing isolation.
