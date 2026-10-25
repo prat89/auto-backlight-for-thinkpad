@@ -76,12 +76,20 @@ namespace Auto_Backlight_for_ThinkPad
 
                 // Find the integrated camera device
                 var coll = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-                if (!coll.Any(fi => fi.MonikerString.StartsWith(@"@device:pnp:\\?\usb#vid_5986&pid_2115")))
-                    throw new Exception("Integrated Camera device not found");
-                _vdev = new VideoCaptureDevice(coll.First(fi => fi.MonikerString.StartsWith(@"@device:pnp:\\?\usb#vid_5986&pid_2115")).MonikerString);
-
-                // Initial settings and hook handlers
-                _vdev.VideoResolution = _vdev.VideoCapabilities.First(sn => sn.FrameSize == new System.Drawing.Size(320, 240));
+                // Prefer a non-IR camera, but work with any DirectShow camera.
+                var cameras = coll.Cast<FilterInfo>()
+                    .OrderBy(fi => fi.Name.IndexOf("infrared", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                   fi.Name.IndexOf("IR Camera", StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 0)
+                    .ToList();
+                if (cameras.Count == 0)
+                    throw new InvalidOperationException("No suitable camera found");
+                _vdev = new VideoCaptureDevice(cameras[0].MonikerString);
+                // Prefer 320x240 but fall back to the smallest available capability.
+                var capabilities = _vdev.VideoCapabilities;
+                if (capabilities != null && capabilities.Length > 0)
+                    _vdev.VideoResolution = capabilities
+                        .OrderBy(c => c.FrameSize == new System.Drawing.Size(320, 240) ? 0 : 1)
+                        .ThenBy(c => c.FrameSize.Width * c.FrameSize.Height).First();
                 _vdev.PlayingFinished += (sender, e) => _finished.Set();
                 _vdev.NewFrame += (sender, e) =>
                 {

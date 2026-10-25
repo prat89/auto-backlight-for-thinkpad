@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2019 Parth Patel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,32 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 using Auto_Backlight_for_ThinkPad.RawInput;
 using System;
+using System.IO;
+using System.Text;
 
 namespace Auto_Backlight_for_ThinkPad
 {
     /// <summary>
-    /// Implement fully-configured Win32 Raw Input for capturing mouse/keyboard events from only the built-in mouse/keyboard
+    /// Capture raw input from recognized built-in ThinkPad pointing devices and keyboard.
+    /// Adapted for LEN0402 and tolerant of missing/renamed devices.
     /// </summary>
     public class Capture
     {
-        /// <summary>
-        /// Event triggered whenever by raw input to built-in mouse/keyboard
-        /// </summary>
         public event EventHandler CaptureEvent;
-        /// <summary>
-        /// Start capturing mouse/keyboard events, same as <see cref="Enabled"/>=true.
-        /// </summary>
+        public bool IncludeExternalDevices { get; set; } = false;
         public void Start() => Enabled = true;
-        /// <summary>
-        /// Stop capturing mouse/keyboard events, same as <see cref="Enabled"/>=false.
-        /// </summary>
         public void Stop() => Enabled = false;
-        /// <summary>
-        /// Get/set the enabled state of capturing, same as <see cref="Start"/>/<see cref="Stop"/>
-        /// </summary>
+
         public bool Enabled
         {
             get => _enabled;
@@ -58,15 +50,10 @@ namespace Auto_Backlight_for_ThinkPad
                 }
             }
         }
-        /// <summary>
-        /// Initialize a new instance configured to capture from built-in mouse/keyboard
-        /// </summary>
-        /// <param name="ri">Access to a prepared <see cref="RawInput.RawInput"/> object to receive events</param>
+
         public Capture(RawInput.RawInput ri)
         {
             _ri = ri;
-            // Create mouse/keyboard/touchpad collection configs
-            // INPUTSINK causes all input activity (foreground and background) to trigger messages
             _mouseColl.usagePage = 0x1;
             _mouseColl.usage = 0x2;
             _mouseColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK;
@@ -77,31 +64,58 @@ namespace Auto_Backlight_for_ThinkPad
             _touchpadColl.usage = 0x5;
             _touchpadColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK;
 
-            DeviceInputEventHandler captureHandler = (sender, e) =>
-            {
-                if (!_enabled) return;
-                CaptureEvent?.Invoke(this, new EventArgs());
-            };
-            // Connect capture handler to built-in mouse (trackpoint), keyboard, touchpad
-            int f = 0;
+            var log = new StringBuilder();
+            log.AppendLine("Auto Backlight for ThinkPad - Raw Input device diagnostics");
+            log.AppendLine("Timestamp: " + DateTime.Now.ToString("o"));
+            log.AppendLine("Built-in devices are monitored; external devices require opt-in.");
+            int internalCount = 0, externalCount = 0;
             foreach (Device dev in _ri.EnumeratedDevices)
             {
-                bool hook = false;
-                hook |= dev.Type == Device.DeviceType.Mouse && dev.Path.StartsWith(@"\\?\ACPI#LEN0099#");
-                hook |= dev.Type == Device.DeviceType.Keyboard && dev.Path.StartsWith(@"\\?\ACPI#LEN0071#");
-                hook |= dev.Type == Device.DeviceType.Hid && dev.Info != null &&
-                    ((HidInfo)(dev.Info)).vendorID == 0x06cb &&
-                    ((HidInfo)(dev.Info)).productID == 0x0f &&
-                    ((HidInfo)(dev.Info)).usagePage == 0xd &&
-                    ((HidInfo)(dev.Info)).usage == 0x5;
-                if (hook)
+                string path = dev.Path ?? string.Empty;
+                bool keyboard = dev.Type == Device.DeviceType.Keyboard;
+                bool mouse = dev.Type == Device.DeviceType.Mouse;
+                bool touchpad = false;
+                string hidDescription = "";
+                if (dev.Type == Device.DeviceType.Hid && dev.Info is HidInfo)
                 {
-                    f++;
-                    dev.InputReceived += captureHandler;
+                    var hid = (HidInfo)dev.Info;
+                    hidDescription = string.Format(" VID={0:X4} PID={1:X4} UsagePage={2:X} Usage={3:X}",
+                        hid.vendorID, hid.productID, hid.usagePage, hid.usage);
+                    touchpad = hid.usagePage == 0xD && hid.usage == 0x5;
                 }
+                // This is a heuristic, NOT an infallible built-in/external classification.
+                // ACPI paths generally indicate internal devices. Digitizer touchpads count
+                // as internal so modern Synaptics devices work without a hardcoded VID/PID.
+                bool internalDevice = ((keyboard || mouse) &&
+                    path.StartsWith(@"\\?\ACPI#", StringComparison.OrdinalIgnoreCase)) || touchpad;
+                bool eligible = path.Length > 0 && (keyboard || mouse || touchpad);
+                if (eligible)
+                {
+                    bool capturedInternal = internalDevice;
+                    dev.InputReceived += (sender, e) =>
+                    {
+                        if (!_enabled || (!capturedInternal && !IncludeExternalDevices)) return;
+                        CaptureEvent?.Invoke(this, EventArgs.Empty);
+                    };
+                    if (internalDevice) internalCount++; else externalCount++;
+                }
+                log.AppendLine(string.Format("{0} Type={1} Path={2}{3}",
+                    !eligible ? "[SKIPPED]" : internalDevice ? "[INTERNAL]" : "[EXTERNAL-OPT-IN]",
+                    dev.Type, path, hidDescription));
             }
-            if (f != 3)
-                throw new Exception("Failed to hook both Lenovo keyboard and mouse raw input devices");
+            log.AppendLine(string.Format("Internal={0}, external candidates={1}", internalCount, externalCount));
+            if (internalCount == 0)
+                log.AppendLine("WARNING: no internal inputs matched; device-classification may need adjustment.");
+
+            // Diagnostics must never prevent the application from starting.
+            try
+            {
+                string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Auto Backlight for ThinkPad");
+                Directory.CreateDirectory(folder);
+                File.WriteAllText(Path.Combine(folder, "raw-input-devices.log"), log.ToString());
+            }
+            catch (Exception) { /* Logging is best-effort only. */ }
         }
 
         private bool _enabled = false;

@@ -118,6 +118,9 @@ namespace Auto_Backlight_for_ThinkPad
             if (e.PropertyName == nameof(_settings.Keyboard_InactivityTimeout))
                 _autoKeyboard.InactivityTimeout = _settings.Keyboard_InactivityTimeout;
 
+            if (e.PropertyName == nameof(_settings.Keyboard_ExternalDevices))
+                _autoKeyboard.IncludeExternalDevices = _settings.Keyboard_ExternalDevices;
+
             if (e.PropertyName == nameof(_settings.Keyboard_OnLevel))
                 _autoKeyboard.OnLevel = _settings.Keyboard_OnLevel;
 

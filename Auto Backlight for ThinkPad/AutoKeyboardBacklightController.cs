@@ -99,6 +99,12 @@ namespace Auto_Backlight_for_ThinkPad
         /// Stop processing operations for this mode, same as <see cref="Enabled"/>=false.
         /// </summary>
         public void Stop() => Enabled = false;
+        /// <summary>Whether external USB/Bluetooth input also resets inactivity.</summary>
+        public bool IncludeExternalDevices
+        {
+            get => _capture.IncludeExternalDevices;
+            set => _capture.IncludeExternalDevices = value;
+        }
         /// <summary>
         /// Get/set the enabled state, same as <see cref="Start"/>/<see cref="Stop"/>.
         /// </summary>

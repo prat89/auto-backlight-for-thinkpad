@@ -218,7 +218,18 @@ namespace Auto_Backlight_for_ThinkPad
         /// </summary>
         public async Task<Tuple<double, double>> Retrigger()
         {
-            double intensity = await _webCam.Trigger();
+            double intensity;
+            try
+            {
+                if (_webCam == null) _webCam = new WebCam();
+                intensity = await _webCam.Trigger();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine("Automatic screen brightness camera error: " + ex);
+                Enabled = false;
+                return new Tuple<double, double>(double.NaN, double.NaN);
+            }
             double br = Calibration.Interpolate(_smoothedPoints, intensity);
             if (!double.IsNaN(br))
                 await SetBrightnessSlider((byte)Math.Round(br * 100.0));
@@ -243,7 +254,7 @@ namespace Auto_Backlight_for_ThinkPad
                 if (Enabled) _ = Retrigger();
             };
             PollPeriod = double.PositiveInfinity;
-            _webCam = new WebCam();
+            // Keyboard-only startup: do not initialize camera unless screen brightness is used.
         }
 
         private bool _enabled = false;
