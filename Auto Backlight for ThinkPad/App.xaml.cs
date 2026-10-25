@@ -134,6 +134,8 @@ namespace Auto_Backlight_for_ThinkPad
         // Connect changes in settings (from gui bindings in xaml) to controllers
         private void _Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            try
+            {
             if (_autoKeyboard != null && e.PropertyName == nameof(_settings.Keyboard_Enabled))
                 _autoKeyboard.Enabled = _settings.Keyboard_Enabled;
 
@@ -166,6 +168,12 @@ namespace Auto_Backlight_for_ThinkPad
 
             _settings.SaveToRegistry(RegistryKey);
             RegistryKey.Flush();
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Setting change failed: " + e.PropertyName, ex);
+                // Keep the tray responsive if a device becomes unavailable after startup.
+            }
         }
         // Stop and cleanup on app exit
         private void _Exiting(object sender, ExitEventArgs e)

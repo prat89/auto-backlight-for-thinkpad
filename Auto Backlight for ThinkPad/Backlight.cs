@@ -100,9 +100,13 @@ namespace Auto_Backlight_for_ThinkPad
         /// <param name="st">The state to be written (ex. 0/1/2) </param>
         public void Write(int st)
         {
-            State = _clamp(st);
-            if (!_SetKeyboardBackLightStatus(st))
+            int safeLevel = _clamp(st);
+            if (!_SetKeyboardBackLightStatus(safeLevel))
+            {
+                DiagnosticsLog.Info("Keyboard backlight write failed (IBMPMDRV)");
                 throw new Exception("Error accessing Keyboard driver");
+            }
+            State = safeLevel;
         }
         /// <summary>
         /// Query backlight for cuurent state
@@ -128,6 +132,7 @@ namespace Auto_Backlight_for_ThinkPad
                 throw new Exception("Error accessing Keyboard driver");
             State = st;
             Limit = lm;
+            DiagnosticsLog.Info("IBMPMDRV keyboard backlight detected; reported maximum level=" + Limit);
 
             // Background monitor thread setup
             _dispatcher = Dispatcher.CurrentDispatcher;
@@ -177,7 +182,18 @@ namespace Auto_Backlight_for_ThinkPad
 
                         // Check notification reason, bit.17 should flip; invoke event on parent thread
                         if (((oldVal ^ val) >> 17) == 1)
-                            _dispatcher.InvokeAsync(() => Changed?.Invoke(this, new BacklightEventArgs(Read())));
+                            _dispatcher.InvokeAsync(() =>
+                            {
+                                try
+                                {
+                                    int currentLevel = Read();
+                                    Changed?.Invoke(this, new BacklightEventArgs(currentLevel));
+                                }
+                                catch (Exception ex)
+                                {
+                                    DiagnosticsLog.Error("Keyboard backlight change event failed", ex);
+                                }
+                            });
                     }
                 }
             }

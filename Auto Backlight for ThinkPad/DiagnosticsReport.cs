@@ -25,7 +25,20 @@ namespace Auto_Backlight_for_ThinkPad
                 sb.AppendLine("Screen controller: " + (screenAvailable ? "initialized" : "unavailable"));
                 sb.AppendLine("Keyboard brightness maximum reported by driver: " +
                     (maximumKeyboardLevel.HasValue ? maximumKeyboardLevel.Value.ToString() : "unavailable"));
-                sb.AppendLine("Keyboard brightness control backend: IBMPMDRV (when available)");
+                sb.AppendLine("Keyboard brightness control backend: " +
+                    (keyboardAvailable ? "IBMPMDRV" : "unavailable"));
+                // Read-only capability interpretation. Does not modify backlight hardware.
+                if (!maximumKeyboardLevel.HasValue)
+                    sb.AppendLine("Keyboard backlight capabilities: unavailable (driver/controller not initialized)");
+                else if (maximumKeyboardLevel.Value < 0)
+                    sb.AppendLine("Keyboard backlight capabilities: invalid driver level");
+                else if (maximumKeyboardLevel.Value == 0)
+                    sb.AppendLine("Keyboard backlight capabilities: no illuminated level reported");
+                else if (maximumKeyboardLevel.Value == 1)
+                    sb.AppendLine("Keyboard backlight capabilities: Off (0), Low (1)");
+                else
+                    sb.AppendLine("Keyboard backlight capabilities: Off (0), Low (1), Full (2)" +
+                        (maximumKeyboardLevel.Value > 2 ? ", additional levels reported (not exposed by UI)" : ""));
                 try
                 {
                     using (var query = new ManagementObjectSearcher("SELECT Manufacturer,Model FROM Win32_ComputerSystem"))
