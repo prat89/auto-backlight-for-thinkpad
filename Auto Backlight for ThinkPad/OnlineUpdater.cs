@@ -56,68 +56,21 @@ namespace Auto_Backlight_for_ThinkPad
         /// Get info about the latest program version available online via Github API
         /// </summary>
         /// <returns>Tuple with version# and download url</returns>
-        public async Task<Downloadable> GetLatestVersion()
+        // v5.2: no automatic network requests; Releases opened in browser from About.
+        public Task<Downloadable> GetLatestVersion()
         {
-            var uri = new Uri(Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>().First((i) => i.Key == "WebUrl").Value); ;
-            uri = new Uri("https://api.github.com/repos" + uri.LocalPath + "/releases/latest");
-            var content = await _httpClient.GetAsync(uri);
-            if (content.IsSuccessStatusCode)
-            {
-                var json = await content.Content.ReadAsStringAsync();
-                Func<string, string> extract = (key) =>
-                {
-                    if (json.Contains(key))
-                    {
-                        int begin = json.IndexOf(key) + key.Length;
-                        int start = json.IndexOf("\"", begin);
-                        int end = json.IndexOf("\"", start + 1);
-                        return json.Substring(start + 1, end - start - 1);
-                    }
-                    return null;
-                };
-                var tag = extract("\"tag_name\":");
-                var lnk = extract("\"browser_download_url\":");
-                if (tag != null && lnk != null)
-                    return new Downloadable(new Version(tag), new Uri(lnk));
-            }
-            return null;
+            return Task.FromResult<Downloadable>(null);
         }
         /// <summary>
         /// Download the installer from Github API, run the installer in separate process
         /// </summary>
         /// <param name="update">Which version to retrieve</param>
         /// <returns>True on success</returns>
-        public async Task<bool> DownloadVersion(Downloadable update)
+        // v5.2 safety: the old installer chain is deliberately disabled.
+        public Task<bool> DownloadVersion(Downloadable update)
         {
-            var content = await _httpClient.GetAsync(update.Url);
-            if (content.IsSuccessStatusCode)
-            {
-                var file = Path.GetTempPath() + Path.GetFileName(update.Url.Segments.Last());
-                File.WriteAllBytes(file, await content.Content.ReadAsByteArrayAsync());
-
-                // Get uninstall product code from registry
-                string code = "";
-                var uninstallKey = Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall");
-                var progs = uninstallKey.GetSubKeyNames();
-                foreach (string s in progs)
-                {
-                    string dname = (string)uninstallKey.OpenSubKey(s).GetValue("DisplayName", "");
-                    if (dname == Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product)
-                        code = s;
-                }
-
-                // Run uninstaller, installer in new process
-                Process proc = new Process();
-                string cmd = "start /wait msiexec /x \"" + code + "\" /passive && start /wait msiexec /i \"" + file + "\"";
-                proc.StartInfo.FileName = Environment.GetEnvironmentVariable("ComSpec");
-                proc.StartInfo.Arguments = "/c " + cmd;
-                proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                proc.Start();
-                return true;
-            }
-            return false;
+            return Task.FromResult(false);
         }
-
         public OnlineUpdater()
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;

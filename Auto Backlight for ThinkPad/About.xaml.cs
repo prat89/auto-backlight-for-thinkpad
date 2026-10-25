@@ -38,7 +38,7 @@ namespace Auto_Backlight_for_ThinkPad
 
             // Load strings
             Header.Content = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product;
-            Subheader.Content = "Version: " + Assembly.GetExecutingAssembly().GetName().Version + " Config: " + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyConfigurationAttribute>().Configuration;
+            Subheader.Content = "Version: " + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion + " (" + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyConfigurationAttribute>().Configuration + ")";
             Body.Text = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyDescriptionAttribute>().Description;
             Footer.Content = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyCopyrightAttribute>().Copyright;
 
@@ -75,33 +75,19 @@ namespace Auto_Backlight_for_ThinkPad
                 StartAutoBox.IsChecked = 0 == Installer.DoCmd(Environment.GetEnvironmentVariable("ComSpec"), string.Format("/c schtasks /Query /TN {0} | findstr /C:Running /C:Ready", "\"" + "\\" + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product + "\""));
             };
             CloseButton.Click += (sender, e) => Close();
-            UpdateButton.Click += (sender, e) => _OnlineUpdateProcedure();
+            UpdateButton.Click += (sender, e) => OpenProjectUrl("https://github.com/prat89/auto-backlight-for-thinkpad/releases");
         }
-        // Update procedure, verbose version showing more user message boxes along the way (unlike the quiet version in App.xaml.cs)
-        private async void _OnlineUpdateProcedure()
+        // Visit a trusted project page. No background check or installer execution.
+        private static void OpenProjectUrl(string url)
         {
-            using (OnlineUpdater ou = new OnlineUpdater())
+            try
             {
-                var ver = Assembly.GetExecutingAssembly().GetName().Version;
-                var update = await ou.GetLatestVersion();
-
-                // Update is available, prompt user
-                if (update != null)
-                    if (update.Version > ver)
-                        // Yes/no download update
-                        if (MessageBoxResult.Yes == MessageBox.Show(string.Format("An update is available for {0}.\n\nThe latest version is: {1}.\nYour version is: {2}.\n\nWould you like to download the update?", Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product, update.Version, ver), "Update is available", MessageBoxButton.YesNo, MessageBoxImage.Warning))
-                            if (await ou.DownloadVersion(update))
-                                // Installer started, must quit this instance
-                                Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
-                            else
-                                // Error
-                                MessageBox.Show(string.Format("Could not download update for {0}.", Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product, ver), "Could not download", MessageBoxButton.OK, MessageBoxImage.Information);
-                        else
-                            // Not available
-                            MessageBox.Show(string.Format("An update is not available for {0}.\n\nYou have the latest version: {1}.", Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product, ver), "Update is not available", MessageBoxButton.OK, MessageBoxImage.Information);
-                    else
-                        // Error
-                        MessageBox.Show(string.Format("Could not check for updates for {0}.", Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product, ver), "Could not check", MessageBoxButton.OK, MessageBoxImage.Information);
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not open the web browser: " + ex.Message,
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }

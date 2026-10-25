@@ -77,7 +77,7 @@ limitations under the License.
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0" Name="Header" Content="Header" HorizontalAlignment="Left" VerticalAlignment="Center"
                            FontWeight="Bold" FontSize="18"/>
-                    <Button Grid.Column="1" Name="VisitButton" Template="{StaticResource button}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="Visit this project ..." ToolTip="Open link in web browser" 
+                    <Button Grid.Column="1" Name="VisitButton" Template="{StaticResource button}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="Visit fork on GitHub" ToolTip="Open link in web browser" 
                             Height="25" Width="125"/>
                 </Grid>
                 <Grid HorizontalAlignment="Stretch">
@@ -86,7 +86,7 @@ limitations under the License.
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0" Name="Subheader" Content="Subheader" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Name="UpdateButton" Template="{StaticResource button}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="Check for updates ..." ToolTip="Check for updates online at the project site" 
+                    <Button Grid.Column="1" Name="UpdateButton" Template="{StaticResource button}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="View releases ..." ToolTip="Open releases of this fork in a web browser (no automatic installation)" 
                             Height="25" Width="125"/>
                 </Grid>
                 <Label Width="480" HorizontalAlignment="Left" VerticalAlignment="Bottom">

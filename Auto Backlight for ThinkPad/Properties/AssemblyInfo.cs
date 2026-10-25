@@ -6,11 +6,12 @@ using System.Windows;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Auto Backlight for ThinkPad")]
-[assembly: AssemblyDescription("Automation tool for certain Lenovo ThinkPad laptops (ex. X1c, X1e, P1) to control the keyboard backlight and lcd screen brightness (backlight) on Windows installations using a system-tray application. These laptops do not come with an automatic control mechanism for either. Additional behaviors added by this program mimic some automations found on other devices. Keyboard backlight control is triggerred by a user-activity timeout, and screen dimming samples ambient light level using the integrated camera.")]
-[assembly: AssemblyCompany("pspatel321")]
+[assembly: AssemblyDescription("Automatically controls ThinkPad keyboard backlighting based on user activity, with optional external input devices, hardware diagnostics and optional camera-based screen brightness. Community-maintained fork by prat89, based on the original application by Parth Patel.")]
+[assembly: AssemblyCompany("prat89")]
 [assembly: AssemblyProduct("Auto Backlight for ThinkPad")]
-[assembly: AssemblyCopyright("Copyright © 2019 Parth Patel")]
-[assembly: AssemblyMetadata("WebUrl", @"https://github.com/pspatel321/auto-backlight-for-thinkpad")]
+[assembly: AssemblyCopyright("Original © 2019 Parth Patel; fork contributions © 2026 prat89")]
+[assembly: AssemblyMetadata("WebUrl", @"https://github.com/prat89/auto-backlight-for-thinkpad")]
+[assembly: AssemblyMetadata("ReleasesUrl", @"https://github.com/prat89/auto-backlight-for-thinkpad/releases")]
 
 // Setting ComVisible to false makes the types in this assembly not visible
 // to COM components.  If you need to access a type in this assembly from
@@ -47,7 +48,9 @@ using System.Windows;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.*")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyInformationalVersion("1.2.0-dev")]
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
 #else
