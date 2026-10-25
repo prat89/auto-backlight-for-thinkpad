@@ -108,7 +108,8 @@ namespace Auto_Backlight_for_ThinkPad
             FindResource("SysTrayMenu");
             FindResource("SysTrayIcon");
             DiagnosticsLog.Info("Tray icon initialized");
-            DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null);
+            DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
+                _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null);
         }
 
         private Settings _settings;
@@ -232,6 +233,88 @@ namespace Auto_Backlight_for_ThinkPad
             }
             _calibration.Show();
         }
+        // The tray context menu captures/deactivates focus while closing.
+        // A short one-shot delay lets the menu release focus before showing the dialog.
+        private void _ExportDiagnosticReport(object sender, RoutedEventArgs e)
+        {
+            DiagnosticsLog.Info("Export diagnostic report requested");
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(350)
+            };
+            EventHandler tick = null;
+            tick = (o, args) =>
+            {
+                timer.Stop();
+                timer.Tick -= tick;
+                _ExportDiagnosticReportCore();
+            };
+            timer.Tick += tick;
+            timer.Start();
+        }
+
+        private void _ExportDiagnosticReportCore()
+        {
+            Window owner = null;
+            try
+            {
+                DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
+                    _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null);
+                var source = DiagnosticsReport.ReportPath;
+                if (!System.IO.File.Exists(source))
+                    throw new System.IO.FileNotFoundException("Diagnostic report was not generated", source);
+
+                // Provide a real, visible top-level HWND to own the common dialog.
+                // The transparent 1x1 window remains practically invisible to the user.
+                owner = new Window
+                {
+                    Width = 1,
+                    Height = 1,
+                    Left = 10,
+                    Top = 10,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    ShowInTaskbar = false,
+                    ShowActivated = true,
+                    AllowsTransparency = true,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    Opacity = 0.01,
+                    Topmost = true
+                };
+                owner.Show();
+                owner.Activate();
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Export hardware diagnostic report",
+                    FileName = "auto-backlight-hardware-report.txt",
+                    Filter = "Text files (*.txt)|*.txt",
+                    AddExtension = true,
+                    DefaultExt = ".txt",
+                    OverwritePrompt = true
+                };
+                DiagnosticsLog.Info("Opening owned diagnostic SaveFileDialog");
+                bool? result = dialog.ShowDialog(owner);
+                DiagnosticsLog.Info("Owned SaveFileDialog returned " +
+                    (result.HasValue ? result.Value.ToString() : "null"));
+                if (result != true) return;
+                System.IO.File.Copy(source, dialog.FileName, true);
+                DiagnosticsLog.Info("Hardware diagnostic report exported by user");
+                MessageBox.Show("Diagnostic report exported successfully.",
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Diagnostic export failed", ex);
+                MessageBox.Show("Could not export the diagnostic report. See application.log for details.",
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                if (owner != null) owner.Close();
+            }
+        }
+
         // Show the application about window
         private void _ShowAbout(object sender, RoutedEventArgs e)
         {

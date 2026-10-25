@@ -47,6 +47,9 @@ namespace Auto_Backlight_for_ThinkPad
         /// <summary>
         /// Get/set the brightness level used for the On state
         /// </summary>
+        /// <summary>Maximum brightness level reported by the current driver.</summary>
+        public int MaximumBrightnessLevel => _backlight.Limit;
+
         public int OnLevel
         {
             get => _onLevel;

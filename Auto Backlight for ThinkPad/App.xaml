@@ -122,6 +122,7 @@ limitations under the License.
                 </MenuItem>
             </MenuItem>
             <Separator/>
+            <MenuItem Header="Export diagnostic report..." Click="_ExportDiagnosticReport"/>
             <MenuItem Header="About" Click="_ShowAbout"/>
             <MenuItem Header="Exit" Click="_ExitApplication"/>
         </ContextMenu>

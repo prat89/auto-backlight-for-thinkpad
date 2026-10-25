@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Management;
 using System.Reflection;
@@ -8,7 +8,8 @@ namespace Auto_Backlight_for_ThinkPad
 {
     internal static class DiagnosticsReport
     {
-        public static void Write(bool keyboardAvailable, bool screenAvailable)
+        public static string ReportPath => Path.Combine(Path.GetDirectoryName(DiagnosticsLog.FilePath), "hardware-report.txt");
+        public static void Write(bool keyboardAvailable, bool screenAvailable, int? maximumKeyboardLevel)
         {
             // Intentional: no user name, machine name, serial number, input events or camera frames.
             try
@@ -22,6 +23,9 @@ namespace Auto_Backlight_for_ThinkPad
                 sb.AppendLine("OS: " + Environment.OSVersion.VersionString);
                 sb.AppendLine("Keyboard controller: " + (keyboardAvailable ? "initialized" : "unavailable"));
                 sb.AppendLine("Screen controller: " + (screenAvailable ? "initialized" : "unavailable"));
+                sb.AppendLine("Keyboard brightness maximum reported by driver: " +
+                    (maximumKeyboardLevel.HasValue ? maximumKeyboardLevel.Value.ToString() : "unavailable"));
+                sb.AppendLine("Keyboard brightness control backend: IBMPMDRV (when available)");
                 try
                 {
                     using (var query = new ManagementObjectSearcher("SELECT Manufacturer,Model FROM Win32_ComputerSystem"))
