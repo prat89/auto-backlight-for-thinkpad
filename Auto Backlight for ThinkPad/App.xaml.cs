@@ -68,8 +68,8 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Keyboard controller failed", ex);
-                throw;
+                DiagnosticsLog.Error("Keyboard controller failed; screen features remain available", ex);
+                _autoKeyboard = null;
             }
             try
             {
@@ -78,10 +78,10 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Screen controller failed", ex);
-                throw;
+                DiagnosticsLog.Error("Screen controller failed; keyboard features remain available", ex);
+                _autoScreen = null;
             }
-            _autoScreen.BrightnessChanged += (se, ev) =>
+            if (_autoScreen != null) _autoScreen.BrightnessChanged += (se, ev) =>
             {
                 _lastPoint = new DataPoint(ev.Intensity, ev.Brightness);
                 // Update the calibration graph if it is open
@@ -90,7 +90,7 @@ namespace Auto_Backlight_for_ThinkPad
                     _calibration.CurrentPoint = new DataPoint(ev.Intensity, ev.Brightness);
                 }
             };
-            _autoKeyboard.Activity += (se, ev) =>
+            if (_autoKeyboard != null) _autoKeyboard.Activity += (se, ev) =>
             {
                 // Record changes in OnLevel, used next time application runs
                 if (ev.Act == AutoKeyboardBacklightController.ActivityEventArgs.Activity.OnLevelChanged)
@@ -100,7 +100,7 @@ namespace Auto_Backlight_for_ThinkPad
                 // Refresh screen brightness on power resume events
                 if (ev.Act == AutoKeyboardBacklightController.ActivityEventArgs.Activity.PowerResume)
                 {
-                    if (_autoScreen.Enabled) _ = _autoScreen.Retrigger();
+                    if (_autoScreen != null && _autoScreen.Enabled) _ = _autoScreen.Retrigger();
                 }
             };
 
@@ -108,6 +108,7 @@ namespace Auto_Backlight_for_ThinkPad
             FindResource("SysTrayMenu");
             FindResource("SysTrayIcon");
             DiagnosticsLog.Info("Tray icon initialized");
+            DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null);
         }
 
         private Settings _settings;
@@ -132,34 +133,34 @@ namespace Auto_Backlight_for_ThinkPad
         // Connect changes in settings (from gui bindings in xaml) to controllers
         private void _Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(_settings.Keyboard_Enabled))
+            if (_autoKeyboard != null && e.PropertyName == nameof(_settings.Keyboard_Enabled))
                 _autoKeyboard.Enabled = _settings.Keyboard_Enabled;
 
-            if (e.PropertyName == nameof(_settings.Keyboard_InactivityTimeout))
+            if (_autoKeyboard != null && e.PropertyName == nameof(_settings.Keyboard_InactivityTimeout))
                 _autoKeyboard.InactivityTimeout = _settings.Keyboard_InactivityTimeout;
 
-            if (e.PropertyName == nameof(_settings.Keyboard_ExternalDevices))
+            if (_autoKeyboard != null && e.PropertyName == nameof(_settings.Keyboard_ExternalDevices))
                 _autoKeyboard.IncludeExternalDevices = _settings.Keyboard_ExternalDevices;
 
-            if (e.PropertyName == nameof(_settings.Keyboard_OnLevel))
+            if (_autoKeyboard != null && e.PropertyName == nameof(_settings.Keyboard_OnLevel))
                 _autoKeyboard.OnLevel = _settings.Keyboard_OnLevel;
 
-            if (e.PropertyName == nameof(_settings.Screen_Enabled))
+            if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_Enabled))
                 _autoScreen.Enabled = _settings.Screen_Enabled;
 
-            if (e.PropertyName == nameof(_settings.Screen_PollPeriod))
+            if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_PollPeriod))
                 _autoScreen.PollPeriod = _settings.Screen_PollPeriod;
 
-            if (e.PropertyName == nameof(_settings.Screen_HotKeyEnabled))
+            if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_HotKeyEnabled))
                 _autoScreen.HotKeyEnabled = _settings.Screen_HotKeyEnabled;
 
-            if (e.PropertyName == nameof(_settings.Screen_HotKey))
+            if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_HotKey))
                 _autoScreen.HotKey = HotKey.Parse(_settings.Screen_HotKey);
 
-            if (e.PropertyName == nameof(_settings.Screen_LearnedPoints))
+            if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_LearnedPoints))
                 _autoScreen.LearnedPoints = _settings.Screen_LearnedPoints.Select(p => new DataPoint(p.Item1, p.Item2)).ToList();
 
-            if (e.PropertyName == nameof(_settings.Screen_Curvature))
+            if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_Curvature))
                 _autoScreen.Curvature = _settings.Screen_Curvature;
 
             _settings.SaveToRegistry(RegistryKey);
@@ -168,8 +169,10 @@ namespace Auto_Backlight_for_ThinkPad
         // Stop and cleanup on app exit
         private void _Exiting(object sender, ExitEventArgs e)
         {
-            _autoKeyboard.Stop();
-            _autoScreen.Stop();
+            try { if (_autoKeyboard != null) _autoKeyboard.Stop(); }
+            catch (Exception ex) { DiagnosticsLog.Error("Keyboard shutdown failed", ex); }
+            try { if (_autoScreen != null) _autoScreen.Stop(); }
+            catch (Exception ex) { DiagnosticsLog.Error("Screen shutdown failed", ex); }
 
             _settings.SaveToRegistry(RegistryKey);
             RegistryKey.Close();
@@ -177,6 +180,12 @@ namespace Auto_Backlight_for_ThinkPad
         // Show the screen brightness vs ambient light level calibration window
         private void _ShowCalibration(object sender, RoutedEventArgs e)
         {
+            if (_autoScreen == null)
+            {
+                MessageBox.Show("The screen brightness controller is unavailable. Check the diagnostic log.",
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
             if (_calibration == null)
             {
                 // Create new window from saved points if not already open
@@ -311,14 +320,14 @@ namespace Auto_Backlight_for_ThinkPad
         private void _HotKeyBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            _autoScreen.HotKeyEnabled = false;
+            if (_autoScreen != null) _autoScreen.HotKeyEnabled = false;
         }
         // HotKey box, save final shortcut after user is done editing, unblock shortcut
         private void _HotKeyBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
             _settings.Screen_HotKey = tb.Text;
-            _autoScreen.HotKeyEnabled = _settings.Screen_HotKeyEnabled;
+            if (_autoScreen != null) _autoScreen.HotKeyEnabled = _settings.Screen_HotKeyEnabled;
         }
 
         private MenuItem _scm;
