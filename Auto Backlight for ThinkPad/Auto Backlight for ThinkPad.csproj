@@ -160,6 +160,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Backlight.cs" />
+    <Compile Include="DiagnosticsLog.cs" />
     <Compile Include="AutoScreenBrightnessController.cs" />
     <Compile Include="PowerTracker.cs" />
     <Compile Include="AutoKeyboardBacklightController.cs" />

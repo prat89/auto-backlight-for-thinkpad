@@ -31,6 +31,9 @@ namespace Auto_Backlight_for_ThinkPad
         [STAThread]
         public static void Main()
         {
+            DiagnosticsLog.Info("Process start. OS=" + Environment.OSVersion + "; CLR=" + Environment.Version);
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+                DiagnosticsLog.Error("Unhandled exception", args.ExceptionObject as Exception);
             // Allow only a single instance of this application to run at once
             string proc = Process.GetCurrentProcess().ProcessName;
             if (Process.GetProcessesByName(proc).Length > 1)
@@ -55,7 +58,17 @@ namespace Auto_Backlight_for_ThinkPad
             };
 
             // Back to WPF App built-in entry point
-            App.Main();
+            try
+            {
+                App.Main();
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Application startup failed", ex);
+                MessageBox.Show("The application could not start. See log:\n" +
+                    DiagnosticsLog.FilePath + "\n\n" + ex.Message,
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

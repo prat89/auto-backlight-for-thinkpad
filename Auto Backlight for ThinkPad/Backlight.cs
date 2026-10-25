@@ -141,11 +141,24 @@ namespace Auto_Backlight_for_ThinkPad
 
         private void _MonitorThread()
         {
+            try
+            {
             using (var ev = new EventWaitHandle(false, EventResetMode.AutoReset))
             {
                 using (var notifyKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\IBMPMSVC\Parameters\Notification"))
                 {
-                    uint val = (uint)(int)notifyKey.GetValue(null);
+                    if (notifyKey == null)
+                    {
+                        DiagnosticsLog.Info("IBMPMSVC registry notification key missing; monitor disabled");
+                        return;
+                    }
+                    object initialValue = notifyKey.GetValue(null);
+                    if (!(initialValue is int))
+                    {
+                        DiagnosticsLog.Info("IBMPMSVC notification value invalid; monitor disabled");
+                        return;
+                    }
+                    uint val = (uint)(int)initialValue;
                     int ret = RegNotifyChangeKeyValue(notifyKey.Handle.DangerousGetHandle(), false, 4, ev.SafeWaitHandle.DangerousGetHandle(), true);
                     if (ret != 0)
                         throw new Exception("RegNotifyChangeKeyValue failed");
@@ -167,6 +180,11 @@ namespace Auto_Backlight_for_ThinkPad
                             _dispatcher.InvokeAsync(() => Changed?.Invoke(this, new BacklightEventArgs(Read())));
                     }
                 }
+            }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Registry notification monitoring failed", ex);
             }
         }
         private int _clamp(int st)
@@ -232,23 +250,27 @@ namespace Auto_Backlight_for_ThinkPad
         private int _CallPmService(uint code, int input)
         {
             IntPtr h = CreateFile(@"\\.\IBMPmDrv", 0x80000000, 1, IntPtr.Zero, 3, 0, IntPtr.Zero);
-            if (h == IntPtr.Zero)
-                throw new Exception("Error opening handle to PM service");
-            bool b;
-
-            uint bytesRet;
-            NativeOverlapped overlapped = default;
-            byte[] inp = BitConverter.GetBytes(input);
-            byte[] outp = new byte[sizeof(int)];
-            b = DeviceIoControl(h, code, inp, (uint)inp.Length, outp, (uint)outp.Length, out bytesRet, ref overlapped);
-            int output = BitConverter.ToInt32(outp, 0);
-
-            if (!b)
-                throw new Exception("Error passing control info to PM service");
-            b = CloseHandle(h);
-            if (!b)
-                throw new Exception("Error closing handle to PM service");
-            return output;
+            if (h == new IntPtr(-1) || h == IntPtr.Zero)
+                throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Opening IBMPmDrv failed");
+            try
+            {
+                uint bytesRet;
+                NativeOverlapped overlapped = default;
+                byte[] inp = BitConverter.GetBytes(input);
+                byte[] outp = new byte[sizeof(int)];
+                bool ok = DeviceIoControl(h, code, inp, (uint)inp.Length, outp, (uint)outp.Length,
+                    out bytesRet, ref overlapped);
+                if (!ok)
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "IBMPmDrv DeviceIoControl failed");
+                if (bytesRet < sizeof(int))
+                    throw new InvalidOperationException("Incomplete IBMPmDrv response");
+                return BitConverter.ToInt32(outp, 0);
+            }
+            finally
+            {
+                if (!CloseHandle(h))
+                    DiagnosticsLog.Info("Warning: CloseHandle failed; Win32=" + Marshal.GetLastWin32Error());
+            }
         }
 
         [DllImport("kernel32.dll", SetLastError = true)]

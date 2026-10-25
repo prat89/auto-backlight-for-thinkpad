@@ -43,6 +43,7 @@ namespace Auto_Backlight_for_ThinkPad
         /// </summary>
         public App()
         {
+            DiagnosticsLog.Info("App constructor started");
             // Check for updates in Release mode
 #if !DEBUG
             _OnlineUpdateProcedure();
@@ -60,8 +61,26 @@ namespace Auto_Backlight_for_ThinkPad
             var pm = c.Children.OfType<PowerManagement.PowerManagement>().First();
             var ri = c.Children.OfType<RawInput.RawInput>().First();
             var gh = c.Children.OfType<GlobalHotKey>().First();
-            _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
-            _autoScreen = new AutoScreenBrightnessController(gh);
+            try
+            {
+                _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
+                DiagnosticsLog.Info("Keyboard controller initialized");
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Keyboard controller failed", ex);
+                throw;
+            }
+            try
+            {
+                _autoScreen = new AutoScreenBrightnessController(gh);
+                DiagnosticsLog.Info("Screen controller initialized");
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Screen controller failed", ex);
+                throw;
+            }
             _autoScreen.BrightnessChanged += (se, ev) =>
             {
                 _lastPoint = new DataPoint(ev.Intensity, ev.Brightness);
@@ -88,6 +107,7 @@ namespace Auto_Backlight_for_ThinkPad
             // Triggers loading of the icon & menu in tray
             FindResource("SysTrayMenu");
             FindResource("SysTrayIcon");
+            DiagnosticsLog.Info("Tray icon initialized");
         }
 
         private Settings _settings;
