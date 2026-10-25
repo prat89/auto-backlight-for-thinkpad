@@ -47,7 +47,7 @@ namespace Auto_Backlight_for_ThinkPad
     /// <summary>
     /// Friendly read/write access to keyboard backlight
     /// </summary>
-    public class Backlight
+    public class Backlight : IKeyboardBacklightBackend
     {
         /// <summary>
         /// Raised when the backlight state has been changed by keyboard or by <see cref="Write(int)"/>

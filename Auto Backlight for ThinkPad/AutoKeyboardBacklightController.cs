@@ -201,7 +201,7 @@ namespace Auto_Backlight_for_ThinkPad
                 Debug.WriteLine("{0} Timeout pause: onLevel={1}", DateTime.Now.TimeOfDay, _onLevel);
                 Activity?.Invoke(this, new ActivityEventArgs(ActivityEventArgs.Activity.PowerPause));
             };
-            _backlight = new Backlight();
+            _backlight = KeyboardBacklightBackendFactory.Create();
         }
 
         private bool _enabled = false;
@@ -212,7 +212,7 @@ namespace Auto_Backlight_for_ThinkPad
         private DispatcherTimer _timer;
         private Capture _capture;
         private PowerTracker _tracker;
-        private Backlight _backlight;
+        private IKeyboardBacklightBackend _backlight;
 
         // Change OnLevel from user keyboard shortcut
         private void _Changed(object sender, BacklightEventArgs e)
