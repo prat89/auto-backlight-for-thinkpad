@@ -138,17 +138,32 @@ namespace Auto_Backlight_for_ThinkPad
         private void _Starting(object sender, StartupEventArgs e)
         {
             DiagnosticsLog.Info("Startup event: settings restore begin");
-            // Registry access is optional: keep keyboard automation working even if
-            // the user profile or registry is temporarily unavailable.
+            // Null registry key means no persistence; existing unreadable bytes stay untouched.
             try
             {
                 RegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\" + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product);
                 if (RegistryKey == null)
                     throw new InvalidOperationException("Settings registry key could not be opened");
-                if (!_settings.RestoreFromRegistry(RegistryKey))
+
+                object saved = RegistryKey.GetValue("Settings");
+                if (saved == null)
                 {
-                    _settings.SaveToRegistry(RegistryKey);
-                    RegistryKey.Flush();
+                    DiagnosticsLog.Info("Settings restore: no saved values; using defaults; external input=" + _settings.Keyboard_ExternalDevices);
+                    if (!_settings.SaveToRegistry(RegistryKey))
+                        DiagnosticsLog.Info("Settings: initial registry write failed; using defaults in memory");
+                    else
+                        RegistryKey.Flush();
+                }
+                else if (saved is byte[] && _settings.RestoreFromRegistry(RegistryKey))
+                {
+                    DiagnosticsLog.Info("Settings restore: saved values loaded; external input=" + _settings.Keyboard_ExternalDevices);
+                }
+                else
+                {
+                    DiagnosticsLog.Info("Settings restore: saved values unreadable; using defaults; external input=" + _settings.Keyboard_ExternalDevices);
+                    DiagnosticsLog.Info("Settings: existing registry bytes preserved; persistence disabled for this session");
+                    RegistryKey.Dispose();
+                    RegistryKey = null;
                 }
             }
             catch (Exception ex)
@@ -201,9 +216,16 @@ namespace Auto_Backlight_for_ThinkPad
 
             if (RegistryKey != null)
             {
-                _settings.SaveToRegistry(RegistryKey);
-                RegistryKey.Flush();
+                if (_settings.SaveToRegistry(RegistryKey))
+                {
+                    RegistryKey.Flush();
+                    DiagnosticsLog.Info("Settings save succeeded; property=" + e.PropertyName);
+                }
+                else
+                    DiagnosticsLog.Info("Settings save FAILED; property=" + e.PropertyName);
             }
+            else
+                DiagnosticsLog.Info("Settings save skipped: registry persistence unavailable; property=" + e.PropertyName);
             }
             catch (Exception ex)
             {
@@ -223,7 +245,16 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 if (RegistryKey != null)
                 {
-                    if (_settings != null) _settings.SaveToRegistry(RegistryKey);
+                    if (_settings != null)
+                    {
+                        if (_settings.SaveToRegistry(RegistryKey))
+                        {
+                            RegistryKey.Flush();
+                            DiagnosticsLog.Info("Settings exit save succeeded");
+                        }
+                        else
+                            DiagnosticsLog.Info("Settings exit save FAILED");
+                    }
                     RegistryKey.Close();
                     RegistryKey = null;
                 }

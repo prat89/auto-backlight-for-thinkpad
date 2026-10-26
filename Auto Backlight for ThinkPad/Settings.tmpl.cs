@@ -18,7 +18,7 @@
 // bool; Keyboard_Enabled; true; false; true; ""; "Enable automatic keyboard backlight control with user activity timeout"
 // double; Keyboard_InactivityTimeout; 60; 1; double.PositiveInfinity; "s"; "Keyboard backlight timeout after user inactivity"
 // int; Keyboard_OnLevel; 2; 0; 2; ""; "Keyboard backlight brightness level when illuminated"
-// bool; Keyboard_ExternalDevices; false; false; true; ""; "Include external USB/Bluetooth keyboards and mice"
+// bool; Keyboard_ExternalDevices; true; false; true; ""; "Include external USB/Bluetooth keyboards and mice"
 // bool; Screen_Enabled; false; false; true; ""; "Enable automatic screen brightness control with ambient light level from webcam image"
 // double; Screen_PollPeriod; double.PositiveInfinity; 1; double.PositiveInfinity; "s"; "Screen brightness refresh period from webcam image"
 // bool; Screen_HotKeyEnabled; false; false; true; ""; "Enable a hotKey to trigger manual screen brightness refresh"
@@ -442,8 +442,9 @@ namespace Auto_Backlight_for_ThinkPad
                 key.SetValue("Settings", Encapsulated.ToBytes(_raw), RegistryValueKind.Binary);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DiagnosticsLog.Error("Settings serialization/write failed", ex);
                 return false;
             }
         }
@@ -458,8 +459,9 @@ namespace Auto_Backlight_for_ThinkPad
                 _raw = Encapsulated.FromBytes((byte[])key.GetValue("Settings"));
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DiagnosticsLog.Error("Settings restore failed (registry data retained)", ex);
                 return false;
             }
         }
@@ -490,10 +492,14 @@ namespace Auto_Backlight_for_ThinkPad
                 {
                     var enc = (Encapsulated)bf.Deserialize(ms);
 
-                    bool pass = true;
-                    pass &= enc.raw.GetHashCode() == enc.header;
-                    pass &= hash(enc.raw) == enc.footer;
-                    if (!pass) throw new FormatException();
+                    bool headerOk = enc.raw.GetHashCode() == enc.header;
+                    bool footerOk = hash(enc.raw) == enc.footer;
+                    if (!footerOk)
+                        throw new FormatException("Settings integrity check failed: header=" + headerOk + "; footer=" + footerOk);
+                    // Raw.GetHashCode() is not persistent across process versions/runs.
+                    // Footer is the serialized-data check used for legacy recovery.
+                    if (!headerOk)
+                        DiagnosticsLog.Info("Settings legacy header mismatch; footer valid; restoring saved values");
                     return enc.raw;
                 }
             }

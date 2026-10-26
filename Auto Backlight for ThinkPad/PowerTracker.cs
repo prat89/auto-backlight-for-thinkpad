@@ -85,6 +85,7 @@ namespace Auto_Backlight_for_ThinkPad
                 bool on = (bool)e.Data;
                 bool off = !on;
 
+                DiagnosticsLog.Info("Power notification: display " + (on ? "on" : "off") + "; activeMode=" + _mode);
                 if (off)
                 {
                     if (_mode == "")
@@ -110,6 +111,7 @@ namespace Auto_Backlight_for_ThinkPad
                 bool open = (bool)e.Data;
                 bool close = !open;
 
+                DiagnosticsLog.Info("Power notification: lid " + (open ? "open" : "closed") + "; activeMode=" + _mode);
                 if (close)
                 {
                     if (_mode == "")
@@ -130,6 +132,7 @@ namespace Auto_Backlight_for_ThinkPad
             _suspendEvent.Notified += (sender, e) =>
             {
                 if (!_enabled) return;
+                DiagnosticsLog.Info("Power notification: system suspend; activeMode=" + _mode);
 
                 if (_mode == "")
                 {
@@ -140,6 +143,7 @@ namespace Auto_Backlight_for_ThinkPad
             _resumeEvent.Notified += (sender, e) =>
             {
                 if (!_enabled) return;
+                DiagnosticsLog.Info("Power notification: system resume; activeMode=" + _mode);
 
                 if (_mode == "Suspend")
                 {

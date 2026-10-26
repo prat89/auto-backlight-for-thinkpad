@@ -26,14 +26,14 @@ limitations under the License.
         <local:Settings x:Key="Settings"/>
         <local:TimeFormatter x:Key="TimeFormatter"/>
         <local:BrightnessLevelFormatter x:Key="BrightnessLevelFormatter"/>
-        <ContextMenu x:Key="SysTrayMenu">
-            <MenuItem Header="Settings">
+        <ContextMenu x:Key="SysTrayMenu" Padding="0">
+            <MenuItem Padding="0,1,2,1" Header="Settings">
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Keyboard_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="KeyboardMenu_Init"
                           ToolTip="{Binding Path=Meta.Keyboard_Enabled.Help, Source={StaticResource Settings}}">
                     <MenuItem.Header>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="190"/>
+                                <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto keyboard backlight"/>
@@ -57,7 +57,7 @@ limitations under the License.
                     <MenuItem.Header>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="190"/>
+                                <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Choose brightness level"/>
@@ -70,18 +70,22 @@ limitations under the License.
                         </Grid>
                     </MenuItem.Header>
                 </MenuItem>
-                <MenuItem Header="React to external input devices"
+                <MenuItem
                           IsCheckable="True" StaysOpenOnClick="True"
                           IsChecked="{Binding Keyboard_ExternalDevices, Mode=TwoWay, Source={StaticResource Settings}}"
                           IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
-                          ToolTip="Include external USB and Bluetooth input in the inactivity timer"/>
+                          ToolTip="Include external USB and Bluetooth input in the inactivity timer">
+                    <MenuItem.Header>
+                        <Label HorizontalAlignment="Left" Content="React to external input devices"/>
+                    </MenuItem.Header>
+                </MenuItem>
                 <Separator/>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Screen_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="ScreenMenu_Init"
                           ToolTip="{Binding Path=Meta.Screen_Enabled.Help, Source={StaticResource Settings}}">
                     <MenuItem.Header>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="190"/>
+                                <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto screen brightness"/>
@@ -105,7 +109,7 @@ limitations under the License.
                     <MenuItem.Header>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="190"/>
+                                <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable hotkey for screen refresh"/>
@@ -122,9 +126,9 @@ limitations under the License.
                 </MenuItem>
             </MenuItem>
             <Separator/>
-            <MenuItem Header="Export diagnostic report..." Click="_ExportDiagnosticReport"/>
-            <MenuItem Header="About" Click="_ShowAbout"/>
-            <MenuItem Header="Exit" Click="_ExitApplication"/>
+            <MenuItem Padding="0,1,2,1" Header="Diagnostics..." Click="_ExportDiagnosticReport"/>
+            <MenuItem Padding="0,1,2,1" Header="About" Click="_ShowAbout"/>
+            <MenuItem Padding="0,1,2,1" Header="Exit" Click="_ExitApplication"/>
         </ContextMenu>
 
         <tb:TaskbarIcon x:Key="SysTrayIcon"
