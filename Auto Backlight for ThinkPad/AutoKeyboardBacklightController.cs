@@ -185,6 +185,8 @@ namespace Auto_Backlight_for_ThinkPad
             _tracker = new PowerTracker(pm);
             _tracker.Resume += (sender, e) =>
             {
+                // v5.5 power event diagnostic (existing PowerTracker event).
+                DiagnosticsLog.Info("Power event: resume received; enabled=" + _enabled);
                 _timer.Start();
                 _LightsOn();
                 _backlight.Changed += _Changed;
@@ -194,6 +196,8 @@ namespace Auto_Backlight_for_ThinkPad
             };
             _tracker.Pause += (sender, e) =>
             {
+                // v5.5 power event diagnostic (existing PowerTracker event).
+                DiagnosticsLog.Info("Power event: pause received; enabled=" + _enabled);
                 _backlight.Changed -= _Changed;
                 _timer.Stop();
                 _LightsOff();

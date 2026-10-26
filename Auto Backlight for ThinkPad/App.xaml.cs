@@ -43,10 +43,21 @@ namespace Auto_Backlight_for_ThinkPad
         /// </summary>
         public App()
         {
-            DiagnosticsLog.Info("App constructor started");
+            DiagnosticsLog.Info("App constructor started; PID=" + System.Diagnostics.Process.GetCurrentProcess().Id);
+            // v5.5 startup checkpoint: expose where initialization stops.
             // Check for updates in Release mode
 // v5.2: automatic update checks disabled; users visit fork Releases manually.
-            InitializeComponent();
+            DiagnosticsLog.Info("Startup checkpoint: InitializeComponent begin");
+            try
+            {
+                InitializeComponent();
+                DiagnosticsLog.Info("Startup checkpoint: InitializeComponent complete");
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Startup checkpoint: InitializeComponent failed", ex);
+                throw;
+            }
 
             // Hook startup / exit actions
             Startup += _Starting;
@@ -54,11 +65,16 @@ namespace Auto_Backlight_for_ThinkPad
             SessionEnding += (sender, e) => _Exiting(null, null);
 
             // Initialize controller components
+            DiagnosticsLog.Info("Startup checkpoint: resolve Settings begin");
             _settings = (Settings)FindResource("Settings");
+            DiagnosticsLog.Info("Startup checkpoint: resolve Settings complete");
+            DiagnosticsLog.Info("Startup checkpoint: resolve HiddenWindow begin");
             var c = (Panel)((Window)FindResource("HiddenWindow")).Content;
+            DiagnosticsLog.Info("Startup checkpoint: resolve HiddenWindow complete");
             var pm = c.Children.OfType<PowerManagement.PowerManagement>().First();
             var ri = c.Children.OfType<RawInput.RawInput>().First();
             var gh = c.Children.OfType<GlobalHotKey>().First();
+            DiagnosticsLog.Info("Startup checkpoint: input and power components resolved");
             try
             {
                 _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
@@ -103,11 +119,14 @@ namespace Auto_Backlight_for_ThinkPad
             };
 
             // Triggers loading of the icon & menu in tray
+            DiagnosticsLog.Info("Startup checkpoint: tray resources begin");
             FindResource("SysTrayMenu");
             FindResource("SysTrayIcon");
             DiagnosticsLog.Info("Tray icon initialized");
+            DiagnosticsLog.Info("Startup checkpoint: hardware report begin");
             DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
                 _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null);
+            DiagnosticsLog.Info("Startup checkpoint: App constructor complete");
         }
 
         private Settings _settings;
@@ -118,6 +137,7 @@ namespace Auto_Backlight_for_ThinkPad
         // Setup on app startup
         private void _Starting(object sender, StartupEventArgs e)
         {
+            DiagnosticsLog.Info("Startup event: settings restore begin");
             // Registry access is optional: keep keyboard automation working even if
             // the user profile or registry is temporarily unavailable.
             try
@@ -142,6 +162,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             _settings.PropertyChanged += _Settings_PropertyChanged;
             _settings.Update();
+            DiagnosticsLog.Info("Startup event: settings applied");
         }
         // Connect changes in settings (from gui bindings in xaml) to controllers
         private void _Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
