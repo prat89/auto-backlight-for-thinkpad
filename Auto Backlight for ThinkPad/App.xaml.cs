@@ -118,13 +118,27 @@ namespace Auto_Backlight_for_ThinkPad
         // Setup on app startup
         private void _Starting(object sender, StartupEventArgs e)
         {
-            RegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\" + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product);
-
-            // Try to get settings, if fail save a fresh copy
-            if (!_settings.RestoreFromRegistry(RegistryKey))
+            // Registry access is optional: keep keyboard automation working even if
+            // the user profile or registry is temporarily unavailable.
+            try
             {
-                _settings.SaveToRegistry(RegistryKey);
-                RegistryKey.Flush();
+                RegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\" + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product);
+                if (RegistryKey == null)
+                    throw new InvalidOperationException("Settings registry key could not be opened");
+                if (!_settings.RestoreFromRegistry(RegistryKey))
+                {
+                    _settings.SaveToRegistry(RegistryKey);
+                    RegistryKey.Flush();
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Settings registry unavailable; using in-memory settings", ex);
+                if (RegistryKey != null)
+                {
+                    try { RegistryKey.Dispose(); } catch (Exception) { }
+                    RegistryKey = null;
+                }
             }
             _settings.PropertyChanged += _Settings_PropertyChanged;
             _settings.Update();
@@ -164,8 +178,11 @@ namespace Auto_Backlight_for_ThinkPad
             if (_autoScreen != null && e.PropertyName == nameof(_settings.Screen_Curvature))
                 _autoScreen.Curvature = _settings.Screen_Curvature;
 
-            _settings.SaveToRegistry(RegistryKey);
-            RegistryKey.Flush();
+            if (RegistryKey != null)
+            {
+                _settings.SaveToRegistry(RegistryKey);
+                RegistryKey.Flush();
+            }
             }
             catch (Exception ex)
             {
@@ -181,8 +198,19 @@ namespace Auto_Backlight_for_ThinkPad
             try { if (_autoScreen != null) _autoScreen.Stop(); }
             catch (Exception ex) { DiagnosticsLog.Error("Screen shutdown failed", ex); }
 
-            _settings.SaveToRegistry(RegistryKey);
-            RegistryKey.Close();
+            try
+            {
+                if (RegistryKey != null)
+                {
+                    if (_settings != null) _settings.SaveToRegistry(RegistryKey);
+                    RegistryKey.Close();
+                    RegistryKey = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Settings shutdown persistence failed", ex);
+            }
         }
         // Show the screen brightness vs ambient light level calibration window
         private void _ShowCalibration(object sender, RoutedEventArgs e)

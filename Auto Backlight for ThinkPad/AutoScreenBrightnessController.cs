@@ -226,17 +226,26 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Trace.WriteLine("Automatic screen brightness camera error: " + ex);
+                DiagnosticsLog.Error("Automatic screen brightness camera unavailable", ex);
                 Enabled = false;
                 return new Tuple<double, double>(double.NaN, double.NaN);
             }
-            double br = Calibration.Interpolate(_smoothedPoints, intensity);
-            if (!double.IsNaN(br))
-                await SetBrightnessSlider((byte)Math.Round(br * 100.0));
-            br = await GetBrightnessSlider() / 100.0;
+            try
+            {
+                double br = Calibration.Interpolate(_smoothedPoints, intensity);
+                if (!double.IsNaN(br))
+                    await SetBrightnessSlider((byte)Math.Round(br * 100.0));
+                br = await GetBrightnessSlider() / 100.0;
 
-            BrightnessChanged?.Invoke(this, new BrightnessChangedEventArgs(intensity, br));
-            return new Tuple<double, double>(intensity, br);
+                BrightnessChanged?.Invoke(this, new BrightnessChangedEventArgs(intensity, br));
+                return new Tuple<double, double>(intensity, br);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Automatic screen brightness update failed", ex);
+                Enabled = false;
+                return new Tuple<double, double>(double.NaN, double.NaN);
+            }
         }
 
         /// <summary>
