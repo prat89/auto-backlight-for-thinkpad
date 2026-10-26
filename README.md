@@ -1,25 +1,79 @@
 # Auto Backlight for ThinkPad
-Automation tool for certain Lenovo ThinkPad laptops (ex. X1c, X1e, P1) to control the keyboard backlight and lcd screen brightness (backlight) on Windows installations using a system-tray application. These laptops do not come with an automatic control mechanism for either. Additional behaviors added by this program mimic some automations found on other devices. Keyboard backlight control is triggerred by a user-activity timeout, and screen backlight control samples the ambient light level using the integrated camera.
 
-# Overview
-This project provides a background Windows system tray application that augments the keyboard and lcd screen backlight controls through software. Settings supporting these two features are configurable through the GUI context menu (right-click) on the system tray. They can be individually disabled or enabled.
+> Community-maintained fork of [Parth Patel's original Auto Backlight for ThinkPad](https://github.com/pspatel321/auto-backlight-for-thinkpad), maintained at [prat89/auto-backlight-for-thinkpad](https://github.com/prat89/auto-backlight-for-thinkpad).
 
-The keyboard backlight is automatically illuminated whenever the user interacts with the built-in keyboard/mouse hardware. After an adjustable inactivity timeout, the backlight is darkened. The keyboard brightness level changes along with the existing "Fn+Space" keyboard shortcut for backlight level. Settings are persisted across power events (sleep/wake, display on/off) for a hands-off experience, unlike the stock factory behavior which resets backlight across power events.
+A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-The screen backlight is automatically illuminated by sampling the integrated camera to mimic an ambient light sensor. A basic-low resolution snapshot is taken and the average intensity level is computed to use as the proxy for ambient light level. The level is mapped to a screen brightness percentage using a configurable calibration curve. The sampling and updating process will be triggered by a power event (sleep/wake, display on/off) or by user activity timeout on the built-in keyboard/mouse. This keeps the backlight ready on first-use. Optionally, a periodic sampling interval can be specified. However, this can be distracting due to the activity LED built-in on the camera. This application will only sample the camera at predicatable events (power events, user activity timeout) to minimize the distraction. A configurable hotkey (default: Alt-Space) can also trigger screen backlight refresh, for when the user is moving to different lighting conditions.
+**Status:** Development version (1.2.0-dev). Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other Lenovo driver families, including **EnergyDrv**, are **not supported** by this fork.
 
-# Quick install
-Go to the releases section and download the latest Windows installer. It will add "Auto Backlight for ThinkPad" to the startup applications to begin automatically with user Log-In. It can be uninstalled easily through "Add or Remove programs" or other similar methods.
+## Features
 
-If you wish to disable Lenovo on-screen display popups, there is a checkbox "Enable on-screen display" buried in Settings on Windows 10. Access it through Settings-->System-->Display-->Advanced display settings-->Display adapter properties for Display 1-->Screen configurations. See [image](disable-osd.png).
+- Automatic keyboard backlight control using built-in keyboard, touchpad and TrackPoint activity.
+- Optional **React to external input devices** setting for external keyboards and mice.
+- Configurable inactivity timeout and keyboard brightness (**Low / Full** on hardware that supports both).
+- Works alongside the ThinkPad's **Fn+Space** keyboard backlight shortcut.
+- Restores appropriate behavior around supported Windows power/display events.
+- Optional camera-based automatic **screen brightness** control. **Off by default for new installations**; enabling this feature may activate the camera briefly. Existing saved preferences are retained.
+- Hardware diagnostics and **Export diagnostic report...** in the tray menu.
+- Error logging and isolation designed to reduce crashes when optional hardware is unavailable.
 
-# The guts
-The project is built from Visual Studio 2019 C# WPF project template and Windows Setup project template to create the installer. C# on Microsoft .NET framework was chosen for high-compatibility code without external dependencies, using only the installed framework. Communication to the keyboard is done through Windows IO calls to IbmPmDrv (Lenovo/IBM power management driver), which should be available on these laptops. The camera interface is through third-party Accord.NET image processing libraries which uses Microsoft DirectShow under the hood.
+## Compatibility
 
-The application hooks to various Windows [Win32 Power Management](https://docs.microsoft.com/en-us/windows/win32/power/about-power-management) events like Suspend, Resume, Display On/Off, Lid Close/Open to trigger special handling of the backlight state around these events. These events cause update of the keyboard backlight and/or screen backlight. Windows [Win32 Raw Input](https://docs.microsoft.com/en-us/windows/win32/inputdev/raw-input) is used to notify the app based on user activity for certain hardware devices (laptop built-in keyboard and mouse). These activity events trigger illumination of the backlight, which is subsequently reset after a timeout. The frequent input events are quickly muted to preserve battery life (cpu usage) when not needed. CPU usage was tested during app development to keep it minimal as a background application.
+**Tested:** Lenovo ThinkPad X1 Extreme Gen 2, model `20QVCTO1WW`, with `IBMPmDrv` installed and running; keyboard backlight levels Off (0), Low (1), Full (2).
 
-# Building from source
-The Visual Studio solution contains both a C# project (the application itself) and a Windows Setup project (the installer). As long as the core dependency is met on Microsoft .NET Framework, all should build out-of-box on Visual Studio 2019. This project is kept simple and mostly standard/default settings. One trick in use is the redirection of external dll references. These dll files (from included NuGet packages) would normally appear beside the application in the file explorer but most have been embedded inside the executable as part of the build process.
+Other ThinkPads with a compatible `IBMPmDrv` interface **may work**, but have not been verified by this fork's maintainer. An installed Lenovo driver alone does not guarantee compatibility. **ThinkBook, IdeaPad, Yoga and Legion devices using EnergyDrv or other protocols are not supported.**
 
-# License
-This project is licensed under the Apache-2.0 license. See [LICENSE](LICENSE) file for full text. See [NOTICE](NOTICE) file for attributions.
+See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troubleshooting.
+
+## Installation
+
+1. Visit [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) and select a release from **this fork**.
+2. Download the MSI attached to the release, if one is provided. Read its release notes before installing; development commits are **not** equivalent to tested installer releases.
+3. Run the installer. The Windows installer is designed to register the application to start when the user signs in.
+4. After launch, locate the application in the Windows notification area (system tray). Open its menu to change settings.
+
+To uninstall, use **Windows Settings > Apps > Installed apps**. If installing over an existing release, follow that release's specific upgrade instructions; installer upgrade behavior has not yet been comprehensively regression-tested.
+
+**Updates:** The legacy automatic download/uninstall/install mechanism from the original app has been disabled in this fork. Check [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) manually. Do not download installers from the original repository expecting them to update this fork.
+
+## Usage
+
+- Enable automatic keyboard backlighting and select the inactivity timeout in the tray menu.
+- Select **Low** or **Full** brightness, subject to the levels reported by your laptop.
+- Enable **React to external input devices** if activity on connected keyboards/mice should also turn on the backlight.
+- **Screen brightness via camera** is independent and optional. It is disabled by default on a fresh installation.
+- Choose **Export diagnostic report...** to save basic hardware and driver information for troubleshooting. Review a report before sharing it publicly.
+
+## Troubleshooting
+
+1. Confirm `IBMPmDrv` is available on your machine. The app needs a compatible Lenovo power-management driver; it does not install or replace drivers.
+2. Check the notification area, including hidden tray icons.
+3. Export a report via **Export diagnostic report...** or inspect these files:
+
+   ```text
+   %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\application.log
+   %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\hardware-report.txt
+   ```
+
+4. If the app does not start, note your ThinkPad model, Windows version and driver status when opening an [issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues). Redact sensitive information from diagnostics before sharing.
+5. If a camera is missing or access is blocked, leave optional screen brightness automation disabled.
+
+## Build from source
+
+- Windows with **Visual Studio 2026**, the **.NET desktop development** workload, **.NET Framework 4.8 developer/targeting pack**, and **NuGet package restore**.
+- Open `Auto Backlight for Thinkpad.sln` in Visual Studio.
+- Build the **Auto Backlight for ThinkPad** application project in `Release / Any CPU`.
+- The separate **Auto Backlight for ThinkPad Setup** project uses Visual Studio Installer Projects (`.vdproj`). Installing its extension may be required to build the MSI.
+- Building the EXE does **not** require building the MSI. Test a new EXE before creating an installer.
+
+The project uses WPF, Windows Raw Input, Windows power notifications and Lenovo's `IBMPmDrv` interface. The optional camera feature uses the existing image/video dependencies. The modular backend architecture is intended to permit future implementations, but currently only `IBMPmDrv` is active.
+
+## Development and releases
+
+See [CHANGELOG.md](CHANGELOG.md) for the history of this fork and planned verification work. The in-repository `v5.x` milestones are **development phases**, not necessarily public application release tags. The application version introduced for the fork is `1.2.0-dev`; treat GitHub Releases as the authority for published builds.
+
+## Credits and license
+
+Originally developed by **Parth Patel** (2019): [original project](https://github.com/pspatel321/auto-backlight-for-thinkpad). This fork is maintained by **prat89** and preserves upstream attribution.
+
+Source license: **Apache License 2.0**. Read [LICENSE](LICENSE) and [NOTICE](NOTICE) for upstream and third-party notices. The `NOTICE` file is intentionally preserved.
