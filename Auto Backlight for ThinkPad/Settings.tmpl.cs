@@ -472,8 +472,9 @@ namespace Auto_Backlight_for_ThinkPad
             public Encapsulated(Raw raw)
             {
                 this.raw = raw;
-                header = raw.GetHashCode();
-                footer = hash(raw);
+                int stableChecksum = hash(raw);
+                header = stableChecksum;
+                footer = stableChecksum;
             }
             public static byte[] ToBytes(Raw raw)
             {
@@ -492,12 +493,12 @@ namespace Auto_Backlight_for_ThinkPad
                 {
                     var enc = (Encapsulated)bf.Deserialize(ms);
 
-                    bool headerOk = enc.raw.GetHashCode() == enc.header;
+                    bool headerOk = enc.header == enc.footer;
                     bool footerOk = hash(enc.raw) == enc.footer;
                     if (!footerOk)
                         throw new FormatException("Settings integrity check failed: header=" + headerOk + "; footer=" + footerOk);
-                    // Raw.GetHashCode() is not persistent across process versions/runs.
-                    // Footer is the serialized-data check used for legacy recovery.
+                    // New saves store the stable footer checksum in both fields.
+                    // Older saves may have a process-dependent header; valid footer is authoritative.
                     if (!headerOk)
                         DiagnosticsLog.Info("Settings legacy header mismatch; footer valid; restoring saved values");
                     return enc.raw;

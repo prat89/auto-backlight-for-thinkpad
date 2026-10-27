@@ -187,8 +187,18 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 // v5.5 power event diagnostic (existing PowerTracker event).
                 DiagnosticsLog.Info("Power event: resume received; enabled=" + _enabled);
+                if (!_enabled)
+                {
+                    DiagnosticsLog.Info("Power resume ignored: keyboard automation disabled");
+                    return;
+                }
                 _timer.Start();
                 _LightsOn();
+                // Input registration may have been stopped before the lid was closed.
+                _capture.Start();
+                DiagnosticsLog.Info("Power resume recovery: onLevel=" + _onLevel + "; requestedLevel=" + _shouldBeLevel + "; captureEnabled=" + _capture.Enabled);
+                // Idempotent subscription for repeated resume events.
+                _backlight.Changed -= _Changed;
                 _backlight.Changed += _Changed;
 
                 Debug.WriteLine("{0} Timeout resume: onLevel={1}", DateTime.Now.TimeOfDay, _onLevel);
@@ -198,8 +208,16 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 // v5.5 power event diagnostic (existing PowerTracker event).
                 DiagnosticsLog.Info("Power event: pause received; enabled=" + _enabled);
+                if (!_enabled)
+                {
+                    DiagnosticsLog.Info("Power pause ignored: keyboard automation disabled");
+                    return;
+                }
                 _backlight.Changed -= _Changed;
                 _timer.Stop();
+                // Do not keep input capture active while the controller is paused.
+                _capture.Stop();
+                DiagnosticsLog.Info("Power pause capture stopped: onLevel=" + _onLevel);
                 _LightsOff();
 
                 Debug.WriteLine("{0} Timeout pause: onLevel={1}", DateTime.Now.TimeOfDay, _onLevel);

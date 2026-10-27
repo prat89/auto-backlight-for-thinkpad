@@ -65,7 +65,7 @@ limitations under the License.
                                   ToolTip="{Binding Path=Meta.Keyboard_OnLevel.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="Off"/>
                                 <ComboBoxItem Content="Low"/>
-                                <ComboBoxItem Content="Full"/>
+                                <ComboBoxItem Content="High"/>
                             </ComboBox>
                         </Grid>
                     </MenuItem.Header>

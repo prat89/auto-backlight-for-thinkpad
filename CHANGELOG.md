@@ -1,8 +1,18 @@
 # Changelog
 
+## Unreleased — v6.0 development phases / 1.2.0 release candidate (26 October 2026)
+
+- Standardized backlight terminology to **Off / Low / High**.
+- Stabilized settings checksum handling and recovery of previously saved settings.
+- Improved power-notification pause/resume handling and input-capture recovery after lid reopen; behavior remains under observation for intermittent failures.
+- Added rate-limited diagnostics around `IBMPmDrv` failures without changing hardware command semantics.
+- Prepared Visual Studio MSI metadata: product version `1.2.0`, maintainer attribution and repository URL, new package/product codes while preserving the upgrade family code.
+- Tested Release rebuild, clean MSI install, normal app/tray startup, uninstall with the app closed, reinstall and saved-settings persistence.
+- **Not tested:** in-place MSI upgrade from an older installed version. This candidate is not yet a published release.
+
 Development milestones below refer to changes made in this fork. They are **not** promises that every milestone has been published as a GitHub Release.
 
-## Unreleased — v5.3: documentation and release readiness
+## v5.3: documentation and release readiness
 
 - Rewrite README to describe the maintained fork rather than only the original app.
 - Document `IBMPmDrv` scope, verified hardware, optional camera and external-device behavior.
@@ -54,5 +64,5 @@ Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://g
 
 - Failure-mode regression tests for driver, camera, sleep/resume and reinstall/upgrade scenarios.
 - Performance measurements and UI/notification-area refinement.
-- Release and installer validation.
+- In-place MSI upgrade validation; packaging metadata and release asset checks.
 - Additional driver families such as `EnergyDrv` are deferred pending hardware validation.

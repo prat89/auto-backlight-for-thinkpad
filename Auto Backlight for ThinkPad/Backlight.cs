@@ -221,8 +221,9 @@ namespace Auto_Backlight_for_ThinkPad
                 }
                 else throw new Exception("Backlight hw not ready");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _LogDriverFailure("read status", ex);
                 Status = 0;
                 return false;
             }
@@ -239,8 +240,9 @@ namespace Auto_Backlight_for_ThinkPad
                 }
                 else throw new Exception("Backlight hw not ready");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _LogDriverFailure("read maximum level", ex);
                 Level = 0;
                 return false;
             }
@@ -258,11 +260,34 @@ namespace Auto_Backlight_for_ThinkPad
                 }
                 else throw new Exception("Backlight hw not ready");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _LogDriverFailure("write level", ex);
                 return false;
             }
         }
+        // Phase 4 hardware diagnostic: suppress repeated identical operation failures for 30 seconds.
+        // Keeps the existing read/write success and failure semantics unchanged.
+        private static readonly object DriverLogSync = new object();
+        private static readonly System.Collections.Generic.Dictionary<string, DateTime> DriverLogTimes =
+            new System.Collections.Generic.Dictionary<string, DateTime>();
+        private static void _LogDriverFailure(string operation, Exception ex)
+        {
+            bool shouldLog = false;
+            lock (DriverLogSync)
+            {
+                DateTime now = DateTime.UtcNow;
+                DateTime last;
+                if (!DriverLogTimes.TryGetValue(operation, out last) || now - last >= TimeSpan.FromSeconds(30))
+                {
+                    DriverLogTimes[operation] = now;
+                    shouldLog = true;
+                }
+            }
+            if (shouldLog)
+                DiagnosticsLog.Error("IBMPmDrv operation failed: " + operation + " (subsequent failures throttled for 30s)", ex);
+        }
+
         private int _CallPmService(uint code, int input)
         {
             IntPtr h = CreateFile(@"\\.\IBMPmDrv", 0x80000000, 1, IntPtr.Zero, 3, 0, IntPtr.Zero);

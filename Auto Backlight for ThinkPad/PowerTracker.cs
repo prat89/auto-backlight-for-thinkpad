@@ -51,14 +51,24 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 if (_enabled != value)
                 {
-                    _enabled = value;
                     if (value)
                     {
+                        // Reset pause reason only when starting a new registration cycle.
+                        _mode = "";
                         _pm.RegisterGuids(new PowerGuid[] { _dispEvent, _lidEvent, _suspendEvent, _resumeEvent });
+                        _enabled = true;
                     }
                     else
                     {
-                        _pm.UnregisterGuids();
+                        _enabled = false;
+                        try
+                        {
+                            _pm.UnregisterGuids();
+                        }
+                        finally
+                        {
+                            _mode = "";
+                        }
                     }
                 }
             }

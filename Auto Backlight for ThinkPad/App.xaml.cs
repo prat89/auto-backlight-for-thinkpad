@@ -649,7 +649,7 @@ namespace Auto_Backlight_for_ThinkPad
                 int val = (int)value;
                 if (val == 0) return "Off";
                 if (val == 1) return "Low";
-                if (val == 2) return "Full";
+                if (val == 2) return "High";
             }
             throw new ArgumentException();
         }
@@ -669,7 +669,7 @@ namespace Auto_Backlight_for_ThinkPad
                 string str = (string)value;
                 if (str == "Off") return 0;
                 if (str == "Low") return 1;
-                if (str == "Full") return 2;
+                if (str == "High" || str == "Full") return 2;
             }
             throw new ArgumentException();
         }

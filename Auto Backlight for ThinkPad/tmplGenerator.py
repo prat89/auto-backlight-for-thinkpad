@@ -98,7 +98,7 @@ if __name__ == "__main__":
                 qs.append(s)
                 
             # Separate by semi-colons, replace back quoted strings if needed
-            words = tuple(qs.pop(0) if w.strip('\t ') is '\n' else w.strip('\t ') for w in line.split(';'))
+            words = tuple(qs.pop(0) if w.strip('\t ') == '\n' else w.strip('\t ') for w in line.split(';'))
             if len(header) != len(words):
                 raise Exception("Incorrect number of words detected compared to Keys header")                
             keys.append(words)

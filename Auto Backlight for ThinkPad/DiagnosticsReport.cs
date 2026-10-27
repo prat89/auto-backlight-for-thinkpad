@@ -37,7 +37,7 @@ namespace Auto_Backlight_for_ThinkPad
                 else if (maximumKeyboardLevel.Value == 1)
                     sb.AppendLine("Keyboard backlight capabilities: Off (0), Low (1)");
                 else
-                    sb.AppendLine("Keyboard backlight capabilities: Off (0), Low (1), Full (2)" +
+                    sb.AppendLine("Keyboard backlight capabilities: Off (0), Low (1), High (2)" +
                         (maximumKeyboardLevel.Value > 2 ? ", additional levels reported (not exposed by UI)" : ""));
                 try
                 {
