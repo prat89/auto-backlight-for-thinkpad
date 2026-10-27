@@ -4,18 +4,19 @@
 
 A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-**Status:** Release candidate for application/MSI version `1.2.0` (development milestones referred to as v6.0). This candidate is not yet a published GitHub Release. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other Lenovo driver families, including **EnergyDrv**, are **not supported** by this fork.
+**Status:** Pre-release validation of application/MSI version `1.2.0` (the v6.0 labels denote internal development phases, not a product version). No public GitHub Release is implied. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other Lenovo driver families, including **EnergyDrv**, are **not supported** by this fork.
 
 ## Features
 
-- Automatic keyboard backlight control using built-in keyboard, touchpad and TrackPoint activity.
-- Optional **React to external input devices** setting for external keyboards and mice.
-- Configurable inactivity timeout and keyboard brightness (**Low / High** on hardware that supports both).
-- Works alongside the ThinkPad's **Fn+Space** keyboard backlight shortcut.
-- Restores appropriate behavior around supported Windows power/display events.
-- Optional camera-based automatic **screen brightness** control. **Off by default for new installations**; enabling this feature may activate the camera briefly. Existing saved preferences are retained.
-- Hardware diagnostics and **Export diagnostic report...** in the tray menu.
-- Error logging and isolation designed to reduce crashes when optional hardware is unavailable.
+- Automatic keyboard backlight on supported ThinkPad hardware, including built-in keyboard, touchpad and TrackPoint activity.
+- **React to external input devices** detects activity from compatible external keyboards and mice. Enabled by default for new configurations; previously saved preferences are respected.
+- Configurable inactivity timeout and **Off / Low / High** backlight states on the verified three-level backend (Off = 0, Low = 1, High = 2). The **High** label replaces the earlier **Full** label without changing the underlying hardware level.
+- Cooperates with the laptop's **Fn+Space** shortcut; manual level changes may affect subsequent automatic brightness.
+- Improved handling of power/display and lid close/open notifications, with explicit pause/resume and Raw Input capture recovery. Intermittent scenarios are still under observation.
+- Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default on new installations**. Existing saved preferences are respected; enabling it may briefly activate the camera.
+- **Diagnostic report...** in the tray menu opens the diagnostics/export workflow, alongside application and hardware logs. Review diagnostics before sharing.
+- Diagnostic checks for `IBMPmDrv`/`EnergyDrv` service presence; only `IBMPmDrv` performs hardware commands. Hardware-access errors are logged with throttling.
+- Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
 
 ## Compatibility
 
@@ -27,64 +28,58 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troub
 
 ## Installation
 
-1. Visit [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) and select a release from **this fork**.
-2. Download the MSI attached to the release, if one is provided. Read its release notes before installing; development commits are **not** equivalent to tested installer releases.
-3. Run the installer. The Windows installer is designed to register the application to start when the user signs in.
-4. After launch, locate the application in the Windows notification area (system tray). Open its menu to change settings.
+1. Visit [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) and select a release from **this fork** (not upstream).
+2. Download the MSI asset of that release, if provided. Development commits are not release builds.
+3. **Exit any running Auto Backlight for ThinkPad instance before upgrading or uninstalling.** If the tray icon is hidden, check the notification overflow area; use Task Manager if needed.
+4. Run the MSI, then allow the application to initialize. The tray icon may appear after a delay; consult the startup log if it never appears.
 
-To uninstall, **exit the running application from its tray menu first**, then use **Windows Settings > Apps > Installed apps**. Leaving the application running may delay removal. Settings stored for the current user are retained by the tested uninstall/reinstall procedure. **An in-place upgrade from an older MSI has not yet been verified**; preserve your settings and consult release notes before upgrading.
+**Verified MSI scenarios (ThinkPad X1 Extreme Gen 2, 27 October 2026):** clean installation of `1.2.0`; uninstall with the application closed; reinstall with existing user settings retained; and **in-place major upgrade from the original `1.0.0` MSI to `1.2.0`**. During the upgrade, Windows Installer detected and removed the original product and registered the new product. A single `1.2.0` entry remained in Windows Installed apps.
 
-**Updates:** The legacy automatic download/uninstall/install mechanism from the original app has been disabled in this fork. Check [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) manually. Do not download installers from the original repository expecting them to update this fork.
+**Settings caveat:** settings retained across a `1.2.0` uninstall/reinstall were tested. The `1.0.0` → `1.2.0` test confirmed that existing saved settings could be read on the upgraded installation, but did not validate every possible legacy preference/value combination. Back up settings before upgrading.
+
+To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
+
+**Updates:** the original application's automatic download/uninstall/install updater is disabled in this fork. Check the fork's [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) page manually; do not use an original-project MSI as an update to this fork.
 
 ## Usage
 
-- Enable automatic keyboard backlighting and select the inactivity timeout in the tray menu.
-- Select **Low** or **High** brightness, subject to the levels reported by your laptop.
-- Enable **React to external input devices** if activity on connected keyboards/mice should also turn on the backlight.
-- **Screen brightness via camera** is independent and optional. It is disabled by default on a fresh installation.
-- Choose **Export diagnostic report...** to save basic hardware and driver information for troubleshooting. Review a report before sharing it publicly.
+- Enable automatic keyboard lighting in the tray menu and select an inactivity timeout and **Low** or **High** brightness.
+- Use **React to external input devices** to include connected keyboards and mice. On a new configuration it starts enabled; existing settings prevail.
+- The optional **Screen brightness via camera** feature is separate from keyboard lighting; it starts disabled for a new configuration.
+- Choose **Diagnostic report...** in the tray menu to inspect/export diagnostic information. Review and redact local paths, system identifiers and device details before sharing.
 
 ## Troubleshooting
 
-1. Confirm `IBMPmDrv` is available on your machine. The app needs a compatible Lenovo power-management driver; it does not install or replace drivers.
-2. Check the notification area, including hidden tray icons.
-3. Export a report via **Export diagnostic report...** or inspect these files:
+1. Confirm that a compatible `IBMPmDrv` driver is installed and running. This program does not ship or install kernel drivers. `EnergyDrv` discovery is informational only.
+2. Check Windows' notification area, including hidden icons. Startup can be delayed while Windows reports driver/service status; a visible tray icon is not guaranteed immediately after MSI completion.
+3. Open **Diagnostic report...** in the tray menu to inspect/export a report, or review:
 
    ```text
    %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\application.log
    %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\hardware-report.txt
    ```
 
-4. If the app does not start, note your ThinkPad model, Windows version and driver status when opening an [issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues). Redact sensitive information from diagnostics before sharing.
-5. If a camera is missing or access is blocked, leave optional screen brightness automation disabled.
+4. For startup delays, compare timestamps for `Process start`, `Startup checkpoint`, `Backend service` and `Tray icon initialized`. One observed post-upgrade startup took around 22 seconds to initialize the tray icon, with an approximately 20-second gap before the backend-service report; the root cause has **not** yet been confirmed.
+5. If keyboard lighting does not resume after opening the lid, collect power event logs (`Power event`, `Power resume recovery`) and note whether external monitors or input devices were connected.
+6. If no camera is available or camera access is blocked, leave optional screen brightness automation disabled. When opening an [issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues), specify laptop model, Windows build, driver state and steps to reproduce; redact diagnostics before uploading.
 
 ## Build from source
 
-- Windows with **Visual Studio 2026**, the **.NET desktop development** workload, **.NET Framework 4.8 developer/targeting pack**, and **NuGet package restore**.
-- Open `Auto Backlight for Thinkpad.sln` in Visual Studio.
-- Build the **Auto Backlight for ThinkPad** application project in `Release / Any CPU`.
-- The separate **Auto Backlight for ThinkPad Setup** project uses Visual Studio Installer Projects (`.vdproj`). Installing its extension may be required to build the MSI.
-- Building the EXE does **not** require building the MSI. Test a new EXE before creating an installer.
-- For a release candidate, choose **Release / Any CPU** and **Rebuild** the solution; verify both projects report success and the MSI under `Auto Backlight for ThinkPad Setup/Release/` is newly created.
-- The application generates `Settings.cs` from `Settings.tmpl.cs` via `tmplGenerator.py`; edit the template, not the generated file.
-- Do not distribute debug builds, old MSI outputs, or development patch scripts as release assets.
-
-The project uses WPF, Windows Raw Input, Windows power notifications and Lenovo's `IBMPmDrv` interface. The optional camera feature uses the existing image/video dependencies. The modular backend architecture is intended to permit future implementations, but currently only `IBMPmDrv` is active.
+- Windows, **Visual Studio 2026** with the **.NET desktop development** workload, **.NET Framework 4.8 developer/targeting pack** and NuGet restore. The MSI project also needs the **Visual Studio Installer Projects** extension.
+- Open `Auto Backlight for Thinkpad.sln`, select **Release / Any CPU**, rebuild the application, then rebuild the separate **Auto Backlight for ThinkPad Setup** project if an MSI is needed.
+- `Settings.cs` is **generated** from `Settings.tmpl.cs` using `tmplGenerator.py`; edit the template and rebuild instead of editing generated code. The generator's string comparison warning was fixed (`is` → `==`) during validation.
+- Validate installed files and the MSI version independently from the build output. Build artifacts and temporary scripts are not source files and should not be committed.
+- Keep staging and backup artifacts **outside this repository**, preferably under `Downloads` and `Documents/LenovoBacklightBackups`. Inspect `git status` before committing; do not commit log files, `.msi` files, `bin/`, `obj/` or local backup directories.
+- The Windows application uses WPF, Windows Raw Input, power notifications and the `IBMPmDrv` interface. Optional camera screen-brightness functionality uses the existing project dependencies; other Lenovo backends are not enabled.
 
 ## Development and releases
 
-See [CHANGELOG.md](CHANGELOG.md) for the history of this fork and planned verification work. The in-repository `v4.x`, `v5.x` and `v6.0 Phase 1–7` labels are **development milestones**, not published product version numbers. The application assembly and current MSI are `1.2.0` (`AssemblyVersion`/`AssemblyFileVersion`: `1.2.0.0`); `AssemblyInformationalVersion` may still contain `1.2.0-dev` until the release identity is finalized. Before tagging a public release, align the informational version and test an upgrade path. GitHub Releases remain authoritative for published builds.
+The historical `v4.x`, `v5.x` and `v6.0 Phase 1–8` labels are **internal development milestones**, not public version tags. The compiled application and tested MSI use `1.2.0` (`AssemblyVersion` and `AssemblyFileVersion` of `1.2.0.0`); confirm `AssemblyInformationalVersion` and all public-facing version strings before tagging a release.
+
+See [CHANGELOG.md](CHANGELOG.md) for history and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware. A successful MSI upgrade test does not establish compatibility with untested models or every power transition. At the documentation update date (27 October 2026), startup timing diagnostics and final release validation are still pending. The tested MSI is **not digitally signed**; Windows may show publisher/security warnings. GitHub Releases, once published, are authoritative for release assets.
 
 ## Credits and license
 
 Originally developed by **Parth Patel** (2019): [original project](https://github.com/pspatel321/auto-backlight-for-thinkpad). This fork is maintained by **prat89** and preserves upstream attribution.
 
 Source license: **Apache License 2.0**. Read [LICENSE](LICENSE) and [NOTICE](NOTICE) for upstream and third-party notices. The `NOTICE` file is intentionally preserved.
-
-## Release verification status (26 October 2026)
-
-- **Tested on ThinkPad X1 Extreme Gen 2:** application startup, keyboard control and activity timeout; lid-close/lid-open behavior and input capture resumed in the observed test cycles. Intermittent suspend/resume behavior remains under observation.
-- **MSI `1.2.0`:** Release rebuild completed; clean installation, tray initialization, removal with app closed, reinstall and persistence of previously saved settings were tested successfully.
-- **Still required before public release:** in-place upgrade from the previous MSI; verify package metadata and installed executable match; decide and align release version identity; review signing and release assets.
-- The MSI is **not digitally signed** in the tested build. Windows may show publisher/security warnings.
-- `EnergyDrv` control is unsupported; no claims of compatibility with other Lenovo hardware have been validated.

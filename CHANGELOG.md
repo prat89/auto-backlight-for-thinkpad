@@ -1,16 +1,31 @@
 # Changelog
 
-## Unreleased — v6.0 development phases / 1.2.0 release candidate (26 October 2026)
+## Unreleased — 1.2.0 release candidate (updated 27 October 2026)
 
-- Standardized backlight terminology to **Off / Low / High**.
-- Stabilized settings checksum handling and recovery of previously saved settings.
-- Improved power-notification pause/resume handling and input-capture recovery after lid reopen; behavior remains under observation for intermittent failures.
-- Added rate-limited diagnostics around `IBMPmDrv` failures without changing hardware command semantics.
-- Prepared Visual Studio MSI metadata: product version `1.2.0`, maintainer attribution and repository URL, new package/product codes while preserving the upgrade family code.
-- Tested Release rebuild, clean MSI install, normal app/tray startup, uninstall with the app closed, reinstall and saved-settings persistence.
-- **Not tested:** in-place MSI upgrade from an older installed version. This candidate is not yet a published release.
+The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below are internal development milestones. Public version identity remains `1.2.0` until release metadata is finalized.
 
-Development milestones below refer to changes made in this fork. They are **not** promises that every milestone has been published as a GitHub Release.
+### Keyboard backlight and input
+- Improved handling of built-in keyboard, touchpad and TrackPoint Raw Input, including external keyboards/mice via **React to external input devices** (enabled for new configurations; existing saved choices preserved).
+- Renamed displayed maximum brightness from **Full** to **High** without changing the underlying hardware level (`2`). The three levels remain Off (0), Low (1), High (2).
+- Improved `Pause`/`Resume` power-event handling and recovery of input capture following lid reopen; successful lid cycles observed, intermittent behavior remains under observation.
+- Preserved interaction with the built-in **Fn+Space** shortcut and configurable inactivity timeout.
+
+### Settings and optional components
+- Stabilized settings integrity checks/checksum across saves, including recovery of previously stored settings where validated.
+- Kept optional camera-based screen brightness disabled by default for new installations while respecting previous preferences.
+- Kept the legacy automatic in-app updater disabled; releases are obtained manually from the fork.
+
+### Driver diagnostics and reporting
+- Isolated the `IBMPmDrv` backend behind a dedicated interface; `EnergyDrv` service detection remains informational and does not send control commands.
+- Added startup, hardware, power-event and exception diagnostics. `IBMPmDrv` failures are logged with rate limiting rather than silently swallowed.
+- Expanded the **Diagnostic report...** tray workflow, including hardware information and export support.
+
+### Packaging and tested upgrade
+- Updated MSI metadata for fork maintainer and repository URL; changed `ProductCode` and `PackageCode` while retaining the existing upgrade family (`UpgradeCode`). MSI and compiled assembly are version `1.2.0`.
+- Passed clean MSI install, uninstall (with app closed), reinstall and retention of saved user settings on the tested ThinkPad.
+- **Passed in-place MSI upgrade from original `1.0.0` to fork `1.2.0` on 27 October 2026.** The installer detected the old product, executed removal, and left only `1.2.0` registered; application startup and saved-settings loading were observed. Exhaustive validation of every legacy preference is not claimed.
+- A post-upgrade startup was observed with approximately 22 seconds before tray initialization, including an approximately 20-second gap preceding backend service reporting; the precise cause is under investigation. No fix is claimed yet.
+- Public release, final version identity/signing decisions and broader hardware validation remain pending.
 
 ## v5.3: documentation and release readiness
 
@@ -60,9 +75,9 @@ Development milestones below refer to changes made in this fork. They are **not*
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Planned (not yet implemented)
+## Outstanding before public release
 
-- Failure-mode regression tests for driver, camera, sleep/resume and reinstall/upgrade scenarios.
-- Performance measurements and UI/notification-area refinement.
-- In-place MSI upgrade validation; packaging metadata and release asset checks.
-- Additional driver families such as `EnergyDrv` are deferred pending hardware validation.
+- Isolate and measure intermittent startup delay before backend service reporting and tray initialization.
+- Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.
+- Confirm informational version, final MSI/EXE versions, release asset hashes, packaging and signing decision.
+- Additional Lenovo driver families, including `EnergyDrv`, remain deferred pending protocol and hardware validation.
