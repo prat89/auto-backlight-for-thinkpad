@@ -1,8 +1,25 @@
 # Changelog
 
-## Unreleased — 1.2.0 release candidate (updated 27 October 2026)
+## v1.3.0 — 27 October 2026
 
-The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below are internal development milestones. Public version identity remains `1.2.0` until release metadata is finalized.
+### Modern native WPF tray menu
+- Replaced the legacy tray-menu visuals with a coordinated set of custom WPF styles and templates; no FluentWpfCore dependency is required.
+- Updated the top-level menu with rounded corners, subtle hover highlighting, vector icons and consistent spacing.
+- Restyled the Settings submenu, using compact, neutral checkmarks and a layout that accommodates its existing ComboBox/TextBox controls.
+- Preserved existing menu bindings, shortcuts, calibration, diagnostics and keyboard/screen controls.
+
+### Lenovo on-screen display preference
+- Added **Disable on-screen display** in Settings to control Lenovo's existing per-user OSD `Enable` setting, when detected.
+- Save the user's preference separately from the legacy binary-serialized application settings, preserving backward compatibility.
+- Adopt the existing Lenovo OSD state on first run and reapply the stored preference on subsequent starts when necessary.
+
+### Release packaging and validation
+- Updated application and MSI version identifiers to v1.3.0; verify compiled metadata and release asset checksum before publishing.
+- The v1.2.0 → v1.3.0 MSI upgrade must be tested before publishing; local builds and interactive UI tests alone do not establish upgrade compatibility.
+
+## v1.2.0 — released 27 October 2026
+
+The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestones that contributed to this release.
 
 ### Keyboard backlight and input
 - Improved handling of built-in keyboard, touchpad and TrackPoint Raw Input, including external keyboards/mice via **React to external input devices** (enabled for new configurations; existing saved choices preserved).
@@ -18,14 +35,14 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below are internal development mi
 ### Driver diagnostics and reporting
 - Isolated the `IBMPmDrv` backend behind a dedicated interface; `EnergyDrv` service detection remains informational and does not send control commands.
 - Added startup, hardware, power-event and exception diagnostics. `IBMPmDrv` failures are logged with rate limiting rather than silently swallowed.
-- Expanded the **Diagnostic report...** tray workflow, including hardware information and export support.
+- Expanded the **Diagnostics...** tray workflow, including hardware information and export support.
 
 ### Packaging and tested upgrade
 - Updated MSI metadata for fork maintainer and repository URL; changed `ProductCode` and `PackageCode` while retaining the existing upgrade family (`UpgradeCode`). MSI and compiled assembly are version `1.2.0`.
 - Passed clean MSI install, uninstall (with app closed), reinstall and retention of saved user settings on the tested ThinkPad.
 - **Passed in-place MSI upgrade from original `1.0.0` to fork `1.2.0` on 27 October 2026.** The installer detected the old product, executed removal, and left only `1.2.0` registered; application startup and saved-settings loading were observed. Exhaustive validation of every legacy preference is not claimed.
 - A post-upgrade startup was observed with approximately 22 seconds before tray initialization, including an approximately 20-second gap preceding backend service reporting; the precise cause is under investigation. No fix is claimed yet.
-- Public release, final version identity/signing decisions and broader hardware validation remain pending.
+- The public v1.2.0 release was published; wider hardware validation and startup timing investigation remain open.
 
 ## v5.3: documentation and release readiness
 
@@ -75,9 +92,9 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below are internal development mi
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Outstanding before public release
+## Outstanding validation and future work
 
 - Isolate and measure intermittent startup delay before backend service reporting and tray initialization.
 - Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.
-- Confirm informational version, final MSI/EXE versions, release asset hashes, packaging and signing decision.
+- For each subsequent release, confirm informational version, MSI/EXE versions, release asset hashes, upgrade behavior, packaging and signing decision.
 - Additional Lenovo driver families, including `EnergyDrv`, remain deferred pending protocol and hardware validation.

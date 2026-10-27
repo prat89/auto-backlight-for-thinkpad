@@ -26,8 +26,183 @@ limitations under the License.
         <local:Settings x:Key="Settings"/>
         <local:TimeFormatter x:Key="TimeFormatter"/>
         <local:BrightnessLevelFormatter x:Key="BrightnessLevelFormatter"/>
-        <ContextMenu x:Key="SysTrayMenu" Padding="0">
-            <MenuItem Padding="0,1,2,1" Header="Settings">
+                <!-- PHASE16_SAFE_TRAY_MENU: native MenuItem interaction retained intentionally. -->
+        <Style x:Key="P16_ContextMenu" TargetType="{x:Type ContextMenu}">
+            <Setter Property="Background" Value="#FFF9FAFC"/>
+            <Setter Property="Foreground" Value="#FF202938"/>
+            <Setter Property="BorderBrush" Value="#FFD9E0E8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#33000000" ShadowDepth="3" BlurRadius="12" Opacity="0.35"/>
+                            </Border.Effect>
+                            <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="P16_Separator" TargetType="{x:Type Separator}">
+            <Setter Property="Margin" Value="20,5,7,5"/>
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Background" Value="#FFDDE3EB"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Height="1" Background="{TemplateBinding Background}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- PHASE16_2_REFINEMENT; PHASE16_1_MODERN_ITEMS: complete compact menu templates; WPF owns MenuItem interactions. -->
+        <Style x:Key="P161_MenuSurface" TargetType="{x:Type ContextMenu}">
+            <Setter Property="Background" Value="#FFFAFBFD"/>
+            <Setter Property="Foreground" Value="#FF202632"/>
+            <Setter Property="BorderBrush" Value="#FFD5DCE5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"
+                                Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FF000000" Opacity="0.17" BlurRadius="12" ShadowDepth="3"/>
+                            </Border.Effect>
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                                          CanContentScroll="True" Focusable="False">
+                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="P161_MenuSeparator" TargetType="{x:Type Separator}">
+            <Setter Property="Margin" Value="34,5,7,5"/>
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Background" Value="#FFDDE3EA"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Background="{TemplateBinding Background}" Height="1" SnapsToDevicePixels="True"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- All leaf positions: regular, checkable, and composite Grid/ComboBox headers. -->
+        <ControlTemplate x:Key="P161_LeafTemplate" TargetType="{x:Type MenuItem}">
+            <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,1" MinHeight="29">
+                <Grid SnapsToDevicePixels="True">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Path x:Name="CheckGlyph" Grid.Column="0" Visibility="Collapsed"
+                          Data="M 4,9 L 8,13 L 16,5" Stroke="#FF596575" StrokeThickness="1.55"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          Width="12" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <ContentPresenter x:Name="IconSlot" Grid.Column="0" ContentSource="Icon" Width="17" Height="17"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
+                                      Margin="2,2,10,2" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="IconSlot" Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="ItemBounds" Property="Background" Value="#FFE9EDF3"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.47"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <!-- Submenu-owning Settings item. PART_Popup and ItemsPresenter are essential. -->
+        <ControlTemplate x:Key="P161_SubmenuTemplate" TargetType="{x:Type MenuItem}">
+            <Grid>
+                <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,1" MinHeight="29">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="25"/>
+                        </Grid.ColumnDefinitions>
+                        <ContentPresenter Grid.Column="0" ContentSource="Icon" Width="17" Height="17"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
+                                          Margin="2,2,10,2" VerticalAlignment="Center"/>
+                        <Path Grid.Column="2" Width="7" Height="11" Data="M 1,1 L 6,5.5 L 1,10"
+                              Stroke="#FF647182" StrokeThickness="1.5" StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Grid>
+                </Border>
+                <Popup x:Name="PART_Popup" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                       Placement="Right" HorizontalOffset="-2" AllowsTransparency="True"
+                       Focusable="False" PopupAnimation="Fade">
+                    <Border Background="#FFFAFBFD" BorderBrush="#FFD5DCE5" BorderThickness="1"
+                            CornerRadius="8" Padding="5" SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#FF000000" Opacity="0.17" BlurRadius="12" ShadowDepth="3"/>
+                        </Border.Effect>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Focusable="False" CanContentScroll="False">
+                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </ScrollViewer>
+                    </Border>
+                </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="ItemBounds" Property="Background" Value="#FFE9EDF3"/>
+                </Trigger>
+                <Trigger Property="IsSubmenuOpen" Value="True">
+                    <Setter TargetName="ItemBounds" Property="Background" Value="#FFE9EDF3"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.47"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <Style x:Key="P161_AllMenuItems" TargetType="{x:Type MenuItem}">
+            <Setter Property="Foreground" Value="#FF202632"/>
+            <Setter Property="Template" Value="{StaticResource P161_LeafTemplate}"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="Role" Value="TopLevelHeader">
+                    <Setter Property="Template" Value="{StaticResource P161_SubmenuTemplate}"/>
+                </Trigger>
+                <Trigger Property="Role" Value="SubmenuHeader">
+                    <Setter Property="Template" Value="{StaticResource P161_SubmenuTemplate}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+<ContextMenu x:Key="SysTrayMenu" Padding="0" Style="{StaticResource P161_MenuSurface}">
+            <ContextMenu.Resources>
+                <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource P161_AllMenuItems}"/>
+                <Style TargetType="{x:Type Separator}" BasedOn="{StaticResource P161_MenuSeparator}"/>
+            </ContextMenu.Resources>
+            <MenuItem Header="Settings">
+                <MenuItem.Icon>
+                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,2 L 12,2 L 13,5 L 15,6 L 18,5 L 20,8 L 18,10 L 18,13 L 20,15 L 18,18 L 15,17 L 13,18 L 12,21 L 9,21 L 8,18 L 6,17 L 3,18 L 1,15 L 3,13 L 3,10 L 1,8 L 3,5 L 6,6 L 8,5 Z"/>
+                </MenuItem.Icon>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Keyboard_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="KeyboardMenu_Init"
                           ToolTip="{Binding Path=Meta.Keyboard_Enabled.Help, Source={StaticResource Settings}}">
                     <MenuItem.Header>
@@ -37,7 +212,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto keyboard backlight"/>
-                            <ComboBox Grid.Column="1" Margin="0,0,-50,0" HorizontalAlignment="Right" IsEditable="True" Height="23" Width="100" Text="{Binding Keyboard_InactivityTimeout, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}" MouseEnter="KeyboardCombo_Enter" MouseLeave="KeyboardCombo_Leave"
+                            <ComboBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" IsEditable="True" Height="23" Width="100" Text="{Binding Keyboard_InactivityTimeout, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}" MouseEnter="KeyboardCombo_Enter" MouseLeave="KeyboardCombo_Leave"
                                   ToolTip="{Binding Path=Meta.Keyboard_InactivityTimeout.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="1 sec"/>
                                 <ComboBoxItem Content="5 sec"/>
@@ -61,7 +236,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Choose brightness level"/>
-                            <ComboBox Grid.Column="1" Margin="0,0,-50,0" HorizontalAlignment="Right" Height="23" Width="100" SelectedIndex="{Binding Keyboard_OnLevel, Mode=TwoWay, Source={StaticResource Settings}}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
+                            <ComboBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" Height="23" Width="100" SelectedIndex="{Binding Keyboard_OnLevel, Mode=TwoWay, Source={StaticResource Settings}}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
                                   ToolTip="{Binding Path=Meta.Keyboard_OnLevel.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="Off"/>
                                 <ComboBoxItem Content="Low"/>
@@ -97,7 +272,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto screen brightness"/>
-                            <ComboBox Grid.Column="1" Margin="0,0,-50,0" HorizontalAlignment="Right" IsEditable="True" Height="23" Width="100" Text="{Binding Screen_PollPeriod, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}" MouseEnter="ScreenCombo_Enter" MouseLeave="ScreenCombo_Leave"
+                            <ComboBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" IsEditable="True" Height="23" Width="100" Text="{Binding Screen_PollPeriod, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}" MouseEnter="ScreenCombo_Enter" MouseLeave="ScreenCombo_Leave"
                                   ToolTip="{Binding Path=Meta.Screen_PollPeriod.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="1 sec"/>
                                 <ComboBoxItem Content="5 sec"/>
@@ -121,7 +296,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable hotkey for screen refresh"/>
-                            <TextBox Grid.Column="1" Margin="0,0,-50,0" HorizontalAlignment="Right" IsEnabled="{Binding Screen_HotKeyEnabled, Source={StaticResource Settings}}" IsUndoEnabled="False" Height="23" Width="100" IsReadOnly="False" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewKeyDown="_HotKeyBox_KeyDown" Initialized="_HotKeyBox_Init" GotKeyboardFocus="_HotKeyBox_GotKeyboardFocus" LostKeyboardFocus="_HotKeyBox_LostKeyboardFocus" MouseEnter="HotkeyBox_Enter" MouseLeave="HotkeyBox_Leave"
+                            <TextBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" IsEnabled="{Binding Screen_HotKeyEnabled, Source={StaticResource Settings}}" IsUndoEnabled="False" Height="23" Width="100" IsReadOnly="False" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewKeyDown="_HotKeyBox_KeyDown" Initialized="_HotKeyBox_Init" GotKeyboardFocus="_HotKeyBox_GotKeyboardFocus" LostKeyboardFocus="_HotKeyBox_LostKeyboardFocus" MouseEnter="HotkeyBox_Enter" MouseLeave="HotkeyBox_Leave"
                                  ToolTip="{Binding Path=Meta.Screen_HotKey.Help, Source={StaticResource Settings}}"/>
                         </Grid>
                     </MenuItem.Header>
@@ -134,9 +309,21 @@ limitations under the License.
                 </MenuItem>
             </MenuItem>
             <Separator/>
-            <MenuItem Padding="0,1,2,1" Header="Diagnostics..." Click="_ExportDiagnosticReport"/>
-            <MenuItem Padding="0,1,2,1" Header="About" Click="_ShowAbout"/>
-            <MenuItem Padding="0,1,2,1" Header="Exit" Click="_ExitApplication"/>
+            <MenuItem Header="Diagnostics..." Click="_ExportDiagnosticReport">
+                <MenuItem.Icon>
+                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 2,12 L 6,12 L 9,5 L 13,19 L 16,12 L 22,12"/>
+                </MenuItem.Icon></MenuItem>
+            <MenuItem Header="About" Click="_ShowAbout">
+                <MenuItem.Icon>
+                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 12,3 A 9,9 0 1 1 11.99,3 Z M 12,10 L 12,16 M 12,7 L 12,7"/>
+                </MenuItem.Icon></MenuItem>
+            <MenuItem Header="Exit" Click="_ExitApplication">
+                <MenuItem.Icon>
+                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,3 L 4,3 L 4,21 L 10,21 M 13,7 L 18,12 L 13,17 M 9,12 L 18,12"/>
+                </MenuItem.Icon></MenuItem>
         </ContextMenu>
 
         <tb:TaskbarIcon x:Key="SysTrayIcon"

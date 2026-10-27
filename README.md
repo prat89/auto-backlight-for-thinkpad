@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-**Status:** Pre-release validation of application/MSI version `1.2.0` (the v6.0 labels denote internal development phases, not a product version). No public GitHub Release is implied. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other Lenovo driver families, including **EnergyDrv**, are **not supported** by this fork.
+**Current version: v1.3.0.** This release includes a redesigned native WPF tray menu and Lenovo OSD control. The download becomes available on the fork’s Releases page when the v1.3.0 release is published. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
 
 ## Features
 
@@ -15,6 +15,8 @@ A lightweight Windows system-tray application that automatically turns the keybo
 - Improved handling of power/display and lid close/open notifications, with explicit pause/resume and Raw Input capture recovery. Intermittent scenarios are still under observation.
 - Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default on new installations**. Existing saved preferences are respected; enabling it may briefly activate the camera.
 - **Diagnostics...** in the tray menu opens the diagnostics/export workflow, alongside application and hardware logs. Review diagnostics before sharing.
+- **Disable on-screen display** (v1.3.0) toggles Lenovo on-screen indicators, including keyboard backlight, Mute and Fn Lock indicators. The option is available only when a compatible Lenovo OSD registry setting is detected; its preference is saved separately from legacy application settings.
+- **Modern tray menu** (v1.3.0) replaces the legacy menu visuals with native WPF templates, rounded corners, subtle highlighting, icons and compact checkmarks. No additional UI library is required.
 - Diagnostic checks for `IBMPmDrv`/`EnergyDrv` service presence; only `IBMPmDrv` performs hardware commands. Hardware-access errors are logged with throttling.
 - Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
 
@@ -22,7 +24,7 @@ A lightweight Windows system-tray application that automatically turns the keybo
 
 **Tested:** Lenovo ThinkPad X1 Extreme Gen 2, model `20QVCTO1WW`, with `IBMPmDrv` installed and running; keyboard backlight levels Off (0), Low (1), High (2).
 
-Other ThinkPads with a compatible `IBMPmDrv` interface **may work**, but have not been verified by this fork's maintainer. An installed Lenovo driver alone does not guarantee compatibility. **ThinkBook, IdeaPad, Yoga and Legion devices using EnergyDrv or other protocols are not supported.**
+One community user also reported the app working on a **ThinkPad P14s Gen 5 AMD**; details of the driver, hardware levels and full test coverage have not been independently verified. Other ThinkPads with a compatible `IBMPmDrv` interface **may work**, but have not been verified by this fork's maintainer. An installed Lenovo driver alone does not guarantee compatibility. **ThinkBook, IdeaPad, Yoga and Legion devices using EnergyDrv or other protocols are not supported.**
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troubleshooting.
 
@@ -45,6 +47,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 - Enable automatic keyboard lighting in the tray menu and select an inactivity timeout and **Low** or **High** brightness.
 - Use **React to external input devices** to include connected keyboards and mice. On a new configuration it starts enabled; existing settings prevail.
+- Use **Disable on-screen display** (v1.3.0) to disable Lenovo OSD indicators when the setting is available. The app remembers the preference and reapplies it at startup; it does not change the physical keyboard backlight control.
 - The optional **Screen brightness via camera** feature is separate from keyboard lighting; it starts disabled for a new configuration.
 - Choose **Diagnostics...** in the tray menu to inspect/export diagnostic information. Review and redact local paths, system identifiers and device details before sharing.
 
@@ -74,9 +77,9 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x` and `v6.0 Phase 1–8` labels are **internal development milestones**, not public version tags. The compiled application and tested MSI use `1.2.0` (`AssemblyVersion` and `AssemblyFileVersion` of `1.2.0.0`); confirm `AssemblyInformationalVersion` and all public-facing version strings before tagging a release.
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels are **internal development milestones**, not public version tags. **v1.2.0** was published on 27 October 2026. For **v1.3.0**, verify the EXE assembly/file/informational versions and MSI product version before publishing the release. An application build or MSI packaging success alone is not an installation/upgrade test.
 
-See [CHANGELOG.md](CHANGELOG.md) for history and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware. A successful MSI upgrade test does not establish compatibility with untested models or every power transition. At the documentation update date (27 October 2026), startup timing diagnostics and final release validation are still pending. The tested MSI is **not digitally signed**; Windows may show publisher/security warnings. GitHub Releases, once published, are authoritative for release assets.
+See [CHANGELOG.md](CHANGELOG.md) for history and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware. A successful MSI upgrade test does not establish compatibility with untested models or every power transition. The v1.2.0 to v1.3.0 MSI upgrade has not been independently confirmed in this documentation; validate it before publication. The previously tested MSI was **not digitally signed**; Windows may show publisher/security warnings. GitHub Releases are authoritative for published release assets.
 
 ## Credits and license
 
