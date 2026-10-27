@@ -29,6 +29,32 @@ namespace Auto_Backlight_for_ThinkPad
     {
         #region Data
 
+        // OSD preference is deliberately NOT part of the generated Raw structure.
+        // Changing Raw would break BinaryFormatter checksum compatibility for saved v1.2.0 settings.
+        // The preference is persisted separately by App in its existing HKCU registry key.
+        private bool _lenovoOsdDisabled;
+        private bool _lenovoOsdAvailable;
+        public bool LenovoOsd_Disabled
+        {
+            get { return _lenovoOsdDisabled; }
+            set
+            {
+                if (_lenovoOsdDisabled == value) return;
+                _lenovoOsdDisabled = value;
+                RaisePropertyChanged(nameof(LenovoOsd_Disabled));
+            }
+        }
+        public bool LenovoOsd_Available
+        {
+            get { return _lenovoOsdAvailable; }
+            internal set
+            {
+                if (_lenovoOsdAvailable == value) return;
+                _lenovoOsdAvailable = value;
+                RaisePropertyChanged(nameof(LenovoOsd_Available));
+            }
+        }
+
         public bool Keyboard_Enabled { get => _raw.Keyboard_Enabled; set => _Set(ref _raw.Keyboard_Enabled, value, Meta.Keyboard_Enabled, 0, nameof(Keyboard_Enabled)); }
         public double Keyboard_InactivityTimeout { get => _raw.Keyboard_InactivityTimeout; set => _Set(ref _raw.Keyboard_InactivityTimeout, value, Meta.Keyboard_InactivityTimeout, 1, nameof(Keyboard_InactivityTimeout)); }
         public int Keyboard_OnLevel { get => _raw.Keyboard_OnLevel; set => _Set(ref _raw.Keyboard_OnLevel, value, Meta.Keyboard_OnLevel, 2, nameof(Keyboard_OnLevel)); }
@@ -142,6 +168,8 @@ namespace Auto_Backlight_for_ThinkPad
             PropertyChanged += (sender, e) =>
             {
                 string name = e.PropertyName;
+                if (name == nameof(LenovoOsd_Disabled) || name == nameof(LenovoOsd_Available))
+                    return; // These are independent of Raw and have no generated index.
                 Dictionary.RaisePropertyChanged(name.ToString());
                 List.RaisePropertyChanged(ToIndex(name).ToString());
             };

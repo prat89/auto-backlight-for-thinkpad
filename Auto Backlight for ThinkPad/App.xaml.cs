@@ -175,15 +175,104 @@ namespace Auto_Backlight_for_ThinkPad
                     RegistryKey = null;
                 }
             }
+            _InitializeLenovoOsdPreference();
             _settings.PropertyChanged += _Settings_PropertyChanged;
             _settings.Update();
             DiagnosticsLog.Info("Startup event: settings applied");
         }
+        // The Lenovo OSD switch is global to the current Windows user.
+        // It is persisted separately so existing binary serialized settings stay compatible.
+        private const string LenovoOsdRegistryPath = @"Software\Lenovo\OnScreenDisplay";
+        private const string LenovoOsdPreferenceName = "DisableOnScreenDisplay";
+
+        private void _InitializeLenovoOsdPreference()
+        {
+            try
+            {
+                // Do not create Lenovo's key on hardware/software without Lenovo OSD.
+                using (RegistryKey lenovo = Registry.CurrentUser.OpenSubKey(LenovoOsdRegistryPath, false))
+                {
+                    object actual = lenovo == null ? null : lenovo.GetValue("Enable", null);
+                    if (!(actual is int) || ((int)actual != 0 && (int)actual != 1))
+                    {
+                        DiagnosticsLog.Info("Lenovo OSD: valid Enable REG_DWORD not found; menu item unavailable");
+                        return;
+                    }
+                    if (RegistryKey == null)
+                    {
+                        DiagnosticsLog.Info("Lenovo OSD: app settings registry unavailable; menu item unavailable");
+                        return;
+                    }
+                    object stored = RegistryKey.GetValue(LenovoOsdPreferenceName, null);
+                    bool desired;
+                    if (stored is int && ((int)stored == 0 || (int)stored == 1))
+                    {
+                        desired = (int)stored == 1;
+                    }
+                    else
+                    {
+                        // First upgrade: adopt the user's CURRENT Lenovo setting.
+                        desired = (int)actual == 0;
+                        RegistryKey.SetValue(LenovoOsdPreferenceName, desired ? 1 : 0, RegistryValueKind.DWord);
+                        RegistryKey.Flush();
+                        DiagnosticsLog.Info("Lenovo OSD: adopted current preference; disabled=" + desired);
+                    }
+                    _settings.LenovoOsd_Disabled = desired;
+                    _settings.LenovoOsd_Available = true;
+                    if (((int)actual == 0) != desired)
+                        _ApplyLenovoOsdPreference(desired);
+                    else
+                        DiagnosticsLog.Info("Lenovo OSD: current state already matches stored preference");
+                }
+            }
+            catch (Exception ex)
+            {
+                _settings.LenovoOsd_Available = false;
+                DiagnosticsLog.Error("Lenovo OSD: initialization failed", ex);
+            }
+        }
+
+        private void _ApplyLenovoOsdPreference(bool disabled)
+        {
+            try
+            {
+                if (RegistryKey == null || !_settings.LenovoOsd_Available) return;
+                // Remember requested preference even if Lenovo refuses the hardware setting.
+                RegistryKey.SetValue(LenovoOsdPreferenceName, disabled ? 1 : 0, RegistryValueKind.DWord);
+                RegistryKey.Flush();
+                using (RegistryKey lenovo = Registry.CurrentUser.OpenSubKey(LenovoOsdRegistryPath, true))
+                {
+                    if (lenovo == null) throw new InvalidOperationException("Lenovo OSD key disappeared");
+                    object current = lenovo.GetValue("Enable", null);
+                    if (!(current is int) || ((int)current != 0 && (int)current != 1))
+                        throw new InvalidOperationException("Lenovo OSD Enable setting missing or invalid");
+                    int expected = disabled ? 0 : 1;
+                    if ((int)current != expected)
+                    {
+                        lenovo.SetValue("Enable", expected, RegistryValueKind.DWord);
+                        lenovo.Flush();
+                        DiagnosticsLog.Info("Lenovo OSD: Enable set to " + expected);
+                    }
+                    else DiagnosticsLog.Info("Lenovo OSD: Enable already " + expected);
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Lenovo OSD: could not apply requested preference", ex);
+            }
+        }
+
         // Connect changes in settings (from gui bindings in xaml) to controllers
         private void _Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             try
             {
+            if (e.PropertyName == nameof(_settings.LenovoOsd_Available)) return;
+            if (e.PropertyName == nameof(_settings.LenovoOsd_Disabled))
+            {
+                _ApplyLenovoOsdPreference(_settings.LenovoOsd_Disabled);
+                return; // Do not rewrite the legacy binary settings for an independent option.
+            }
             if (_autoKeyboard != null && e.PropertyName == nameof(_settings.Keyboard_Enabled))
                 _autoKeyboard.Enabled = _settings.Keyboard_Enabled;
 

@@ -79,6 +79,14 @@ limitations under the License.
                         <Label HorizontalAlignment="Left" Content="React to external input devices"/>
                     </MenuItem.Header>
                 </MenuItem>
+                <MenuItem IsCheckable="True" StaysOpenOnClick="True"
+                          IsChecked="{Binding LenovoOsd_Disabled, Mode=TwoWay, Source={StaticResource Settings}}"
+                          IsEnabled="{Binding LenovoOsd_Available, Source={StaticResource Settings}}"
+                          ToolTip="Disable Lenovo on-screen indicators (including keyboard backlight, Mute and Fn Lock)">
+                    <MenuItem.Header>
+                        <Label HorizontalAlignment="Left" Content="Disable on-screen display"/>
+                    </MenuItem.Header>
+                </MenuItem>
                 <Separator/>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Screen_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="ScreenMenu_Init"
                           ToolTip="{Binding Path=Meta.Screen_Enabled.Help, Source={StaticResource Settings}}">
