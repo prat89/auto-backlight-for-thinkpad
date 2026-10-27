@@ -662,28 +662,71 @@ namespace Auto_Backlight_for_ThinkPad
                     var enc = (Encapsulated)bf.Deserialize(ms);
 
                     bool headerOk = enc.header == enc.footer;
+                    // First validate the same checksum used for new writes. The canonical
+                    // serialization uses the v1.2 assembly identity so its result survives
+                    // an assembly-version-only upgrade.
                     bool footerOk = hash(enc.raw) == enc.footer;
                     if (!footerOk)
-                        throw new FormatException("Settings integrity check failed: header=" + headerOk + "; footer=" + footerOk);
-                    // New saves store the stable footer checksum in both fields.
-                    // Older saves may have a process-dependent header; valid footer is authoritative.
-                    if (!headerOk)
+                    {
+                        // Previous builds used raw BinaryFormatter bytes for the checksum.
+                        // An assembly version change alters those bytes even if Raw is identical.
+                        // Accept only a verified checksum matching the current pre-fix encoding.
+                        bool currentLegacyOk = hashLegacyCurrent(enc.raw) == enc.footer;
+                        if (!currentLegacyOk)
+                            throw new FormatException("Settings integrity check failed: header=" + headerOk + "; footer=False (canonical and legacy)");
+                        DiagnosticsLog.Info("Settings: verified legacy checksum with current assembly identity");
+                    }
+                    else if (!headerOk)
                         DiagnosticsLog.Info("Settings legacy header mismatch; footer valid; restoring saved values");
                     return enc.raw;
                 }
             }
-            private static int hash(Raw raw)
+            // IMPORTANT: BinaryFormatter includes the assembly identity in Raw's bytes.
+            // Canonicalizing only this project's assembly version makes the existing
+            // v1.2 checksum reusable on v1.3+ without disabling integrity checking.
+            // This deliberately supports the 1.2.0.0 -> 1.3.0.0 upgrade, not arbitrary
+            // schema or serialization changes.
+            private static int hash(Raw raw) => HashSerializedRaw(raw, true);
+            private static int hashLegacyCurrent(Raw raw) => HashSerializedRaw(raw, false);
+
+            private static int HashSerializedRaw(Raw raw, bool canonicalize)
             {
-                int hash = 0x1234abcd;
+                byte[] arr;
                 using (var ms = new MemoryStream())
                 {
                     var bf = new BinaryFormatter();
                     bf.Serialize(ms, raw);
-                    var arr = ms.ToArray();
-                    for (int i = 0; i < arr.Length / 4; i++)
-                        hash ^= BitConverter.ToInt32(arr, i * 4);
+                    arr = ms.ToArray();
                 }
-                return hash;
+                if (canonicalize)
+                {
+                    string assemblyName = typeof(Raw).Assembly.GetName().Name;
+                    string current = typeof(Raw).Assembly.FullName;
+                    string canonical = assemblyName + ", Version=1.2.0.0, Culture=neutral, PublicKeyToken=null";
+                    // For this unsigned application, the only intended difference is
+                    // the version field. Require equal byte lengths for safe substitution.
+                    byte[] from = System.Text.Encoding.UTF8.GetBytes(current);
+                    byte[] to = System.Text.Encoding.UTF8.GetBytes(canonical);
+                    if (from.Length != to.Length)
+                        throw new FormatException("Settings checksum: unexpected assembly identity length");
+                    int matches = 0;
+                    for (int i = 0; i <= arr.Length - from.Length; i++)
+                    {
+                        bool equal = true;
+                        for (int j = 0; j < from.Length; j++)
+                            if (arr[i + j] != from[j]) { equal = false; break; }
+                        if (!equal) continue;
+                        Buffer.BlockCopy(to, 0, arr, i, to.Length);
+                        i += from.Length - 1;
+                        matches++;
+                    }
+                    if (matches != 1)
+                        throw new FormatException("Settings checksum: expected one Raw assembly identity, found " + matches);
+                }
+                int result = 0x1234abcd;
+                for (int i = 0; i < arr.Length / 4; i++)
+                    result ^= BitConverter.ToInt32(arr, i * 4);
+                return result;
             }
             private int header;
             private Raw raw;

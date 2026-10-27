@@ -185,11 +185,21 @@ namespace Auto_Backlight_for_ThinkPad
         private const string LenovoOsdRegistryPath = @"Software\Lenovo\OnScreenDisplay";
         private const string LenovoOsdPreferenceName = "DisableOnScreenDisplay";
 
+        // OSD independent registry access (v1.3.0 fix): the serialized Settings
+        // value may be unreadable across assembly versions. Keep those bytes intact,
+        // but open a separate handle to the app key for this independent preference.
+        private RegistryKey _OpenOsdPreferenceKey()
+        {
+            string product = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyProductAttribute>().Product;
+            return Registry.CurrentUser.CreateSubKey(@"Software\" + product);
+        }
+
         private void _InitializeLenovoOsdPreference()
         {
             try
             {
-                // Do not create Lenovo's key on hardware/software without Lenovo OSD.
+                // Do not create Lenovo's key if its OSD functionality is absent.
                 using (RegistryKey lenovo = Registry.CurrentUser.OpenSubKey(LenovoOsdRegistryPath, false))
                 {
                     object actual = lenovo == null ? null : lenovo.GetValue("Enable", null);
@@ -198,31 +208,35 @@ namespace Auto_Backlight_for_ThinkPad
                         DiagnosticsLog.Info("Lenovo OSD: valid Enable REG_DWORD not found; menu item unavailable");
                         return;
                     }
-                    if (RegistryKey == null)
+                    using (RegistryKey osdKey = _OpenOsdPreferenceKey())
                     {
-                        DiagnosticsLog.Info("Lenovo OSD: app settings registry unavailable; menu item unavailable");
-                        return;
+                        if (osdKey == null)
+                        {
+                            DiagnosticsLog.Info("Lenovo OSD: separate preference registry unavailable; menu item unavailable");
+                            return;
+                        }
+                        object stored = osdKey.GetValue(LenovoOsdPreferenceName, null);
+                        bool desired;
+                        if (stored is int && ((int)stored == 0 || (int)stored == 1))
+                        {
+                            desired = (int)stored == 1;
+                        }
+                        else
+                        {
+                            // First use: adopt the CURRENT Lenovo setting. Do not touch
+                            // the binary Settings value, even if legacy restore failed.
+                            desired = (int)actual == 0;
+                            osdKey.SetValue(LenovoOsdPreferenceName, desired ? 1 : 0, RegistryValueKind.DWord);
+                            osdKey.Flush();
+                            DiagnosticsLog.Info("Lenovo OSD: adopted current preference; disabled=" + desired);
+                        }
+                        _settings.LenovoOsd_Disabled = desired;
+                        _settings.LenovoOsd_Available = true;
+                        if (((int)actual == 0) != desired)
+                            _ApplyLenovoOsdPreference(desired);
+                        else
+                            DiagnosticsLog.Info("Lenovo OSD: current state already matches stored preference");
                     }
-                    object stored = RegistryKey.GetValue(LenovoOsdPreferenceName, null);
-                    bool desired;
-                    if (stored is int && ((int)stored == 0 || (int)stored == 1))
-                    {
-                        desired = (int)stored == 1;
-                    }
-                    else
-                    {
-                        // First upgrade: adopt the user's CURRENT Lenovo setting.
-                        desired = (int)actual == 0;
-                        RegistryKey.SetValue(LenovoOsdPreferenceName, desired ? 1 : 0, RegistryValueKind.DWord);
-                        RegistryKey.Flush();
-                        DiagnosticsLog.Info("Lenovo OSD: adopted current preference; disabled=" + desired);
-                    }
-                    _settings.LenovoOsd_Disabled = desired;
-                    _settings.LenovoOsd_Available = true;
-                    if (((int)actual == 0) != desired)
-                        _ApplyLenovoOsdPreference(desired);
-                    else
-                        DiagnosticsLog.Info("Lenovo OSD: current state already matches stored preference");
                 }
             }
             catch (Exception ex)
@@ -236,10 +250,15 @@ namespace Auto_Backlight_for_ThinkPad
         {
             try
             {
-                if (RegistryKey == null || !_settings.LenovoOsd_Available) return;
-                // Remember requested preference even if Lenovo refuses the hardware setting.
-                RegistryKey.SetValue(LenovoOsdPreferenceName, disabled ? 1 : 0, RegistryValueKind.DWord);
-                RegistryKey.Flush();
+                if (!_settings.LenovoOsd_Available) return;
+                using (RegistryKey osdKey = _OpenOsdPreferenceKey())
+                {
+                    if (osdKey == null)
+                        throw new InvalidOperationException("Lenovo OSD preference registry unavailable");
+                    // Persist separately: never rewrite legacy binary Settings.
+                    osdKey.SetValue(LenovoOsdPreferenceName, disabled ? 1 : 0, RegistryValueKind.DWord);
+                    osdKey.Flush();
+                }
                 using (RegistryKey lenovo = Registry.CurrentUser.OpenSubKey(LenovoOsdRegistryPath, true))
                 {
                     if (lenovo == null) throw new InvalidOperationException("Lenovo OSD key disappeared");
