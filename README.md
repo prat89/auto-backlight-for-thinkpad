@@ -14,7 +14,7 @@ A lightweight Windows system-tray application that automatically turns the keybo
 - Cooperates with the laptop's **Fn+Space** shortcut; manual level changes may affect subsequent automatic brightness.
 - Improved handling of power/display and lid close/open notifications, with explicit pause/resume and Raw Input capture recovery. Intermittent scenarios are still under observation.
 - Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default on new installations**. Existing saved preferences are respected; enabling it may briefly activate the camera.
-- **Diagnostic report...** in the tray menu opens the diagnostics/export workflow, alongside application and hardware logs. Review diagnostics before sharing.
+- **Diagnostics...** in the tray menu opens the diagnostics/export workflow, alongside application and hardware logs. Review diagnostics before sharing.
 - Diagnostic checks for `IBMPmDrv`/`EnergyDrv` service presence; only `IBMPmDrv` performs hardware commands. Hardware-access errors are logged with throttling.
 - Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
 
@@ -46,16 +46,16 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 - Enable automatic keyboard lighting in the tray menu and select an inactivity timeout and **Low** or **High** brightness.
 - Use **React to external input devices** to include connected keyboards and mice. On a new configuration it starts enabled; existing settings prevail.
 - The optional **Screen brightness via camera** feature is separate from keyboard lighting; it starts disabled for a new configuration.
-- Choose **Diagnostic report...** in the tray menu to inspect/export diagnostic information. Review and redact local paths, system identifiers and device details before sharing.
+- Choose **Diagnostics...** in the tray menu to inspect/export diagnostic information. Review and redact local paths, system identifiers and device details before sharing.
 
 ## Troubleshooting
 
 1. Confirm that a compatible `IBMPmDrv` driver is installed and running. This program does not ship or install kernel drivers. `EnergyDrv` discovery is informational only.
 2. Check Windows' notification area, including hidden icons. Startup can be delayed while Windows reports driver/service status; a visible tray icon is not guaranteed immediately after MSI completion.
-3. Open **Diagnostic report...** in the tray menu to inspect/export a report, or review:
+3. Open **Diagnostics...** in the tray menu to inspect/export a report, or review:
 
    ```text
-   %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\application.log
+   %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\application.logg
    %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\hardware-report.txt
    ```
 
