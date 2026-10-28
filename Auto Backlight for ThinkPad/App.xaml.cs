@@ -203,11 +203,20 @@ namespace Auto_Backlight_for_ThinkPad
                 using (RegistryKey lenovo = Registry.CurrentUser.OpenSubKey(LenovoOsdRegistryPath, false))
                 {
                     object actual = lenovo == null ? null : lenovo.GetValue("Enable", null);
+                    // PHASE19_OSD_LOGGING: distinguish absent/unsupported registry configuration.
+                    if (lenovo == null)
+                        DiagnosticsLog.Info("Lenovo OSD: unavailable; Lenovo registry key missing");
+                    else if (Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0)
+                        DiagnosticsLog.Info("Lenovo OSD: unavailable; Enable value missing");
+                    else if (lenovo.GetValueKind("Enable") != RegistryValueKind.DWord)
+                        DiagnosticsLog.Info("Lenovo OSD: unexpected Enable type (legacy validation retained)=" + lenovo.GetValueKind("Enable"));
+                    else if (!(actual is int) || ((int)actual != 0 && (int)actual != 1))
+                        DiagnosticsLog.Info("Lenovo OSD: unavailable; Enable value unsupported=" + (actual == null ? "null" : actual.ToString()));
                     if (!(actual is int) || ((int)actual != 0 && (int)actual != 1))
                     {
-                        DiagnosticsLog.Info("Lenovo OSD: valid Enable REG_DWORD not found; menu item unavailable");
                         return;
                     }
+                    DiagnosticsLog.Info("Lenovo OSD: init; Enable=" + actual + "; registryType=" + lenovo.GetValueKind("Enable"));
                     using (RegistryKey osdKey = _OpenOsdPreferenceKey())
                     {
                         if (osdKey == null)
@@ -216,6 +225,8 @@ namespace Auto_Backlight_for_ThinkPad
                             return;
                         }
                         object stored = osdKey.GetValue(LenovoOsdPreferenceName, null);
+                        DiagnosticsLog.Info("Lenovo OSD: saved preference=" + (stored == null ? "missing" : stored.ToString()) +
+                            "; type=" + (stored == null ? "missing" : osdKey.GetValueKind(LenovoOsdPreferenceName).ToString()));
                         bool desired;
                         if (stored is int && ((int)stored == 0 || (int)stored == 1))
                         {
@@ -230,6 +241,8 @@ namespace Auto_Backlight_for_ThinkPad
                             osdKey.Flush();
                             DiagnosticsLog.Info("Lenovo OSD: adopted current preference; disabled=" + desired);
                         }
+                        DiagnosticsLog.Info("Lenovo OSD: init resolved; disabled=" + desired +
+                            "; Enable=" + actual + "; action=" + (((int)actual == 0) != desired ? "apply" : "none"));
                         _settings.LenovoOsd_Disabled = desired;
                         _settings.LenovoOsd_Available = true;
                         if (((int)actual == 0) != desired)
@@ -251,6 +264,7 @@ namespace Auto_Backlight_for_ThinkPad
             try
             {
                 if (!_settings.LenovoOsd_Available) return;
+                DiagnosticsLog.Info("Lenovo OSD: change requested; disabled=" + disabled + "; target Enable=" + (disabled ? 0 : 1));
                 using (RegistryKey osdKey = _OpenOsdPreferenceKey())
                 {
                     if (osdKey == null)
@@ -266,6 +280,7 @@ namespace Auto_Backlight_for_ThinkPad
                     if (!(current is int) || ((int)current != 0 && (int)current != 1))
                         throw new InvalidOperationException("Lenovo OSD Enable setting missing or invalid");
                     int expected = disabled ? 0 : 1;
+                    DiagnosticsLog.Info("Lenovo OSD: before change; Enable=" + current + "; expected=" + expected);
                     if ((int)current != expected)
                     {
                         lenovo.SetValue("Enable", expected, RegistryValueKind.DWord);
@@ -273,11 +288,21 @@ namespace Auto_Backlight_for_ThinkPad
                         DiagnosticsLog.Info("Lenovo OSD: Enable set to " + expected);
                     }
                     else DiagnosticsLog.Info("Lenovo OSD: Enable already " + expected);
+                    // Read-back is diagnostic only; it never retries or modifies settings.
+                    object verified = lenovo.GetValue("Enable", null);
+                    bool matches = verified is int && ((int)verified == expected) &&
+                        lenovo.GetValueKind("Enable") == RegistryValueKind.DWord;
+                    DiagnosticsLog.Info("Lenovo OSD: read-back; Enable=" + (verified == null ? "missing" : verified.ToString()) +
+                        "; type=" + (verified == null ? "missing" : lenovo.GetValueKind("Enable").ToString()) +
+                        "; matchesRequest=" + matches);
+                    if (!matches)
+                        DiagnosticsLog.Info("WARNING Lenovo OSD: preference/Enable mismatch after write; savedDisabled=" + disabled +
+                            "; expectedEnable=" + expected);
                 }
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Lenovo OSD: could not apply requested preference", ex);
+                DiagnosticsLog.Error("Lenovo OSD: could not apply requested preference; possible preference/Enable mismatch; disabled=" + disabled, ex);
             }
         }
 
@@ -429,6 +454,112 @@ namespace Auto_Backlight_for_ThinkPad
         }
         // The tray context menu captures/deactivates focus while closing.
         // A short one-shot delay lets the menu release focus before showing the dialog.
+        // PHASE18_EXPORT_APPLICATION_LOG: export a read-only snapshot of application.log.
+        // Match the existing diagnostics action: release the tray menu before opening an owned dialog.
+        private void _ExportApplicationLog(object sender, RoutedEventArgs e)
+        {
+            DiagnosticsLog.Info("Export application log requested");
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(350)
+            };
+            EventHandler tick = null;
+            tick = (o, args) =>
+            {
+                timer.Stop();
+                timer.Tick -= tick;
+                _ExportApplicationLogCore();
+            };
+            timer.Tick += tick;
+            timer.Start();
+        }
+
+        private void _ExportApplicationLogCore()
+        {
+            Window owner = null;
+            try
+            {
+                string source = DiagnosticsLog.FilePath;
+                if (!System.IO.File.Exists(source))
+                {
+                    MessageBox.Show("No application log is available yet.",
+                        "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                owner = new Window
+                {
+                    Width = 1,
+                    Height = 1,
+                    Left = 10,
+                    Top = 10,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    ShowInTaskbar = false,
+                    ShowActivated = true,
+                    AllowsTransparency = true,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    Opacity = 0.01,
+                    Topmost = true
+                };
+                owner.Show();
+                owner.Activate();
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "Export application log",
+                    FileName = "application.log",
+                    Filter = "Log files (*.log)|*.log|All files (*.*)|*.*",
+                    AddExtension = true,
+                    DefaultExt = ".log",
+                    OverwritePrompt = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                };
+                bool? result = dialog.ShowDialog(owner);
+                if (result != true) return;
+
+                string destination = System.IO.Path.GetFullPath(dialog.FileName);
+                if (String.Equals(System.IO.Path.GetFullPath(source), destination,
+                    StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("The original application log cannot be overwritten.");
+
+                // Read an active log without stopping logging; allow concurrent append and rotation.
+                // Write to a temporary sibling, then replace the destination only after a full copy.
+                string temp = destination + ".phase18-" + Guid.NewGuid().ToString("N") + ".tmp";
+                try
+                {
+                    using (var input = new System.IO.FileStream(source, System.IO.FileMode.Open,
+                        System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete))
+                    using (var output = new System.IO.FileStream(temp, System.IO.FileMode.CreateNew,
+                        System.IO.FileAccess.Write, System.IO.FileShare.None))
+                    {
+                        input.CopyTo(output);
+                    }
+                    if (System.IO.File.Exists(destination))
+                        System.IO.File.Replace(temp, destination, null);
+                    else
+                        System.IO.File.Move(temp, destination);
+                }
+                finally
+                {
+                    if (System.IO.File.Exists(temp)) System.IO.File.Delete(temp);
+                }
+                DiagnosticsLog.Info("Application log exported by user");
+                MessageBox.Show("Application log exported successfully.",
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Application log export failed", ex);
+                MessageBox.Show("Could not export the application log. See application.log for details.",
+                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                if (owner != null) owner.Close();
+            }
+        }
+
         private void _ExportDiagnosticReport(object sender, RoutedEventArgs e)
         {
             DiagnosticsLog.Info("Export diagnostic report requested");

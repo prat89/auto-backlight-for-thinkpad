@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.3.1 — 28 October 2026
+
+### Enhanced diagnostics
+- Extended the hardware diagnostics report with Lenovo OSD registry configuration, saved preferences, TPOSD process information, TPHKLOAD service state and BIOS information.
+- Improved Lenovo OSD application logging, including startup state, requested changes, previous registry values and read-back verification.
+- Added diagnostic information to help identify inconsistencies between saved OSD preferences and the actual registry state.
+
+### Application log export
+- Added **Export log...** to the main tray menu, directly below Diagnostics.
+- Users can export a copy of `application.log` through the standard Windows Save As dialog.
+- Preserved the original log file and existing diagnostic report functionality.
+
+### Compatibility
+- Preserved existing keyboard and screen brightness controls.
+- No changes to the keyboard backlight driver backend or serialized user settings format.
+- Continued support for the existing Lenovo OSD preference mechanism.
+
 ## v1.3.0 — 27 October 2026
 
 ### Modern native WPF tray menu

@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-**Current version: v1.3.0.** This release includes a redesigned native WPF tray menu and Lenovo OSD control. The download becomes available on the fork’s Releases page when the v1.3.0 release is published. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
+**Current version: v1.3.1.** This release includes a redesigned native WPF tray menu and Lenovo OSD control. The download becomes available on the fork’s Releases page when the v1.3.1 release is published. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
 
 ## Features
 
@@ -58,7 +58,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 3. Open **Diagnostics...** in the tray menu to inspect/export a report, or review:
 
    ```text
-   %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\application.logg
+   %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\application.log
    %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\hardware-report.txt
    ```
 
