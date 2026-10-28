@@ -92,7 +92,7 @@ limitations under the License.
             </Setter>
         </Style>
         <Style x:Key="P161_MenuSeparator" TargetType="{x:Type Separator}">
-            <Setter Property="Margin" Value="34,5,7,5"/>
+            <Setter Property="Margin" Value="34,3,7,3"/>
             <Setter Property="Height" Value="1"/>
             <Setter Property="Background" Value="#FFDDE3EA"/>
             <Setter Property="Template">
@@ -105,7 +105,7 @@ limitations under the License.
         </Style>
         <!-- All leaf positions: regular, checkable, and composite Grid/ComboBox headers. -->
         <ControlTemplate x:Key="P161_LeafTemplate" TargetType="{x:Type MenuItem}">
-            <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,1" MinHeight="29">
+            <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,0" MinHeight="28">
                 <Grid SnapsToDevicePixels="True">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="30"/>
@@ -115,10 +115,10 @@ limitations under the License.
                           Data="M 4,9 L 8,13 L 16,5" Stroke="#FF596575" StrokeThickness="1.55"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Width="12" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <ContentPresenter x:Name="IconSlot" Grid.Column="0" ContentSource="Icon" Width="17" Height="17"
+                    <ContentPresenter x:Name="IconSlot" Grid.Column="0" ContentSource="Icon" Width="15" Height="15"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
-                                      Margin="2,2,10,2" VerticalAlignment="Center"/>
+                                      Margin="2,1,9,1" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
             <ControlTemplate.Triggers>
@@ -137,17 +137,17 @@ limitations under the License.
         <!-- Submenu-owning Settings item. PART_Popup and ItemsPresenter are essential. -->
         <ControlTemplate x:Key="P161_SubmenuTemplate" TargetType="{x:Type MenuItem}">
             <Grid>
-                <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,1" MinHeight="29">
+                <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,0" MinHeight="28">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="30"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="25"/>
                         </Grid.ColumnDefinitions>
-                        <ContentPresenter Grid.Column="0" ContentSource="Icon" Width="17" Height="17"
+                        <ContentPresenter Grid.Column="0" ContentSource="Icon" Width="15" Height="15"
                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
-                                          Margin="2,2,10,2" VerticalAlignment="Center"/>
+                                          Margin="2,1,9,1" VerticalAlignment="Center"/>
                         <Path Grid.Column="2" Width="7" Height="11" Data="M 1,1 L 6,5.5 L 1,10"
                               Stroke="#FF647182" StrokeThickness="1.5" StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Center"/>
@@ -200,7 +200,7 @@ limitations under the License.
             </ContextMenu.Resources>
             <MenuItem Header="Settings">
                 <MenuItem.Icon>
-                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,2 L 12,2 L 13,5 L 15,6 L 18,5 L 20,8 L 18,10 L 18,13 L 20,15 L 18,18 L 15,17 L 13,18 L 12,21 L 9,21 L 8,18 L 6,17 L 3,18 L 1,15 L 3,13 L 3,10 L 1,8 L 3,5 L 6,6 L 8,5 Z"/>
                 </MenuItem.Icon>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Keyboard_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="KeyboardMenu_Init"
@@ -211,7 +211,7 @@ limitations under the License.
                                 <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto keyboard backlight"/>
+                            <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto keyboard backlight"/>
                             <ComboBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" IsEditable="True" Height="23" Width="100" Text="{Binding Keyboard_InactivityTimeout, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}" MouseEnter="KeyboardCombo_Enter" MouseLeave="KeyboardCombo_Leave"
                                   ToolTip="{Binding Path=Meta.Keyboard_InactivityTimeout.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="1 sec"/>
@@ -235,7 +235,7 @@ limitations under the License.
                                 <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <Label Grid.Column="0" HorizontalAlignment="Left" Content="Choose brightness level"/>
+                            <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Choose brightness level"/>
                             <ComboBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" Height="23" Width="100" SelectedIndex="{Binding Keyboard_OnLevel, Mode=TwoWay, Source={StaticResource Settings}}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
                                   ToolTip="{Binding Path=Meta.Keyboard_OnLevel.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="Off"/>
@@ -251,7 +251,7 @@ limitations under the License.
                           IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
                           ToolTip="Include external USB and Bluetooth input in the inactivity timer">
                     <MenuItem.Header>
-                        <Label HorizontalAlignment="Left" Content="React to external input devices"/>
+                        <Label VerticalAlignment="Center" Padding="3,1,3,1" HorizontalAlignment="Left" Content="React to external input devices"/>
                     </MenuItem.Header>
                 </MenuItem>
                 <MenuItem IsCheckable="True" StaysOpenOnClick="True"
@@ -259,7 +259,7 @@ limitations under the License.
                           IsEnabled="{Binding LenovoOsd_Available, Source={StaticResource Settings}}"
                           ToolTip="Disable Lenovo on-screen indicators (including keyboard backlight, Mute and Fn Lock)">
                     <MenuItem.Header>
-                        <Label HorizontalAlignment="Left" Content="Disable on-screen display"/>
+                        <Label VerticalAlignment="Center" Padding="3,1,3,1" HorizontalAlignment="Left" Content="Disable on-screen display"/>
                     </MenuItem.Header>
                 </MenuItem>
                 <Separator/>
@@ -271,7 +271,7 @@ limitations under the License.
                                 <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto screen brightness"/>
+                            <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto screen brightness"/>
                             <ComboBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" IsEditable="True" Height="23" Width="100" Text="{Binding Screen_PollPeriod, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}" MouseEnter="ScreenCombo_Enter" MouseLeave="ScreenCombo_Leave"
                                   ToolTip="{Binding Path=Meta.Screen_PollPeriod.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="1 sec"/>
@@ -295,7 +295,7 @@ limitations under the License.
                                 <ColumnDefinition Width="180"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <Label Grid.Column="0" HorizontalAlignment="Left" Content="Enable hotkey for screen refresh"/>
+                            <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Enable hotkey for screen refresh"/>
                             <TextBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" IsEnabled="{Binding Screen_HotKeyEnabled, Source={StaticResource Settings}}" IsUndoEnabled="False" Height="23" Width="100" IsReadOnly="False" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewKeyDown="_HotKeyBox_KeyDown" Initialized="_HotKeyBox_Init" GotKeyboardFocus="_HotKeyBox_GotKeyboardFocus" LostKeyboardFocus="_HotKeyBox_LostKeyboardFocus" MouseEnter="HotkeyBox_Enter" MouseLeave="HotkeyBox_Leave"
                                  ToolTip="{Binding Path=Meta.Screen_HotKey.Help, Source={StaticResource Settings}}"/>
                         </Grid>
@@ -304,24 +304,24 @@ limitations under the License.
                 <MenuItem Click="_ShowCalibration" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}"
                           ToolTip="Edit mapping curve between screen brightness vs. ambient light level">
                     <MenuItem.Header>
-                        <Label HorizontalAlignment="Left" Content="Calibration ..."/>
+                        <Label VerticalAlignment="Center" Padding="3,1,3,1" HorizontalAlignment="Left" Content="Calibration ..."/>
                     </MenuItem.Header>
                 </MenuItem>
             </MenuItem>
             <Separator/>
             <MenuItem Header="Diagnostics..." Click="_ExportDiagnosticReport">
                 <MenuItem.Icon>
-                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 2,12 L 6,12 L 9,5 L 13,19 L 16,12 L 22,12"/>
                 </MenuItem.Icon></MenuItem>
             <MenuItem Header="About" Click="_ShowAbout">
                 <MenuItem.Icon>
-                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 12,3 A 9,9 0 1 1 11.99,3 Z M 12,10 L 12,16 M 12,7 L 12,7"/>
                 </MenuItem.Icon></MenuItem>
             <MenuItem Header="Exit" Click="_ExitApplication">
                 <MenuItem.Icon>
-                    <Path Width="16" Height="16" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.7"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,3 L 4,3 L 4,21 L 10,21 M 13,7 L 18,12 L 13,17 M 9,12 L 18,12"/>
                 </MenuItem.Icon></MenuItem>
         </ContextMenu>
