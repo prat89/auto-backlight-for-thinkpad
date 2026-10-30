@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.3.4 — 30 October 2026 (release candidate; publish after MSI validation)
+
+### Backlight and input reliability (Phases 20C / 20C.1)
+- Improved Raw Input discovery and rescan for Bluetooth/USB mice and keyboards, including devices connected after launch and devices available after Windows startup.
+- Hardened hot-plug handling and device enumeration to avoid crashes on device-change notifications; retained internal keyboard/touchpad/TrackPoint support.
+- Fixed a brightness preference synchronization edge case in which automatic changes could be mistaken for the user's chosen brightness level.
+- Improved recovery across pause/resume and device changes while retaining Fn+Space behavior and the existing IBMPmDrv backend.
+
+### Driver diagnostics (Phase 20A)
+- Added a read-only IBMPmDrv GET probe to the hardware diagnostics report: raw response, recognized signature, decoded current brightness, and maximum level.
+- Verified GET at Off (0), Low (1), High (2) and separately exercised SET/GET with restoration on the developer's laptop; the shipped report remains read-only and does not poll the driver continuously.
+
+### Lenovo OSD compatibility (Phase 21)
+- Made **Disable on-screen display** available when the Lenovo OSD registry key exists but its `Enable` value is absent.
+- Avoided creating `Enable` on application startup. An explicit user toggle can create the missing DWORD (`0` to suppress OSD); toggling back writes `1`.
+- Retained handling of valid existing `Enable=0/1` values, with read-back diagnostics and safeguards for invalid registry data.
+- Locally verified missing-value behavior and transitions `0 → 1 → 0` on the ThinkPad X1 Extreme Gen 2. This is not comprehensive validation of other Lenovo OSD versions.
+
+### Build, installation and validation
+- Updated developer build/MSI versions between v1.3.1 and this release candidate; v1.3.4 release metadata and a freshly built MSI must be verified before publication.
+- Validated identical SHA-256 hashes for the local Release EXE and installed Program Files EXE after MSI replacement, and confirmed Bluetooth mouse activation of keyboard backlight after a full Windows reboot.
+- Preserved Task Scheduler autostart, legacy user-settings format, optional camera behavior, and IBMPmDrv-only active control.
+- No change to EnergyDrv support. A successful local test does not establish general hardware compatibility or validate the final v1.3.4 MSI upgrade.
+
 ## v1.3.1 — 28 October 2026
 
 ### Enhanced diagnostics

@@ -4,20 +4,20 @@
 
 A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-**Current version: v1.3.1.** This release includes a redesigned native WPF tray menu and Lenovo OSD control. The download becomes available on the fork’s Releases page when the v1.3.1 release is published. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
+**Next release candidate: v1.3.4** (not published until build, installer upgrade and release-asset checks pass). Relative to v1.3.1, this includes improved external-device input handling, driver diagnostics and Lenovo OSD compatibility. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
 
 ## Features
 
 - Automatic keyboard backlight on supported ThinkPad hardware, including built-in keyboard, touchpad and TrackPoint activity.
-- **React to external input devices** detects activity from compatible external keyboards and mice. Enabled by default for new configurations; previously saved preferences are respected.
+- **React to external input devices** detects activity from compatible external keyboards and mice, with improved hot-plug, Bluetooth reconnection and post-restart discovery (tested locally). Enabled by default for new configurations; previously saved preferences are respected.
 - Configurable inactivity timeout and **Off / Low / High** backlight states on the verified three-level backend (Off = 0, Low = 1, High = 2). The **High** label replaces the earlier **Full** label without changing the underlying hardware level.
 - Cooperates with the laptop's **Fn+Space** shortcut; manual level changes may affect subsequent automatic brightness.
 - Improved handling of power/display and lid close/open notifications, with explicit pause/resume and Raw Input capture recovery. Intermittent scenarios are still under observation.
 - Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default on new installations**. Existing saved preferences are respected; enabling it may briefly activate the camera.
 - **Diagnostics...** in the tray menu opens the diagnostics/export workflow, alongside application and hardware logs. Review diagnostics before sharing.
-- **Disable on-screen display** (v1.3.0) toggles Lenovo on-screen indicators, including keyboard backlight, Mute and Fn Lock indicators. The option is available only when a compatible Lenovo OSD registry setting is detected; its preference is saved separately from legacy application settings.
+- **Disable on-screen display** supports compatible Lenovo OSD installations where `HKCU\Software\Lenovo\OnScreenDisplay` exists even when `Enable` is missing. The app does not create a missing `Enable` on startup; a user-initiated toggle can create the DWORD and set `0` (OSD disabled) or `1` (OSD enabled). Its preference is stored separately from legacy settings; behavior depends on the installed Lenovo OSD software.
 - **Modern tray menu** (v1.3.0) replaces the legacy menu visuals with native WPF templates, rounded corners, subtle highlighting, icons and compact checkmarks. No additional UI library is required.
-- Diagnostic checks for `IBMPmDrv`/`EnergyDrv` service presence; only `IBMPmDrv` performs hardware commands. Hardware-access errors are logged with throttling.
+- Diagnostic checks for `IBMPmDrv`/`EnergyDrv` service presence plus a read-only `IBMPmDrv` GET probe that reports raw and decoded brightness state; only `IBMPmDrv` performs hardware commands. Hardware-access errors are logged with throttling.
 - Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
 
 ## Compatibility
@@ -47,7 +47,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 - Enable automatic keyboard lighting in the tray menu and select an inactivity timeout and **Low** or **High** brightness.
 - Use **React to external input devices** to include connected keyboards and mice. On a new configuration it starts enabled; existing settings prevail.
-- Use **Disable on-screen display** (v1.3.0) to disable Lenovo OSD indicators when the setting is available. The app remembers the preference and reapplies it at startup; it does not change the physical keyboard backlight control.
+- Use **Disable on-screen display** to control compatible Lenovo indicators. When the Lenovo OSD registry key exists but `Enable` is absent, startup leaves it absent; explicitly toggling the option can create `Enable=0` (disable) or write `Enable=1` (enable). This does not change physical keyboard backlight control.
 - The optional **Screen brightness via camera** feature is separate from keyboard lighting; it starts disabled for a new configuration.
 - Choose **Diagnostics...** in the tray menu to inspect/export diagnostic information. Review and redact local paths, system identifiers and device details before sharing.
 
@@ -77,7 +77,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels are **internal development milestones**, not public version tags. **v1.2.0** was published on 27 October 2026. For **v1.3.0**, verify the EXE assembly/file/informational versions and MSI product version before publishing the release. An application build or MSI packaging success alone is not an installation/upgrade test.
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels are **internal development milestones**, not public version tags. **v1.2.0** was published on 27 October 2026. For **v1.3.4**, verify the EXE assembly/file/informational versions, MSI ProductVersion/ProductCode/UpgradeCode, installed EXE hash and release asset checksums before publication. An application build or MSI packaging success alone is not an installation/upgrade test.
 
 See [CHANGELOG.md](CHANGELOG.md) for history and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware. A successful MSI upgrade test does not establish compatibility with untested models or every power transition. The v1.2.0 to v1.3.0 MSI upgrade has not been independently confirmed in this documentation; validate it before publication. The previously tested MSI was **not digitally signed**; Windows may show publisher/security warnings. GitHub Releases are authoritative for published release assets.
 

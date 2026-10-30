@@ -32,12 +32,21 @@ The developer-verified table remains limited to the X1 Extreme Gen 2. A communit
 
 If `IBMPmDrv` is absent, do **not** install random third-party kernel drivers or turn off Windows security protections just to try this program.
 
-## Lenovo OSD option (v1.3.0)
+## Lenovo OSD option (v1.3.4)
 
-- **Disable on-screen display** is available only if the current user's `HKCU\Software\Lenovo\OnScreenDisplay` key contains a valid `Enable` DWORD (`0` or `1`).
-- The option controls Lenovo's own visual indicators, not the keyboard backlight hardware or the app's inactivity control.
-- The app remembers the desired state separately from its legacy serialized settings and reapplies it on startup if needed.
-- This option is confirmed in the developer's local setup; it is **not** a guarantee that all ThinkPads expose this registry setting or honor changes to it.
+- **Disable on-screen display** is available when `HKCU\Software\Lenovo\OnScreenDisplay` exists and `Enable` is either a valid DWORD (`0` or `1`) or absent.
+- A missing `Enable` is **not created automatically on startup**. An explicit toggle can create `Enable=0` (`REG_DWORD`) to suppress Lenovo OSD; toggling the option off writes `Enable=1`.
+- If the key is absent or the existing value is invalid, the app does not silently overwrite it.
+- The option controls Lenovo's visual indicators, not the keyboard backlight hardware or the app's inactivity control. The preference is stored separately from legacy serialized settings.
+- On 30 October 2026, the maintainer tested the missing-value path and observed registry transitions `0 → 1 → 0` on X1 Extreme Gen 2. A ThinkPad P14s Gen 5 AMD community tester reported success after manually creating `Enable`; this is not yet validation of the missing-value path on that machine.
+- Support depends on the actual Lenovo OSD implementation. The key or DWORD alone does not guarantee the Lenovo overlay will respond.
+
+## Recent developer validation (30 October 2026)
+
+- **Phase 20A:** read-only IBMPmDrv brightness GET probe reported valid values for Off, Low and High on X1 Extreme Gen 2. Experimental SET/GET tests restored the initial setting; they are not part of the diagnostics workflow.
+- **Phase 20C.1:** verified external Bluetooth mouse triggering of keyboard lighting after full Windows reboot with the new EXE installed through MSI; the installed EXE matched the local Release EXE by SHA-256. Hot-plug and resume checks were also performed locally.
+- **Phase 21:** missing OSD `Enable` was not created on app startup; explicit user interactions created and toggled the DWORD. Existing OSD behavior was retained.
+- **Still unverified:** final v1.3.4 MSI major upgrade and uninstall, broad device coverage, EnergyDrv control, other Lenovo OSD revisions, and full coverage of legacy settings/power transitions.
 
 ## Known limits
 
