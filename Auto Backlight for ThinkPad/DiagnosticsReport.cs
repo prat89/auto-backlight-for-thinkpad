@@ -64,6 +64,16 @@ namespace Auto_Backlight_for_ThinkPad
                 foreach (string line in BackendDetection.GetReportLines())
                     sb.AppendLine(line);
                 AppendExtendedDiagnostics(sb);
+                // PHASE20A_READ_ONLY_DRIVER_PROBE: report raw GET only when controller initialized.
+                sb.AppendLine("--- Keyboard driver probe (read-only) ---");
+                sb.AppendLine("Backend: " + (keyboardAvailable ? "IBMPmDrv" : "unavailable"));
+                if (keyboardAvailable)
+                    sb.AppendLine(Backlight.ReadOnlyDriverProbe());
+                else
+                {
+                    sb.AppendLine("GET operation: skipped (keyboard controller unavailable)");
+                    sb.AppendLine("SET verification: not performed (read-only mode)");
+                }
                 File.WriteAllText(Path.Combine(dir,"hardware-report.txt"), sb.ToString(), Encoding.UTF8);
                 DiagnosticsLog.Info("Hardware report written to Logs/hardware-report.txt");
             }

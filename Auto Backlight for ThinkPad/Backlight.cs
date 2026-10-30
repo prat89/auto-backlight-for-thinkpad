@@ -288,7 +288,35 @@ namespace Auto_Backlight_for_ThinkPad
                 DiagnosticsLog.Error("IBMPmDrv operation failed: " + operation + " (subsequent failures throttled for 30s)", ex);
         }
 
-        private int _CallPmService(uint code, int input)
+        // PHASE20A_READ_ONLY_DRIVER_PROBE: use the same GET operation as Read(), never SET.
+        // Raw bits aid compatibility research; they are not proof that LEDs illuminated.
+        internal static string ReadOnlyDriverProbe()
+        {
+            try
+            {
+                int raw = _CallPmService(2238080, 0); // IBMPmDrv GET; input=0
+                uint bits = unchecked((uint)raw);
+                bool recognized = (bits & 0x00050000u) == 0x00050000u;
+                int level = raw & 0xF;
+                int maximum = (raw >> 8) & 0xF;
+                string family = (bits & 0x00200000u) != 0 ? "0x0025xxxx" : "0x0005xxxx";
+                return "GET operation: succeeded" + Environment.NewLine +
+                    "Raw GET response: 0x" + bits.ToString("X8") + Environment.NewLine +
+                    "Known response signature: " + (recognized ? "yes" : "no") + Environment.NewLine +
+                    "Response family (heuristic): " + (recognized ? family : "unknown") + Environment.NewLine +
+                    "Decoded brightness level: " + (recognized ? level.ToString() : "unavailable") + Environment.NewLine +
+                    "Decoded maximum level: " + (recognized ? maximum.ToString() : "unavailable") + Environment.NewLine +
+                    "SET verification: not performed (read-only mode)";
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase 20A read-only driver probe failed", ex);
+                return "GET operation: failed (" + ex.GetType().Name + ")" + Environment.NewLine +
+                    "SET verification: not performed (read-only mode)";
+            }
+        }
+
+        private static int _CallPmService(uint code, int input)
         {
             IntPtr h = CreateFile(@"\\.\IBMPmDrv", 0x80000000, 1, IntPtr.Zero, 3, 0, IntPtr.Zero);
             if (h == new IntPtr(-1) || h == IntPtr.Zero)

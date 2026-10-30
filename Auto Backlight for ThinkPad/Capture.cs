@@ -28,6 +28,32 @@ namespace Auto_Backlight_for_ThinkPad
     {
         public event EventHandler CaptureEvent;
         public bool IncludeExternalDevices { get; set; } = false;
+        // PHASE20C1_DYNAMIC_RAWINPUT: device-independent subscription survives Bluetooth arrivals.
+        private static bool IsEligible(Device dev, out bool internalDevice)
+        {
+            internalDevice = false;
+            if (dev == null || string.IsNullOrEmpty(dev.Path)) return false;
+            bool keyboard = dev.Type == Device.DeviceType.Keyboard;
+            bool mouse = dev.Type == Device.DeviceType.Mouse;
+            bool touchpad = dev.Type == Device.DeviceType.Hid && dev.Info is HidInfo &&
+                ((HidInfo)dev.Info).usagePage == 0xD && ((HidInfo)dev.Info).usage == 0x5;
+            internalDevice = ((keyboard || mouse) &&
+                dev.Path.StartsWith(@"\\?\ACPI#", StringComparison.OrdinalIgnoreCase)) || touchpad;
+            return keyboard || mouse || touchpad;
+        }
+        public void RefreshDevices()
+        {
+            try
+            {
+                int total = 0;
+                foreach (Device device in _ri.EnumerateDevices()) total++;
+                DiagnosticsLog.Info("Raw Input rescan completed; devices=" + total);
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Raw Input rescan failed", ex);
+            }
+        }
         public void Start() => Enabled = true;
         public void Stop() => Enabled = false;
 
@@ -56,13 +82,37 @@ namespace Auto_Backlight_for_ThinkPad
             _ri = ri;
             _mouseColl.usagePage = 0x1;
             _mouseColl.usage = 0x2;
-            _mouseColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK;
+            _mouseColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK | DeviceCollection.Flag.RIDEV_DEVNOTIFY;
             _keyboardColl.usagePage = 0x1;
             _keyboardColl.usage = 0x6;
-            _keyboardColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK;
+            _keyboardColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK | DeviceCollection.Flag.RIDEV_DEVNOTIFY;
             _touchpadColl.usagePage = 0xd;
             _touchpadColl.usage = 0x5;
-            _touchpadColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK;
+            _touchpadColl.flags = DeviceCollection.Flag.RIDEV_INPUTSINK | DeviceCollection.Flag.RIDEV_DEVNOTIFY;
+            // Subscribe once to the global stream, rather than individual startup device objects.
+            // RawInput's device dictionary is updated on WM_INPUT_DEVICE_CHANGE.
+            _ri.InputReceived += (sender, e) =>
+            {
+                if (!_enabled) return;
+                bool internalDevice;
+                if (!IsEligible(e.Device, out internalDevice)) return;
+                if (!internalDevice && !IncludeExternalDevices) return;
+                CaptureEvent?.Invoke(this, EventArgs.Empty);
+            };
+            _ri.DeviceAdded += (sender, e) =>
+            {
+                bool internalDevice;
+                if (IsEligible(e.Device, out internalDevice))
+                    DiagnosticsLog.Info("Raw Input device arrived: " +
+                        (internalDevice ? "internal" : "external") + "; type=" + e.Device.Type +
+                        "; externalOptIn=" + IncludeExternalDevices);
+            };
+            _ri.DeviceRemoved += (sender, e) =>
+            {
+                bool internalDevice;
+                if (IsEligible(e.Device, out internalDevice))
+                    DiagnosticsLog.Info("Raw Input device removed: type=" + e.Device.Type);
+            };
 
             var log = new StringBuilder();
             log.AppendLine("Auto Backlight for ThinkPad - Raw Input device diagnostics");
@@ -91,12 +141,6 @@ namespace Auto_Backlight_for_ThinkPad
                 bool eligible = path.Length > 0 && (keyboard || mouse || touchpad);
                 if (eligible)
                 {
-                    bool capturedInternal = internalDevice;
-                    dev.InputReceived += (sender, e) =>
-                    {
-                        if (!_enabled || (!capturedInternal && !IncludeExternalDevices)) return;
-                        CaptureEvent?.Invoke(this, EventArgs.Empty);
-                    };
                     if (internalDevice) internalCount++; else externalCount++;
                 }
                 log.AppendLine(string.Format("{0} Type={1} Path={2}{3}",
@@ -104,6 +148,7 @@ namespace Auto_Backlight_for_ThinkPad
                     dev.Type, path, hidDescription));
             }
             log.AppendLine(string.Format("Internal={0}, external candidates={1}", internalCount, externalCount));
+            log.AppendLine("Phase20C1: global Raw Input event subscription; device notifications enabled.");
             if (internalCount == 0)
                 log.AppendLine("WARNING: no internal inputs matched; device-classification may need adjustment.");
 

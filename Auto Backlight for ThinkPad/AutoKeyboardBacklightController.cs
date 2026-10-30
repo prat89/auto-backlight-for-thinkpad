@@ -59,6 +59,7 @@ namespace Auto_Backlight_for_ThinkPad
                 if (value > _backlight.Limit) value = _backlight.Limit;
                 if (_onLevel != value)
                 {
+                    DiagnosticsLog.Info("Preferred brightness changed via settings: " + _onLevel + " -> " + value);
                     _onLevel = value;
                     _EnforceOnLevel(value);
                 }
@@ -106,7 +107,11 @@ namespace Auto_Backlight_for_ThinkPad
         public bool IncludeExternalDevices
         {
             get => _capture.IncludeExternalDevices;
-            set => _capture.IncludeExternalDevices = value;
+            set
+            {
+                _capture.IncludeExternalDevices = value;
+                _capture.RefreshDevices();
+            }
         }
         /// <summary>
         /// Get/set the enabled state, same as <see cref="Start"/>/<see cref="Stop"/>.
@@ -126,6 +131,7 @@ namespace Auto_Backlight_for_ThinkPad
 
                         _tracker.Start();
                         _capture.Start();
+                        _capture.RefreshDevices();
                         _backlight.Start();
                         _backlight.Changed += _Changed;
                         Debug.WriteLine("{0} Timeout enable: onLevel={1}", DateTime.Now.TimeOfDay, _onLevel);
@@ -196,6 +202,7 @@ namespace Auto_Backlight_for_ThinkPad
                 _LightsOn();
                 // Input registration may have been stopped before the lid was closed.
                 _capture.Start();
+                _capture.RefreshDevices();
                 DiagnosticsLog.Info("Power resume recovery: onLevel=" + _onLevel + "; requestedLevel=" + _shouldBeLevel + "; captureEnabled=" + _capture.Enabled);
                 // Idempotent subscription for repeated resume events.
                 _backlight.Changed -= _Changed;
@@ -239,8 +246,18 @@ namespace Auto_Backlight_for_ThinkPad
         // Change OnLevel from user keyboard shortcut
         private void _Changed(object sender, BacklightEventArgs e)
         {
+            // PHASE20C1_GUARD_ZERO: firmware/Windows may report Off while our own
+            // timeout/sleep policy already requests Off. Never persist that as a
+            // user brightness preference. Fn+Space Off while lit remains supported.
+            if (e.State == 0 && _shouldBeLevel == 0)
+            {
+                DiagnosticsLog.Info("Backlight external Off ignored (already requested Off); preferred=" + _onLevel);
+                return;
+            }
             if (e.State != _shouldBeLevel)
             {
+                DiagnosticsLog.Info("Backlight externally changed; reported=" + e.State +
+                    "; requested=" + _shouldBeLevel + "; preferredBefore=" + _onLevel);
                 _onLevel = e.State;
                 _EnforceOnLevel(e.State);
             }

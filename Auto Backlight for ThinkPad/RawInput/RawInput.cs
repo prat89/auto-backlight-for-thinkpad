@@ -291,7 +291,8 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
         public IEnumerable<Device> EnumerateDevices()
         {
             // Remove devices
-            foreach (IntPtr hDevice in _devices.Keys)
+            // Snapshot handles: _EnumerateRemove mutates the dictionary.
+            foreach (IntPtr hDevice in _devices.Keys.ToArray())
                 _EnumerateRemove(hDevice);
 
             // Populate list of current devices
@@ -307,7 +308,14 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             foreach (RAWINPUTDEVICELIST rid in ridList)
             {
                 if (rid.dwType >= 0 && rid.dwType <= RIM_TYPEMAX && rid.hDevice != null)
-                    _EnumerateAdd(rid.hDevice);
+                {
+                    try { _EnumerateAdd(rid.hDevice); }
+                    catch (Exception ex)
+                    {
+                        Auto_Backlight_for_ThinkPad.DiagnosticsLog.Error(
+                            "Raw Input enumeration skipped device=" + rid.hDevice, ex);
+                    }
+                }
             }
             return EnumeratedDevices;
         }
@@ -349,12 +357,25 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
         {
             lResult = IntPtr.Zero;
 
-            if ((uint)wParam == GIDC_ARRIVAL) _EnumerateAdd(lParam);
-            if ((uint)wParam == GIDC_REMOVAL) _EnumerateRemove(lParam);
+            // Device arrival/removal is inherently racy (especially Bluetooth).
+            // Never let a transient device enumeration exception escape WndProc.
+            try
+            {
+                if ((uint)wParam == GIDC_ARRIVAL) _EnumerateAdd(lParam);
+                if ((uint)wParam == GIDC_REMOVAL) _EnumerateRemove(lParam);
+            }
+            catch (Exception ex)
+            {
+                Auto_Backlight_for_ThinkPad.DiagnosticsLog.Error(
+                    "Raw Input device notification failed; handle=" + lParam + "; action=" + wParam, ex);
+            }
         }
         // Get info on a device handle and add it to the internal list
         private bool _EnumerateAdd(IntPtr hDevice)
         {
+            // Duplicate arrival notifications are normal; a disappeared handle can
+            // also be reported between Windows enumeration and metadata lookup.
+            if (_devices.ContainsKey(hDevice)) return false;
             uint size = 0;
             byte[] data = new byte[0];
 
@@ -400,9 +421,7 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
 
             // Add to dictionary, trigger events
             var dev = new Device((Device.DeviceType)infoHdr.dwType, name, info);
-            if (_devices.ContainsKey(hDevice))
-                throw new Exception("Trying to adding device handle that already exists");
-
+            if (_devices.ContainsKey(hDevice)) return false;
             _devices.Add(hDevice, dev);
             DeviceAdded?.Invoke(this, new RawInputEventArgs(_devices[hDevice], null));
             return true;
