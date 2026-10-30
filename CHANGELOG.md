@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.3.4 — 30 October 2026 (release candidate; publish after MSI validation)
+## v1.3.4 — released 30 October 2026
 
 ### Backlight and input reliability (Phases 20C / 20C.1)
 - Improved Raw Input discovery and rescan for Bluetooth/USB mice and keyboards, including devices connected after launch and devices available after Windows startup.
@@ -19,10 +19,10 @@
 - Locally verified missing-value behavior and transitions `0 → 1 → 0` on the ThinkPad X1 Extreme Gen 2. This is not comprehensive validation of other Lenovo OSD versions.
 
 ### Build, installation and validation
-- Updated developer build/MSI versions between v1.3.1 and this release candidate; v1.3.4 release metadata and a freshly built MSI must be verified before publication.
+- Released v1.3.4 with updated application and MSI version metadata, retaining the same MSI upgrade family (`UpgradeCode`).
 - Validated identical SHA-256 hashes for the local Release EXE and installed Program Files EXE after MSI replacement, and confirmed Bluetooth mouse activation of keyboard backlight after a full Windows reboot.
 - Preserved Task Scheduler autostart, legacy user-settings format, optional camera behavior, and IBMPmDrv-only active control.
-- No change to EnergyDrv support. A successful local test does not establish general hardware compatibility or validate the final v1.3.4 MSI upgrade.
+- The v1.3.4 MSI was installed successfully on the developer’s ThinkPad and the application was reported to work as expected. This is a local installation smoke test, not an exhaustive validation of every upgrade or uninstall scenario. EnergyDrv control remains unimplemented.
 
 ## v1.3.1 — 28 October 2026
 
@@ -55,8 +55,8 @@
 - Adopt the existing Lenovo OSD state on first run and reapply the stored preference on subsequent starts when necessary.
 
 ### Release packaging and validation
-- Updated application and MSI version identifiers to v1.3.0; verify compiled metadata and release asset checksum before publishing.
-- The v1.2.0 → v1.3.0 MSI upgrade must be tested before publishing; local builds and interactive UI tests alone do not establish upgrade compatibility.
+- Updated application and MSI version identifiers for v1.3.0.
+- At the time of v1.3.0 preparation, no independently confirmed v1.2.0 → v1.3.0 MSI upgrade test was documented.
 
 ## v1.2.0 — released 27 October 2026
 
@@ -83,7 +83,7 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestone
 - Passed clean MSI install, uninstall (with app closed), reinstall and retention of saved user settings on the tested ThinkPad.
 - **Passed in-place MSI upgrade from original `1.0.0` to fork `1.2.0` on 27 October 2026.** The installer detected the old product, executed removal, and left only `1.2.0` registered; application startup and saved-settings loading were observed. Exhaustive validation of every legacy preference is not claimed.
 - A post-upgrade startup was observed with approximately 22 seconds before tray initialization, including an approximately 20-second gap preceding backend service reporting; the precise cause is under investigation. No fix is claimed yet.
-- The public v1.2.0 release was published; wider hardware validation and startup timing investigation remain open.
+- v1.2.0 was published; wider hardware validation and startup timing investigation remained open.
 
 ## v5.3: documentation and release readiness
 
@@ -133,7 +133,7 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestone
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Outstanding validation and future work
+## Outstanding validation and future work (after v1.3.4)
 
 - Isolate and measure intermittent startup delay before backend service reporting and tray initialization.
 - Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.

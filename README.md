@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-**Next release candidate: v1.3.4** (not published until build, installer upgrade and release-asset checks pass). Relative to v1.3.1, this includes improved external-device input handling, driver diagnostics and Lenovo OSD compatibility. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
+**Latest release: v1.3.4** (30 October 2026). This release improves external-device input handling, keyboard backlight reliability, hardware diagnostics and Lenovo OSD compatibility. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
 
 ## Features
 
@@ -35,9 +35,9 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troub
 3. **Exit any running Auto Backlight for ThinkPad instance before upgrading or uninstalling.** If the tray icon is hidden, check the notification overflow area; use Task Manager if needed.
 4. Run the MSI, then allow the application to initialize. The tray icon may appear after a delay; consult the startup log if it never appears.
 
-**Verified MSI scenarios (ThinkPad X1 Extreme Gen 2, 27 October 2026):** clean installation of `1.2.0`; uninstall with the application closed; reinstall with existing user settings retained; and **in-place major upgrade from the original `1.0.0` MSI to `1.2.0`**. During the upgrade, Windows Installer detected and removed the original product and registered the new product. A single `1.2.0` entry remained in Windows Installed apps.
+**v1.3.4 installation:** the maintainer successfully installed the v1.3.4 MSI on the ThinkPad X1 Extreme Gen 2 and reported normal operation. This is a local smoke test, not a comprehensive upgrade/uninstall certification. Earlier clean install, uninstall/reinstall and upstream `1.0.0` → fork `1.2.0` upgrade tests are preserved in [CHANGELOG.md](CHANGELOG.md) and [COMPATIBILITY.md](COMPATIBILITY.md).
 
-**Settings caveat:** settings retained across a `1.2.0` uninstall/reinstall were tested. The `1.0.0` → `1.2.0` test confirmed that existing saved settings could be read on the upgraded installation, but did not validate every possible legacy preference/value combination. Back up settings before upgrading.
+**Settings caveat:** previous tests confirmed that existing settings could be retained or read in the tested scenarios; not every historical settings combination was tested. Back up important settings before upgrading.
 
 To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
 
@@ -77,9 +77,9 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels are **internal development milestones**, not public version tags. **v1.2.0** was published on 27 October 2026. For **v1.3.4**, verify the EXE assembly/file/informational versions, MSI ProductVersion/ProductCode/UpgradeCode, installed EXE hash and release asset checksums before publication. An application build or MSI packaging success alone is not an installation/upgrade test.
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels refer to **internal development milestones**, not public version tags. The current public release is **v1.3.4**. For future releases, verify EXE assembly/file/informational versions, MSI ProductVersion/ProductCode/UpgradeCode, installed EXE hashes, release asset checksums and upgrade behavior. A successful build alone does not establish installation or upgrade compatibility.
 
-See [CHANGELOG.md](CHANGELOG.md) for history and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware. A successful MSI upgrade test does not establish compatibility with untested models or every power transition. The v1.2.0 to v1.3.0 MSI upgrade has not been independently confirmed in this documentation; validate it before publication. The previously tested MSI was **not digitally signed**; Windows may show publisher/security warnings. GitHub Releases are authoritative for published release assets.
+See [CHANGELOG.md](CHANGELOG.md) for historical releases and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware and historical MSI tests. Installation on one machine does not establish support across all ThinkPads or power transitions. Earlier MSI builds were not digitally signed; confirm the signing status of each download rather than assuming an authenticated publisher. GitHub Releases are authoritative for published release assets.
 
 ## Credits and license
 

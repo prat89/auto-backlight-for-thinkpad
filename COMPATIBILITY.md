@@ -12,7 +12,7 @@
 
 | Laptop | Machine type / model | OS | Driver | Levels | Verification |
 | --- | --- | --- | --- | --- | --- |
-| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested: startup, input recognition, backlight, diagnostics and report export |
+| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested: built-in and Bluetooth input (including after reboot), backlight, diagnostics, OSD registry handling and local v1.3.4 MSI installation |
 
 ### Community-reported hardware (limited verification)
 
@@ -46,18 +46,18 @@ If `IBMPmDrv` is absent, do **not** install random third-party kernel drivers or
 - **Phase 20A:** read-only IBMPmDrv brightness GET probe reported valid values for Off, Low and High on X1 Extreme Gen 2. Experimental SET/GET tests restored the initial setting; they are not part of the diagnostics workflow.
 - **Phase 20C.1:** verified external Bluetooth mouse triggering of keyboard lighting after full Windows reboot with the new EXE installed through MSI; the installed EXE matched the local Release EXE by SHA-256. Hot-plug and resume checks were also performed locally.
 - **Phase 21:** missing OSD `Enable` was not created on app startup; explicit user interactions created and toggled the DWORD. Existing OSD behavior was retained.
-- **Still unverified:** final v1.3.4 MSI major upgrade and uninstall, broad device coverage, EnergyDrv control, other Lenovo OSD revisions, and full coverage of legacy settings/power transitions.
+- **v1.3.4 released:** the maintainer reports successful local MSI installation and normal application operation on the verified ThinkPad. A complete v1.3.4 major-upgrade/uninstall regression matrix is not documented. Broader device coverage, EnergyDrv control, other Lenovo OSD revisions and exhaustive legacy settings/power-transition testing remain unverified.
 
 ## Known limits
 
 - EnergyDrv discovery in v5.1 only checks whether a Windows service exists. It does **not** validate EnergyDrv IOCTL compatibility.
 - Brightness levels come from the reported backend capabilities and may differ across ThinkPad generations.
 - Camera-based screen brightness is optional, disabled by default for new installations and not required for keyboard control.
-- Clean installation, uninstall with the app closed, reinstall and preservation of saved settings were tested on the verified model (26 October 2026). **In-place MSI upgrade from upstream 1.0.0 to fork 1.2.0 passed on 27 October 2026**, including removal of the older product. Not every legacy settings value or transition was exhaustively tested.
+- Historical MSI verification: clean installation, uninstall with the app closed, reinstall and retention of saved settings were tested in October 2026. An in-place MSI upgrade from upstream 1.0.0 to fork 1.2.0 also passed on 27 October 2026. Those tests do not establish comprehensive upgrade coverage for v1.3.4.
 
 ## Additional validation notes (27 October 2026)
 
 - **Verified machine only:** ThinkPad X1 Extreme Gen 2 (`20QVCTO1WW`), Windows 11, running `IBMPmDrv`; observed Off (0), Low (1), High (2) control, Raw Input handling, external input option, report export and lid-event recovery. These are not claims about other ThinkPad generations.
 - **MSI tests:** clean install/reinstall and in-place upgrade of the original `1.0.0` MSI to fork `1.2.0` succeeded on this machine. The original app's missing tray icon was a known upstream symptom. During one upgraded launch the new app initialized its tray icon about 22 seconds after process start; startup delay remains under investigation.
 - **Not verified comprehensively:** `EnergyDrv` hardware commands, unavailable-driver behavior across all systems, every suspend/resume sequence, every legacy settings combination, and community-reported models beyond the developer-tested ThinkPad.
-- **v1.3.0:** a successful local build and interactive menu tests do not establish that a v1.2.0 → v1.3.0 MSI upgrade, uninstall or reinstall has passed. Those checks must precede publishing the installer.
+- **Historical note (v1.3.0):** a separate v1.2.0 → v1.3.0 MSI upgrade test was not documented. This is retained for test history, not as an instruction to delay the already published v1.3.4 release.
