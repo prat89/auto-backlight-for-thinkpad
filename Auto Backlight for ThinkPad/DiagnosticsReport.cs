@@ -101,7 +101,7 @@ namespace Auto_Backlight_for_ThinkPad
                     else if (Array.IndexOf(key.GetValueNames(), "Enable") < 0)
                     {
                         sb.AppendLine("OSD Enable: missing");
-                        sb.AppendLine("OSD menu eligibility (registry): unavailable - Enable value missing");
+                        sb.AppendLine("OSD menu eligibility (registry): eligible - Enable missing; created only on user toggle (Phase 21)");
                     }
                     else
                     {

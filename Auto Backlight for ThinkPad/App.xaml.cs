@@ -207,15 +207,25 @@ namespace Auto_Backlight_for_ThinkPad
                     if (lenovo == null)
                         DiagnosticsLog.Info("Lenovo OSD: unavailable; Lenovo registry key missing");
                     else if (Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0)
-                        DiagnosticsLog.Info("Lenovo OSD: unavailable; Enable value missing");
+                        DiagnosticsLog.Info("Lenovo OSD: Enable missing; eligible for opt-in creation on user toggle");
                     else if (lenovo.GetValueKind("Enable") != RegistryValueKind.DWord)
                         DiagnosticsLog.Info("Lenovo OSD: unexpected Enable type (legacy validation retained)=" + lenovo.GetValueKind("Enable"));
                     else if (!(actual is int) || ((int)actual != 0 && (int)actual != 1))
                         DiagnosticsLog.Info("Lenovo OSD: unavailable; Enable value unsupported=" + (actual == null ? "null" : actual.ToString()));
-                    if (!(actual is int) || ((int)actual != 0 && (int)actual != 1))
+                    // PHASE21_MISSING_OSD_ENABLE: missing value is supported, but never created on startup.
+                    // A missing Lenovo key or malformed existing value remains unsupported.
+                    bool missingEnable = lenovo != null &&
+                        Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0;
+                    if (missingEnable)
                     {
+                        _settings.LenovoOsd_Disabled = false; // no value means OSD visible
+                        _settings.LenovoOsd_Available = true;
+                        DiagnosticsLog.Info("Lenovo OSD: Enable missing; option available; no registry value created at startup");
                         return;
                     }
+                    if (lenovo == null || lenovo.GetValueKind("Enable") != RegistryValueKind.DWord ||
+                        !(actual is int) || ((int)actual != 0 && (int)actual != 1))
+                        return;
                     DiagnosticsLog.Info("Lenovo OSD: init; Enable=" + actual + "; registryType=" + lenovo.GetValueKind("Enable"));
                     using (RegistryKey osdKey = _OpenOsdPreferenceKey())
                     {
@@ -277,15 +287,18 @@ namespace Auto_Backlight_for_ThinkPad
                 {
                     if (lenovo == null) throw new InvalidOperationException("Lenovo OSD key disappeared");
                     object current = lenovo.GetValue("Enable", null);
-                    if (!(current is int) || ((int)current != 0 && (int)current != 1))
-                        throw new InvalidOperationException("Lenovo OSD Enable setting missing or invalid");
+                    // PHASE21_MISSING_OSD_ENABLE: create only the absent DWORD after user action.
+                    bool missingEnable = Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0;
+                    if (!missingEnable && (lenovo.GetValueKind("Enable") != RegistryValueKind.DWord ||
+                        !(current is int) || ((int)current != 0 && (int)current != 1)))
+                        throw new InvalidOperationException("Lenovo OSD Enable setting has unsupported type/value");
                     int expected = disabled ? 0 : 1;
-                    DiagnosticsLog.Info("Lenovo OSD: before change; Enable=" + current + "; expected=" + expected);
-                    if ((int)current != expected)
+                    DiagnosticsLog.Info("Lenovo OSD: before change; Enable=" + (missingEnable ? "missing" : current.ToString()) + "; expected=" + expected);
+                    if (missingEnable || (int)current != expected)
                     {
                         lenovo.SetValue("Enable", expected, RegistryValueKind.DWord);
                         lenovo.Flush();
-                        DiagnosticsLog.Info("Lenovo OSD: Enable set to " + expected);
+                        DiagnosticsLog.Info("Lenovo OSD: Enable " + (missingEnable ? "created" : "set") + " to " + expected);
                     }
                     else DiagnosticsLog.Info("Lenovo OSD: Enable already " + expected);
                     // Read-back is diagnostic only; it never retries or modifies settings.
