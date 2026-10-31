@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns the keyboard backlight on when you use your ThinkPad, and off after an adjustable period of inactivity.
 
-**Latest release: v1.3.4** (30 October 2026). This release improves external-device input handling, keyboard backlight reliability, hardware diagnostics and Lenovo OSD compatibility. Keyboard backlight control currently uses Lenovo's **IBMPmDrv** driver. Other driver families, including **EnergyDrv**, are **not supported** by this fork.
+**Current version: v1.3.5** (31 October 2026). This update expands read-only Raw Input diagnostics and startup timing measurements; it does not claim a fix for intermittent slow startup. Keyboard backlight control remains based on compatible Lenovo **IBMPmDrv** hardware; **EnergyDrv** and other driver families are **not supported** for control. Check [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) to confirm which installer versions are published.
 
 ## Features
 
@@ -14,7 +14,7 @@ A lightweight Windows system-tray application that automatically turns the keybo
 - Cooperates with the laptop's **Fn+Space** shortcut; manual level changes may affect subsequent automatic brightness.
 - Improved handling of power/display and lid close/open notifications, with explicit pause/resume and Raw Input capture recovery. Intermittent scenarios are still under observation.
 - Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default on new installations**. Existing saved preferences are respected; enabling it may briefly activate the camera.
-- **Diagnostics...** in the tray menu opens the diagnostics/export workflow, alongside application and hardware logs. Review diagnostics before sharing.
+- **Diagnostics...** in the tray menu opens the diagnostics/export workflow. v1.3.5 adds read-only Raw Input rescan/device counts and startup timing checkpoints to the report; Phase 22.1 distinguishes Windows device-change notifications from enumeration-generated callbacks. These diagnostics do not capture keystrokes or device paths. Review and redact logs before sharing.
 - **Disable on-screen display** supports compatible Lenovo OSD installations where `HKCU\Software\Lenovo\OnScreenDisplay` exists even when `Enable` is missing. The app does not create a missing `Enable` on startup; a user-initiated toggle can create the DWORD and set `0` (OSD disabled) or `1` (OSD enabled). Its preference is stored separately from legacy settings; behavior depends on the installed Lenovo OSD software.
 - **Modern tray menu** (v1.3.0) replaces the legacy menu visuals with native WPF templates, rounded corners, subtle highlighting, icons and compact checkmarks. No additional UI library is required.
 - Diagnostic checks for `IBMPmDrv`/`EnergyDrv` service presence plus a read-only `IBMPmDrv` GET probe that reports raw and decoded brightness state; only `IBMPmDrv` performs hardware commands. Hardware-access errors are logged with throttling.
@@ -35,9 +35,9 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troub
 3. **Exit any running Auto Backlight for ThinkPad instance before upgrading or uninstalling.** If the tray icon is hidden, check the notification overflow area; use Task Manager if needed.
 4. Run the MSI, then allow the application to initialize. The tray icon may appear after a delay; consult the startup log if it never appears.
 
-**v1.3.4 installation:** the maintainer successfully installed the v1.3.4 MSI on the ThinkPad X1 Extreme Gen 2 and reported normal operation. This is a local smoke test, not a comprehensive upgrade/uninstall certification. Earlier clean install, uninstall/reinstall and upstream `1.0.0` → fork `1.2.0` upgrade tests are preserved in [CHANGELOG.md](CHANGELOG.md) and [COMPATIBILITY.md](COMPATIBILITY.md).
+**v1.3.5 upgrade validation (31 October 2026):** the maintainer successfully upgraded the developer-tested ThinkPad X1 Extreme Gen 2 from the published v1.3.4 MSI to v1.3.5. Windows Installer removed the earlier product and registered v1.3.5; the installed EXE matched the validated MSI payload SHA-256; the logon startup task remained functional. Preferences were loaded successfully and checked in the UI, including after a restart and sleep/resume. This is a **single-device upgrade test**, not a guarantee for other models or every legacy configuration.
 
-**Settings caveat:** previous tests confirmed that existing settings could be retained or read in the tested scenarios; not every historical settings combination was tested. Back up important settings before upgrading.
+**Settings caveat:** the serialized `Settings` registry value changed between the baseline and the upgraded installation, so byte-for-byte equality did not pass. The application successfully loaded its preferences and manually checked values (timeout, Low/High, external input and OSD) persisted across upgrade and reboot. Back up important settings before upgrading; not every historical settings combination has been tested.
 
 To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
 
@@ -62,7 +62,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
    %LOCALAPPDATA%\Auto Backlight for ThinkPad\Logs\hardware-report.txt
    ```
 
-4. For startup delays, compare timestamps for `Process start`, `Startup checkpoint`, `Backend service` and `Tray icon initialized`. One observed post-upgrade startup took around 22 seconds to initialize the tray icon, with an approximately 20-second gap before the backend-service report; the root cause has **not** yet been confirmed.
+4. For startup delays, inspect `Startup timing:` checkpoints and `Phase22.1 startup:` breakdowns in `application.log`; the report includes an elapsed-time summary. Compare service discovery, backend construction and keyboard controller stages. Some startups are significantly slower than others; the source of intermittent delays has **not** been conclusively identified or fixed.
 5. If keyboard lighting does not resume after opening the lid, collect power event logs (`Power event`, `Power resume recovery`) and note whether external monitors or input devices were connected.
 6. If no camera is available or camera access is blocked, leave optional screen brightness automation disabled. When opening an [issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues), specify laptop model, Windows build, driver state and steps to reproduce; redact diagnostics before uploading.
 
@@ -77,7 +77,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels refer to **internal development milestones**, not public version tags. The current public release is **v1.3.4**. For future releases, verify EXE assembly/file/informational versions, MSI ProductVersion/ProductCode/UpgradeCode, installed EXE hashes, release asset checksums and upgrade behavior. A successful build alone does not establish installation or upgrade compatibility.
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase 11–16.3` labels refer to **internal development milestones**, not public version tags. The current **source version is v1.3.5**; GitHub Releases is authoritative for published downloads. The v1.3.5 MSI was validated by matching assembly/MSI metadata, extracting its EXE and checking hashes, and testing an in-place v1.3.4 → v1.3.5 upgrade on the developer machine. Successful local testing does not establish universal hardware or installer compatibility.
 
 See [CHANGELOG.md](CHANGELOG.md) for historical releases and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware and historical MSI tests. Installation on one machine does not establish support across all ThinkPads or power transitions. Earlier MSI builds were not digitally signed; confirm the signing status of each download rather than assuming an authenticated publisher. GitHub Releases are authoritative for published release assets.
 

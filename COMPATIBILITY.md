@@ -12,7 +12,7 @@
 
 | Laptop | Machine type / model | OS | Driver | Levels | Verification |
 | --- | --- | --- | --- | --- | --- |
-| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested: built-in and Bluetooth input (including after reboot), backlight, diagnostics, OSD registry handling and local v1.3.4 MSI installation |
+| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested: v1.3.4 → v1.3.5 MSI upgrade, internal/Bluetooth input, inactivity timeout, Raw Input diagnostics, Lenovo OSD preference, sleep/resume and restart/autostart |
 
 ### Community-reported hardware (limited verification)
 
@@ -40,6 +40,15 @@ If `IBMPmDrv` is absent, do **not** install random third-party kernel drivers or
 - The option controls Lenovo's visual indicators, not the keyboard backlight hardware or the app's inactivity control. The preference is stored separately from legacy serialized settings.
 - On 30 October 2026, the maintainer tested the missing-value path and observed registry transitions `0 → 1 → 0` on X1 Extreme Gen 2. A ThinkPad P14s Gen 5 AMD community tester reported success after manually creating `Enable`; this is not yet validation of the missing-value path on that machine.
 - Support depends on the actual Lenovo OSD implementation. The key or DWORD alone does not guarantee the Lenovo overlay will respond.
+
+## v1.3.5 developer verification (31 October 2026)
+
+- **Phase 22:** read-only Raw Input report counts enumerations, eligible devices and device-added/removed callbacks. Callback totals also include enumeration rebuilds; they do not necessarily represent actual device arrivals/removals.
+- **Phase 22.1:** separate `WM_INPUT_DEVICE_CHANGE` arrival/removal/error counters and additional startup timing logs for WMI service discovery, backend construction, input capture and keyboard controller setup. The profiling is diagnostic-only; slow startup remains under investigation.
+- **Phase 23A–23C:** application and MSI version metadata checked; rebuilt EXE matched the EXE extracted from the v1.3.5 MSI byte-for-byte (SHA-256). MSI ProductCode/PackageCode changed; the UpgradeCode remained unchanged.
+- **Phase 23D:** in-place MSI update from installed v1.3.4 to v1.3.5 passed on X1 Extreme Gen 2. The old product was no longer installed, the v1.3.5 EXE hash matched the verified MSI payload, and the Task Scheduler logon task pointed to the installed application.
+- The binary `Settings` registry value was not byte-identical to the pre-upgrade baseline. Post-upgrade logs showed saved values loading successfully, and the maintainer verified timeout, brightness level, external-input and OSD preferences before/after restart. This supports **functional preference retention on the tested machine**, not exhaustive format-level compatibility.
+- Passed local regression checks for built-in keyboard and external Bluetooth mouse activity, inactivity timeout, sleep/resume, and automatic launch/settings retention after Windows restart. No comprehensive cross-model, clean-v1.3.5-install or every-settings-combination test has been performed.
 
 ## Recent developer validation (30 October 2026)
 

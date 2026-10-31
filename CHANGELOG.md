@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.3.5 — 31 October 2026
+
+### Read-only Raw Input diagnostics (Phase 22)
+- Added a diagnostic snapshot of Raw Input capture, including rescan/failure counts, last enumeration timestamp, eligible internal/external device counts, and device-added/removed callback counts.
+- These counters are diagnostic only: no keystroke contents or device paths are stored in the snapshot. Device callback counts may include enumeration rebuilds; they must not be interpreted as physical hot-plug events.
+- Added the Raw Input snapshot to the hardware diagnostics report without changing keyboard input selection, brightness policy or driver-control behavior.
+
+### Startup and device-notification profiling (Phases 22 / 22.1)
+- Added monotonic startup checkpoints and elapsed-time breakdowns to application logging and the diagnostics report.
+- Added separate counters for actual Windows `WM_INPUT_DEVICE_CHANGE` arrival/removal notifications and notification errors, distinct from enumeration-generated callbacks.
+- Added finer timing logs for WMI-based Lenovo service discovery, IBMPmDrv backend construction, Raw Input capture, power tracking and keyboard controller initialization.
+- This release adds diagnostic instrumentation; it does **not** claim to resolve intermittent slow startup. Startup time still varies, and further investigation is needed.
+
+### Release packaging and verified upgrade (Phases 23A–23D)
+- Set assembly/file version to `1.3.5.0` and MSI ProductVersion to `1.3.5`; changed MSI ProductCode and PackageCode while retaining the existing UpgradeCode for major-upgrade detection.
+- Rebuilt the application and MSI; verified source/build metadata and confirmed that the final Release EXE SHA-256 matches the executable extracted from the MSI.
+- Successfully tested an in-place Windows Installer upgrade from **v1.3.4 to v1.3.5** on the developer's ThinkPad X1 Extreme Gen 2 (Windows 11): v1.3.5 registered, v1.3.4 removed, installed EXE hash matched the validated MSI payload, and the logon startup task was preserved/recreated correctly.
+- Confirmed saved settings could be loaded after the upgrade. The serialized registry `Settings` value changed at the byte level, but manually checked timeout, brightness level, external-device setting and OSD preference were retained. This is **not** a claim of byte-for-byte preservation or exhaustive settings compatibility.
+- Passed local regression checks for external Bluetooth mouse and built-in keyboard triggering, inactivity timeout, sleep/resume and startup after Windows restart. Other ThinkPad models and clean v1.3.5 installations have not been comprehensively tested.
+- No new hardware backend is introduced: only compatible `IBMPmDrv` is used for backlight control; `EnergyDrv` remains diagnostic-only.
+
 ## v1.3.4 — released 30 October 2026
 
 ### Backlight and input reliability (Phases 20C / 20C.1)
@@ -133,9 +154,9 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestone
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Outstanding validation and future work (after v1.3.4)
+## Outstanding validation and future work (after v1.3.5)
 
-- Isolate and measure intermittent startup delay before backend service reporting and tray initialization.
+- Continue investigating intermittent slow startup using the Phase 22/22.1 checkpoints; diagnostic instrumentation is not a performance fix.
 - Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.
 - For each subsequent release, confirm informational version, MSI/EXE versions, release asset hashes, upgrade behavior, packaging and signing decision.
 - Additional Lenovo driver families, including `EnergyDrv`, remain deferred pending protocol and hardware validation.
