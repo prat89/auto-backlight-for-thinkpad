@@ -41,6 +41,23 @@ namespace Auto_Backlight_for_ThinkPad
         /// <summary>
         /// Main application
         /// </summary>
+        private readonly System.Diagnostics.Stopwatch _phase22Clock = System.Diagnostics.Stopwatch.StartNew();
+        private readonly System.Collections.Generic.List<string> _phase22Timings =
+            new System.Collections.Generic.List<string>();
+        private long _phase22LastMs;
+        private void _Phase22Checkpoint(string name)
+        {
+            long elapsed = _phase22Clock.ElapsedMilliseconds;
+            long delta = elapsed - _phase22LastMs;
+            _phase22LastMs = elapsed;
+            string line = name + ": elapsed=" + elapsed + "ms; since previous=" + delta + "ms";
+            _phase22Timings.Add(line);
+            DiagnosticsLog.Info("Startup timing: " + line);
+        }
+        private string _Phase22Report()
+        {
+            return string.Join(Environment.NewLine, _phase22Timings.ToArray());
+        }
         public App()
         {
             DiagnosticsLog.Info("App constructor started; PID=" + System.Diagnostics.Process.GetCurrentProcess().Id);
@@ -52,6 +69,7 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 InitializeComponent();
                 DiagnosticsLog.Info("Startup checkpoint: InitializeComponent complete");
+            _Phase22Checkpoint("InitializeComponent");
             }
             catch (Exception ex)
             {
@@ -68,17 +86,21 @@ namespace Auto_Backlight_for_ThinkPad
             DiagnosticsLog.Info("Startup checkpoint: resolve Settings begin");
             _settings = (Settings)FindResource("Settings");
             DiagnosticsLog.Info("Startup checkpoint: resolve Settings complete");
+            _Phase22Checkpoint("Settings resource");
             DiagnosticsLog.Info("Startup checkpoint: resolve HiddenWindow begin");
             var c = (Panel)((Window)FindResource("HiddenWindow")).Content;
             DiagnosticsLog.Info("Startup checkpoint: resolve HiddenWindow complete");
+            _Phase22Checkpoint("Hidden window resource");
             var pm = c.Children.OfType<PowerManagement.PowerManagement>().First();
             var ri = c.Children.OfType<RawInput.RawInput>().First();
             var gh = c.Children.OfType<GlobalHotKey>().First();
             DiagnosticsLog.Info("Startup checkpoint: input and power components resolved");
+            _Phase22Checkpoint("Input and power resources");
             try
             {
                 _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
                 DiagnosticsLog.Info("Keyboard controller initialized");
+            _Phase22Checkpoint("Keyboard controller");
             }
             catch (Exception ex)
             {
@@ -89,6 +111,7 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 _autoScreen = new AutoScreenBrightnessController(gh);
                 DiagnosticsLog.Info("Screen controller initialized");
+            _Phase22Checkpoint("Screen controller");
             }
             catch (Exception ex)
             {
@@ -123,10 +146,14 @@ namespace Auto_Backlight_for_ThinkPad
             FindResource("SysTrayMenu");
             FindResource("SysTrayIcon");
             DiagnosticsLog.Info("Tray icon initialized");
+            _Phase22Checkpoint("Tray resources");
             DiagnosticsLog.Info("Startup checkpoint: hardware report begin");
             DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
-                _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null);
+                _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null,
+                _autoKeyboard != null ? _autoKeyboard.RawInputDiagnostics : null,
+                _Phase22Report());
             DiagnosticsLog.Info("Startup checkpoint: App constructor complete");
+            _Phase22Checkpoint("App constructor complete");
         }
 
         private Settings _settings;
@@ -597,7 +624,9 @@ namespace Auto_Backlight_for_ThinkPad
             try
             {
                 DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
-                    _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null);
+                    _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null,
+                    _autoKeyboard != null ? _autoKeyboard.RawInputDiagnostics : null,
+                    _Phase22Report());
                 var source = DiagnosticsReport.ReportPath;
                 if (!System.IO.File.Exists(source))
                     throw new System.IO.FileNotFoundException("Diagnostic report was not generated", source);

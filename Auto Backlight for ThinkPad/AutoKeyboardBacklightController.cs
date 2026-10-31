@@ -104,6 +104,7 @@ namespace Auto_Backlight_for_ThinkPad
         /// </summary>
         public void Stop() => Enabled = false;
         /// <summary>Whether external USB/Bluetooth input also resets inactivity.</summary>
+        public string RawInputDiagnostics => _capture.DiagnosticSnapshot();
         public bool IncludeExternalDevices
         {
             get => _capture.IncludeExternalDevices;

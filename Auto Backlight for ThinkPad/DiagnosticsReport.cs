@@ -10,7 +10,7 @@ namespace Auto_Backlight_for_ThinkPad
     internal static class DiagnosticsReport
     {
         public static string ReportPath => Path.Combine(Path.GetDirectoryName(DiagnosticsLog.FilePath), "hardware-report.txt");
-        public static void Write(bool keyboardAvailable, bool screenAvailable, int? maximumKeyboardLevel)
+        public static void Write(bool keyboardAvailable, bool screenAvailable, int? maximumKeyboardLevel, string rawInputSnapshot = null, string startupTiming = null)
         {
             // Intentional: no user name, machine name, serial number, input events or camera frames.
             try
@@ -22,6 +22,10 @@ namespace Auto_Backlight_for_ThinkPad
                 sb.AppendLine("Generated (local): " + DateTimeOffset.Now.ToString("o"));
                 sb.AppendLine("Application version: " + Assembly.GetExecutingAssembly().GetName().Version);
                 sb.AppendLine("OS: " + Environment.OSVersion.VersionString);
+                sb.AppendLine("--- Startup timings (monotonic, diagnostic only) ---");
+                sb.AppendLine(startupTiming ?? "unavailable");
+                sb.AppendLine("--- Raw Input snapshot (no keypresses or device paths) ---");
+                sb.AppendLine(rawInputSnapshot ?? "unavailable (keyboard controller not initialized)");
                 sb.AppendLine("Keyboard controller: " + (keyboardAvailable ? "initialized" : "unavailable"));
                 sb.AppendLine("Screen controller: " + (screenAvailable ? "initialized" : "unavailable"));
                 sb.AppendLine("Keyboard brightness maximum reported by driver: " +

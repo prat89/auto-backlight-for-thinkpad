@@ -28,6 +28,20 @@ namespace Auto_Backlight_for_ThinkPad
     {
         public event EventHandler CaptureEvent;
         public bool IncludeExternalDevices { get; set; } = false;
+        // Phase 22 diagnostic counters. No device identifiers or input contents are retained.
+        private int _rescanCount, _rescanFailures, _arrivals, _removals;
+        private int _lastDeviceCount = -1, _lastInternalCount, _lastExternalCount;
+        private string _lastRescanTime = "not yet";
+        public string DiagnosticSnapshot()
+        {
+            return "Capture enabled=" + _enabled + "; external opt-in=" + IncludeExternalDevices +
+                "; global handler=attached; registered classes=" + (_enabled ? "requested (keyboard/mouse/touchpad)" : "not requested") +
+                "; rescans=" + _rescanCount + "; failures=" + _rescanFailures +
+                "; last rescan=" + _lastRescanTime +
+                "; last enumerated=" + (_lastDeviceCount < 0 ? "unknown" : _lastDeviceCount.ToString()) +
+                "; eligible internal=" + _lastInternalCount + "; eligible external=" + _lastExternalCount +
+                "; arrivals=" + _arrivals + "; removals=" + _removals;
+        }
         // PHASE20C1_DYNAMIC_RAWINPUT: device-independent subscription survives Bluetooth arrivals.
         private static bool IsEligible(Device dev, out bool internalDevice)
         {
@@ -45,12 +59,27 @@ namespace Auto_Backlight_for_ThinkPad
         {
             try
             {
-                int total = 0;
-                foreach (Device device in _ri.EnumerateDevices()) total++;
-                DiagnosticsLog.Info("Raw Input rescan completed; devices=" + total);
+                int total = 0, internalCount = 0, externalCount = 0;
+                foreach (Device device in _ri.EnumerateDevices())
+                {
+                    total++;
+                    bool internalDevice;
+                    if (IsEligible(device, out internalDevice))
+                    {
+                        if (internalDevice) internalCount++; else externalCount++;
+                    }
+                }
+                _rescanCount++;
+                _lastDeviceCount = total;
+                _lastInternalCount = internalCount;
+                _lastExternalCount = externalCount;
+                _lastRescanTime = DateTimeOffset.Now.ToString("o");
+                DiagnosticsLog.Info("Raw Input rescan completed; devices=" + total +
+                    "; internal=" + internalCount + "; external=" + externalCount);
             }
             catch (Exception ex)
             {
+                _rescanFailures++;
                 DiagnosticsLog.Error("Raw Input rescan failed", ex);
             }
         }
@@ -101,6 +130,7 @@ namespace Auto_Backlight_for_ThinkPad
             };
             _ri.DeviceAdded += (sender, e) =>
             {
+                _arrivals++;
                 bool internalDevice;
                 if (IsEligible(e.Device, out internalDevice))
                     DiagnosticsLog.Info("Raw Input device arrived: " +
@@ -109,6 +139,7 @@ namespace Auto_Backlight_for_ThinkPad
             };
             _ri.DeviceRemoved += (sender, e) =>
             {
+                _removals++;
                 bool internalDevice;
                 if (IsEligible(e.Device, out internalDevice))
                     DiagnosticsLog.Info("Raw Input device removed: type=" + e.Device.Type);
