@@ -29,12 +29,31 @@ namespace Auto_Backlight_for_ThinkPad
         public static IKeyboardBacklightBackend Create()
         {
             // Diagnostic probe: Windows service state only; no IOCTL or write.
-            foreach (string line in BackendDetection.GetReportLines())
-                DiagnosticsLog.Info(line);
+            var phase221Clock = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                foreach (string line in BackendDetection.GetReportLines())
+                    DiagnosticsLog.Info(line);
+            }
+            finally
+            {
+                DiagnosticsLog.Info("Phase22.1 startup: WMI service discovery elapsed=" +
+                    phase221Clock.ElapsedMilliseconds + "ms");
+            }
             DiagnosticsLog.Info("Backlight backend selection: trying IBMPmDrv");
             // Constructor performs the same read-only hardware initialization
             // as the v4.3 controller. Errors propagate to existing isolation.
-            IKeyboardBacklightBackend backend = new Backlight();
+            phase221Clock.Restart();
+            IKeyboardBacklightBackend backend;
+            try
+            {
+                backend = new Backlight();
+            }
+            finally
+            {
+                DiagnosticsLog.Info("Phase22.1 startup: IBMPmDrv backend construction elapsed=" +
+                    phase221Clock.ElapsedMilliseconds + "ms");
+            }
             DiagnosticsLog.Info("Backlight backend selected: IBMPmDrv; max level=" + backend.Limit);
             return backend;
         }

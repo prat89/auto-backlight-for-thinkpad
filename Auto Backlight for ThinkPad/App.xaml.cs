@@ -98,7 +98,16 @@ namespace Auto_Backlight_for_ThinkPad
             _Phase22Checkpoint("Input and power resources");
             try
             {
-                _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
+                var phase221Clock = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
+                }
+                finally
+                {
+                    DiagnosticsLog.Info("Phase22.1 startup: Keyboard controller constructor elapsed=" +
+                        phase221Clock.ElapsedMilliseconds + "ms");
+                }
                 DiagnosticsLog.Info("Keyboard controller initialized");
             _Phase22Checkpoint("Keyboard controller");
             }

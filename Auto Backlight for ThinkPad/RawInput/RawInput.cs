@@ -352,6 +352,12 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             }
             return lResult;
         }
+        // Phase 22.1: genuine Windows device-change message counts, distinct from
+        // DeviceAdded/DeviceRemoved callbacks raised by EnumerateDevices().
+        private int _phase221Arrivals, _phase221Removals, _phase221Failures;
+        public int Phase221ArrivalNotifications => System.Threading.Volatile.Read(ref _phase221Arrivals);
+        public int Phase221RemovalNotifications => System.Threading.Volatile.Read(ref _phase221Removals);
+        public int Phase221NotificationFailures => System.Threading.Volatile.Read(ref _phase221Failures);
         // Device change message
         private void _ProcessDeviceChange(ref IntPtr lResult, IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam)
         {
@@ -361,11 +367,20 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             // Never let a transient device enumeration exception escape WndProc.
             try
             {
-                if ((uint)wParam == GIDC_ARRIVAL) _EnumerateAdd(lParam);
-                if ((uint)wParam == GIDC_REMOVAL) _EnumerateRemove(lParam);
+                if ((uint)wParam == GIDC_ARRIVAL)
+                {
+                    System.Threading.Interlocked.Increment(ref _phase221Arrivals);
+                    _EnumerateAdd(lParam);
+                }
+                if ((uint)wParam == GIDC_REMOVAL)
+                {
+                    System.Threading.Interlocked.Increment(ref _phase221Removals);
+                    _EnumerateRemove(lParam);
+                }
             }
             catch (Exception ex)
             {
+                System.Threading.Interlocked.Increment(ref _phase221Failures);
                 Auto_Backlight_for_ThinkPad.DiagnosticsLog.Error(
                     "Raw Input device notification failed; handle=" + lParam + "; action=" + wParam, ex);
             }

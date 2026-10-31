@@ -158,7 +158,10 @@ namespace Auto_Backlight_for_ThinkPad
         /// <param name="ri">Access to a prepared <see cref="RawInput.RawInput"/> object to receive events</param>
         public AutoKeyboardBacklightController(PowerManagement.PowerManagement pm, RawInput.RawInput ri)
         {
+            var phase221Clock = System.Diagnostics.Stopwatch.StartNew();
             _capture = new Capture(ri);
+            DiagnosticsLog.Info("Phase22.1 startup: Capture construction elapsed=" +
+                phase221Clock.ElapsedMilliseconds + "ms");
             _capture.CaptureEvent += (sender, e) =>
             {
                 if (!_enabled)
@@ -189,7 +192,10 @@ namespace Auto_Backlight_for_ThinkPad
                 if (_accum >= InactivityTimeout) _LightsOff();
             };
             InactivityTimeout = double.PositiveInfinity;
+            phase221Clock.Restart();
             _tracker = new PowerTracker(pm);
+            DiagnosticsLog.Info("Phase22.1 startup: PowerTracker construction elapsed=" +
+                phase221Clock.ElapsedMilliseconds + "ms");
             _tracker.Resume += (sender, e) =>
             {
                 // v5.5 power event diagnostic (existing PowerTracker event).
@@ -231,7 +237,16 @@ namespace Auto_Backlight_for_ThinkPad
                 Debug.WriteLine("{0} Timeout pause: onLevel={1}", DateTime.Now.TimeOfDay, _onLevel);
                 Activity?.Invoke(this, new ActivityEventArgs(ActivityEventArgs.Activity.PowerPause));
             };
-            _backlight = KeyboardBacklightBackendFactory.Create();
+            phase221Clock.Restart();
+            try
+            {
+                _backlight = KeyboardBacklightBackendFactory.Create();
+            }
+            finally
+            {
+                DiagnosticsLog.Info("Phase22.1 startup: Backend factory total elapsed=" +
+                    phase221Clock.ElapsedMilliseconds + "ms");
+            }
         }
 
         private bool _enabled = false;
