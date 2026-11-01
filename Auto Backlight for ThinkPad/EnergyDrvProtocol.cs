@@ -14,6 +14,42 @@ namespace Auto_Backlight_for_ThinkPad
         internal const uint Ioctl = 0x83102144u;
         internal const uint GetCommand = 0x00000032u;
 
+        // Capability-gated, undocumented EnergyDrv alternative (IdeaNotebook).
+        // Guard formula derived independently from protocol interoperability analysis.
+        internal const uint GuardedCapabilityCommand = 0x00000001u;
+
+        internal static bool TryGuardedCapability(uint raw, out uint guard)
+        {
+            guard = 0;
+            // Only 3-state (Off, Low, High) capability is supported by our UI.
+            // Other or unrecognized responses MUST NOT enable writes.
+            if (raw != 0x00000005u) return false;
+            guard = (raw & ~1u) << 3;
+            return true;
+        }
+
+        internal static uint GuardedStatusCommand(uint guard)
+        {
+            if (guard != 0x20u) throw new ArgumentOutOfRangeException("guard");
+            return guard | 0x02u;
+        }
+
+        internal static uint GuardedSetCommand(uint guard, int level)
+        {
+            if (guard != 0x20u) throw new ArgumentOutOfRangeException("guard");
+            if (level < 0 || level > 2) throw new ArgumentOutOfRangeException("level");
+            return guard | ((uint)level << 16) | 0x03u;
+        }
+
+        internal static bool TryDecodeGuardedStatus(uint raw, out int level)
+        {
+            level = -1;
+            // Exact known 3-state replies; never accept Auto or unknown flags.
+            if (raw != 1u && raw != 3u && raw != 5u) return false;
+            level = (int)((raw >> 1) & 3u);
+            return true;
+        }
+
         // GET states are firmware-specific. Do not guess unknown values.
         internal static bool TryDecode(uint raw, out int level, out string variant)
         {

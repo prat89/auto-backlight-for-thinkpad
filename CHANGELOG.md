@@ -1,6 +1,20 @@
 # Changelog
 
-## v1.3.6 — planned release, 1 November 2026
+## v1.3.7 — 1 November 2026
+
+### Guarded experimental EnergyDrv protocol (Phase 27)
+- Added a capability-gated alternative EnergyDrv three-state protocol in addition to the existing v1/v2 support. This provides a potential path for Lenovo models using GET `0x22` / SET `0x23`.
+- Before activating the new variant, require a **read-only capabilities query** (`0x01`) with exactly the supported response `0x00000005`, then a recognized GET (`0x22`) brightness state (Off / Low / High). Unrecognized capabilities, states and unsupported Auto are rejected, with **no speculative SET during detection**.
+- Existing `IBMPmDrv` remains the first-choice backend. Existing EnergyDrv v1/v2 recognition (GET `0x32`) is attempted before the new guarded variant. SET operations are verified by reading back the resulting brightness.
+- Credited the protocol research reference in `NOTICE`. No Lenovo Vantage DLLs, new third-party driver, Lenovo Lighting WMI backend or RGB controller were added.
+
+### Build and verification
+- Updated assembly/file/informational versions to `1.3.7.0` / `1.3.7` and MSI ProductVersion to `1.3.7`; generated fresh MSI ProductCode and PackageCode while retaining the existing UpgradeCode.
+- Standalone Windows/.NET protocol tests passed without accessing hardware, including capability/command mapping, readback decoding and rejection of unknown/Auto states.
+- Maintainer reports a successful Release rebuild and direct v1.3.6 → v1.3.7 MSI upgrade, with normal IBMPmDrv keyboard-backlight behavior triggered by built-in keyboard, touchpad and mouse input on ThinkPad X1 Extreme Gen 2.
+- **Not verified:** physical EnergyDrv hardware and broader Lenovo model compatibility. A direct v1.3.6 → v1.3.7 MSI upgrade was successfully tested on one ThinkPad, not across all configurations.
+
+## v1.3.6 — 1 November 2026
 
 ### Driver detection and startup diagnostics (Phases 25C / 25E.3)
 - Replaced diagnostic `Win32_SystemDriver` WMI enumeration with read-only Service Control Manager driver discovery and registry start-mode lookup. The proven IBMPmDrv hardware-control implementation remains unchanged.
@@ -174,9 +188,9 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestone
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Outstanding validation and future work (after v1.3.6)
+## Outstanding validation and future work (after v1.3.7)
 
 - Continue investigating intermittent slow startup using the Phase 22/22.1 checkpoints; diagnostic instrumentation is not a performance fix.
 - Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.
 - For each subsequent release, confirm informational version, MSI/EXE versions, release asset hashes, upgrade behavior, packaging and signing decision.
-- Obtain real EnergyDrv v1/v2 hardware tests and compare results across model families before calling the new backend stable; additional EnergyDrv protocol variants and other Lenovo driver families remain out of scope.
+- Obtain real EnergyDrv v1/v2 and guarded-protocol hardware tests and compare results across model families before calling either backend stable. Investigate Lenovo Lighting WMI/Vantage interfaces separately; neither is implemented.

@@ -21,6 +21,8 @@ namespace Auto_Backlight_for_ThinkPad
         private const uint OpenExisting = 3u;
         private readonly DispatcherTimer _monitor;
         private readonly string _variant;
+        private readonly bool _guarded;
+        private readonly uint _guard;
         private DateTime _lastMonitorErrorUtc = DateTime.MinValue;
 
         public event BacklightEventHandler Changed;
@@ -34,13 +36,41 @@ namespace Auto_Backlight_for_ThinkPad
 
         public EnergyDrvBacklightBackend()
         {
-            // No SET occurs during discovery. A recognized GET is mandatory.
-            uint raw = SendGet();
-            int level;
-            string variant;
-            if (!EnergyDrvProtocol.TryDecode(raw, out level, out variant))
-                throw new NotSupportedException("Unrecognized EnergyDrv GET status 0x" + raw.ToString("X8") +
-                    "; no write attempted (Auto mode and unknown firmware are unsupported).");
+            // Keep the v1.3.6 EnergyDrv GET(0x32) path first; no probing SET.
+            int level = -1;
+            string variant = null;
+            uint raw = 0;
+            try
+            {
+                raw = SendGet(EnergyDrvProtocol.GetCommand);
+                EnergyDrvProtocol.TryDecode(raw, out level, out variant);
+                // v2 Auto is a known state but intentionally unsupported.
+                // Do not attempt to bypass this by switching to another protocol.
+                if (raw == 0x00010007u)
+                    throw new NotSupportedException("EnergyDrv v2 Auto mode is unsupported; no SET attempted.");
+            }
+            catch (Win32Exception ex)
+            {
+                DiagnosticsLog.Info("EnergyDrv legacy GET unavailable; guarded read-only capability probe follows (Win32 " + ex.NativeErrorCode + ")");
+            }
+            catch (InvalidOperationException ex)
+            {
+                DiagnosticsLog.Info("EnergyDrv legacy GET incomplete; guarded read-only capability probe follows (" + ex.GetType().Name + ")");
+            }
+            if (variant == null)
+            {
+                // Capability GET(0x01) MUST confirm two nonzero brightness levels.
+                uint capability = SendGet(EnergyDrvProtocol.GuardedCapabilityCommand, 4);
+                uint guard;
+                if (!EnergyDrvProtocol.TryGuardedCapability(capability, out guard))
+                    throw new NotSupportedException("EnergyDrv guarded capability unsupported: 0x" + capability.ToString("X8") + "; no SET attempted.");
+                raw = SendGet(EnergyDrvProtocol.GuardedStatusCommand(guard), 4);
+                if (!EnergyDrvProtocol.TryDecodeGuardedStatus(raw, out level))
+                    throw new NotSupportedException("EnergyDrv guarded status unsupported: 0x" + raw.ToString("X8") + "; no SET attempted.");
+                _guarded = true;
+                _guard = guard;
+                variant = "guarded-0x22";
+            }
             _variant = variant;
             State = level;
             _monitor = new DispatcherTimer(DispatcherPriority.Background);
@@ -53,12 +83,26 @@ namespace Auto_Backlight_for_ThinkPad
         public void Start() { _monitor.Start(); }
         public void Stop() { _monitor.Stop(); }
 
+        private uint ReadRawState()
+        {
+            return _guarded
+                ? SendGet(EnergyDrvProtocol.GuardedStatusCommand(_guard), 4)
+                : SendGet(EnergyDrvProtocol.GetCommand);
+        }
+
+        private bool TryDecodeSelected(uint raw, out int level)
+        {
+            if (_guarded) return EnergyDrvProtocol.TryDecodeGuardedStatus(raw, out level);
+            string variant;
+            bool known = EnergyDrvProtocol.TryDecode(raw, out level, out variant);
+            return known && variant == _variant;
+        }
+
         public int Read()
         {
+            uint raw = ReadRawState();
             int level;
-            string variant;
-            uint raw = SendGet();
-            if (!EnergyDrvProtocol.TryDecode(raw, out level, out variant) || variant != _variant)
+            if (!TryDecodeSelected(raw, out level))
                 throw new InvalidOperationException("EnergyDrv GET returned unsupported/mismatched status: 0x" +
                     raw.ToString("X8") + " (expected " + _variant + ")");
             State = level;
@@ -67,9 +111,11 @@ namespace Auto_Backlight_for_ThinkPad
 
         public void Write(int level)
         {
-            uint command = EnergyDrvProtocol.SetCommand(level);
-            SendCommand(command, false);
-            // SaltwaterC verifies a SET after a short delay; don't assume success.
+            uint command = _guarded
+                ? EnergyDrvProtocol.GuardedSetCommand(_guard, level)
+                : EnergyDrvProtocol.SetCommand(level);
+            SendCommand(command, false, _guarded ? 4 : 16);
+            // Verify SET with a fresh GET. A failed read is treated as a failed write.
             Thread.Sleep(40);
             int actual = Read();
             if (actual != level)
@@ -81,13 +127,12 @@ namespace Auto_Backlight_for_ThinkPad
         {
             try
             {
-                uint raw = SendGet();
+                uint raw = ReadRawState();
                 int level;
-                string variant;
-                bool supported = EnergyDrvProtocol.TryDecode(raw, out level, out variant);
+                bool supported = TryDecodeSelected(raw, out level);
                 return "GET operation: succeeded" + Environment.NewLine +
                     "Raw GET response: 0x" + raw.ToString("X8") + Environment.NewLine +
-                    "Recognized EnergyDrv variant: " + (supported ? variant : "no") + Environment.NewLine +
+                    "Recognized EnergyDrv variant: " + (supported ? _variant : "no") + Environment.NewLine +
                     "Decoded brightness level: " + (supported ? level.ToString() : "unavailable") + Environment.NewLine +
                     "SET verification: not performed (read-only diagnostics)";
             }
@@ -119,24 +164,24 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private static uint SendGet()
+        private static uint SendGet(uint command, int outputLength = 16)
         {
             byte[] output;
             int returned;
-            SendCommand(EnergyDrvProtocol.GetCommand, true, out output, out returned);
+            SendCommand(command, true, outputLength, out output, out returned);
             if (returned < 4)
                 throw new InvalidOperationException("EnergyDrv GET returned fewer than 4 bytes.");
             return BitConverter.ToUInt32(output, 0);
         }
 
-        private static void SendCommand(uint input, bool isGet)
+        private static void SendCommand(uint input, bool isGet, int outputLength)
         {
             byte[] ignored;
             int returned;
-            SendCommand(input, isGet, out ignored, out returned);
+            SendCommand(input, isGet, outputLength, out ignored, out returned);
         }
 
-        private static void SendCommand(uint input, bool isGet, out byte[] output, out int returned)
+        private static void SendCommand(uint input, bool isGet, int outputLength, out byte[] output, out int returned)
         {
             using (SafeFileHandle handle = CreateFile(DevicePath, GenericReadWrite, ShareReadWrite,
                 IntPtr.Zero, OpenExisting, 0, IntPtr.Zero))
@@ -144,7 +189,7 @@ namespace Auto_Backlight_for_ThinkPad
                 if (handle.IsInvalid)
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "Cannot open EnergyDrv");
                 byte[] data = BitConverter.GetBytes(input);
-                output = new byte[16]; // Required by known EnergyDrv implementations.
+                output = new byte[outputLength];
                 if (!DeviceIoControl(handle, EnergyDrvProtocol.Ioctl, data, data.Length,
                     output, output.Length, out returned, IntPtr.Zero))
                     throw new Win32Exception(Marshal.GetLastWin32Error(),

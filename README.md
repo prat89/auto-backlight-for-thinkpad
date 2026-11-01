@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns a compatible Lenovo laptop keyboard backlight on when you use the computer, and off after an adjustable period of inactivity.
 
-**Current source version: v1.3.6** (release candidate, 1 November 2026). The latest publicly published installer may still be v1.3.5 until the [GitHub Release](https://github.com/prat89/auto-backlight-for-thinkpad/releases) is created. v1.3.6 improves driver-service discovery and adds **experimental EnergyDrv v1/v2 keyboard-backlight control** as a fallback when IBMPmDrv initialization fails. EnergyDrv control has passed protocol-level tests but **has not been tested on EnergyDrv hardware**. On the developer's ThinkPad, IBMPmDrv still works. Intermittent slow Windows-startup initialization is not claimed to be fixed.
+**Current source version: v1.3.7.** This version adds a capability-gated experimental EnergyDrv variant alongside the v1/v2 variants introduced in v1.3.6. IBMPmDrv remains the preferred backend. The new EnergyDrv protocol was tested without hardware access; **no EnergyDrv laptop has been physically verified**. The maintainer confirmed a successful Release rebuild and direct MSI upgrade from installed v1.3.6 to v1.3.7, followed by normal keyboard, mouse and touchpad-triggered backlight behavior using IBMPmDrv. See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for published installers.
 
 ## Features
 
@@ -17,14 +17,14 @@ A lightweight Windows system-tray application that automatically turns a compati
 - **Diagnostics...** in the tray menu exports hardware and backend information; a hardware report is also written automatically at startup. v1.3.5 added read-only Raw Input counters and startup checkpoints; v1.3.6 adds startup-only Raw Input enumeration timings, SCM driver-service discovery, and reporting for the actually selected backend. These diagnostics do not record keystroke contents or Raw Input device paths; review and redact exported files before sharing.
 - **Disable on-screen display** supports compatible Lenovo OSD installations where `HKCU\Software\Lenovo\OnScreenDisplay` exists even when `Enable` is missing. The app does not create a missing `Enable` on startup; a user-initiated toggle can create the DWORD and set `0` (OSD disabled) or `1` (OSD enabled). Its preference is stored separately from legacy settings; behavior depends on the installed Lenovo OSD software.
 - **Modern tray menu** (v1.3.0) replaces the legacy menu visuals with native WPF templates, rounded corners, subtle highlighting, icons and compact checkmarks. No additional UI library is required.
-- **Driver backends (v1.3.6):** prefers the hardware-tested `IBMPmDrv` interface; if that initialization fails, attempts an experimental `EnergyDrv` v1/v2 backend. EnergyDrv detection uses a read-only GET and rejects unknown responses; writes are followed by a GET verification. No Lenovo kernel drivers are bundled. EnergyDrv has **not** been hardware-validated.
+- **Driver backends (v1.3.7):** `IBMPmDrv` is preferred. Experimental `EnergyDrv` v1/v2 remains the first fallback (GET `0x32`); if that protocol cannot be recognized, a guarded EnergyDrv variant can use a read-only capability query (`0x01`) followed by a recognized brightness-state query (`0x22`). Only the known three-state capability and Off/Low/High states are accepted; SET (`0x23`) is verified by another GET. Unknown/Auto responses are rejected, and no speculative SET is sent during detection. No Lenovo drivers or Vantage DLLs are bundled.
 - Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
 
 ## Compatibility
 
 **Tested:** Lenovo ThinkPad X1 Extreme Gen 2, model `20QVCTO1WW`, with `IBMPmDrv` installed and running; keyboard backlight levels Off (0), Low (1), High (2).
 
-One community user also reported the app working on a **ThinkPad P14s Gen 5 AMD**, without comprehensive independent verification. Other IBMPmDrv-based ThinkPads may work. **Experimental EnergyDrv v1/v2 support** is included for potentially compatible Lenovo models (for example, some ThinkBook/IdeaPad devices), but **no EnergyDrv laptop has been tested with this fork**. Driver presence, family name or a recognized GET response does not guarantee successful physical backlight control. No blanket Yoga/Legion/RGB compatibility is claimed.
+One community user also reported the app working on a **ThinkPad P14s Gen 5 AMD**, without comprehensive independent verification. Other IBMPmDrv-based ThinkPads may work. **EnergyDrv v1/v2 and the new capability-gated variant are experimental**, potentially relevant to some Lenovo models beyond ThinkPads. **No EnergyDrv laptop has been tested with this fork**. Driver presence, model family or a recognized GET response does not guarantee physical backlight control. No blanket ThinkBook/IdeaPad/Yoga/Legion or RGB compatibility is claimed.
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troubleshooting.
 
@@ -38,6 +38,8 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troub
 **v1.3.5 upgrade validation (31 October 2026):** the maintainer successfully upgraded the developer-tested ThinkPad X1 Extreme Gen 2 from the published v1.3.4 MSI to v1.3.5. Windows Installer removed the earlier product and registered v1.3.5; the installed EXE matched the validated MSI payload SHA-256; the logon startup task remained functional. Preferences were loaded successfully and checked in the UI, including after a restart and sleep/resume. This is a **single-device upgrade test**, not a guarantee for other models or every legacy configuration.
 
 **Settings caveat:** the serialized `Settings` registry value changed between the baseline and the upgraded installation, so byte-for-byte equality did not pass. The application successfully loaded its preferences and manually checked values (timeout, Low/High, external input and OSD) persisted across upgrade and reboot. Back up important settings before upgrading; not every historical settings combination has been tested.
+
+**v1.3.7 upgrade validation (1 November 2026):** the maintainer upgraded directly from installed **v1.3.6 to v1.3.7 using the MSI** on a ThinkPad X1 Extreme Gen 2. The updated application started and keyboard backlight activation via keyboard, touchpad and mouse worked normally using IBMPmDrv. This is one-device functional validation; installed-file hash, detailed settings-retention and full reboot/suspend upgrade matrices were not independently checked for this upgrade.
 
 To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
 
@@ -53,7 +55,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Troubleshooting
 
-1. Confirm that the laptop has a supported Lenovo driver interface. `IBMPmDrv` is preferred; experimental `EnergyDrv` v1/v2 is attempted only if IBMPmDrv initialization fails. This app does not install kernel drivers. If EnergyDrv is selected, its actual backlight control is unverified and may not work on your model.
+1. Confirm that the laptop has a supported Lenovo driver interface. `IBMPmDrv` is preferred; experimental `EnergyDrv` v1/v2 and the guarded three-state variant are fallback options. This app does not install kernel drivers. EnergyDrv hardware compatibility remains unverified; if selected, stop testing if brightness behavior is unexpected.
 2. Check Windows' notification area, including hidden icons. Startup can be delayed while Windows reports driver/service status; a visible tray icon is not guaranteed immediately after MSI completion.
 3. Open **Diagnostics...** in the tray menu to inspect/export a report, or review:
 
@@ -73,11 +75,11 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 - `Settings.cs` is **generated** from `Settings.tmpl.cs` using `tmplGenerator.py`; edit the template and rebuild instead of editing generated code. The generator's string comparison warning was fixed (`is` → `==`) during validation.
 - Validate installed files and the MSI version independently from the build output. Build artifacts and temporary scripts are not source files and should not be committed.
 - Keep staging and backup artifacts **outside this repository**, preferably under `Downloads` and `Documents/LenovoBacklightBackups`. Inspect `git status` before committing; do not commit log files, `.msi` files, `bin/`, `obj/` or local backup directories.
-- The Windows application uses WPF, Windows Raw Input, power notifications and a pluggable keyboard-backlight backend (`IBMPmDrv` preferred, experimental `EnergyDrv` v1/v2 fallback). Optional camera screen-brightness functionality uses the existing project dependencies.
+- The Windows application uses WPF, Windows Raw Input, power notifications and pluggable keyboard-backlight backends (`IBMPmDrv` preferred; experimental `EnergyDrv` v1/v2 plus guarded capability-based fallback). Optional camera screen-brightness functionality uses the existing project dependencies.
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x`, `v6.0` and `Phase` labels refer to **internal development milestones**, not public version tags. The current **source version is v1.3.6**; [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) is authoritative for published installers. The developer successfully rebuilt and reinstalled the v1.3.6 MSI and confirmed IBMPmDrv lighting, but v1.3.6 has not yet completed a documented in-place upgrade test or EnergyDrv hardware test. Earlier v1.3.5 upgrade/payload validation is recorded in the changelog.
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase` labels refer to **internal development milestones**, not public version tags. The current **source version is v1.3.7**; [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) is authoritative for published installers. The maintainer successfully performed a direct **v1.3.6 → v1.3.7 MSI upgrade** and confirmed normal IBMPmDrv lighting/input behavior on one ThinkPad. **EnergyDrv hardware behavior remains unverified.**
 
 See [CHANGELOG.md](CHANGELOG.md) for historical releases and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware and historical MSI tests. Installation on one machine does not establish support across all ThinkPads or power transitions. Earlier MSI builds were not digitally signed; confirm the signing status of each download rather than assuming an authenticated publisher. GitHub Releases are authoritative for published release assets.
 
