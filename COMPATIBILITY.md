@@ -1,18 +1,20 @@
 # Hardware compatibility
 
-## Currently implemented backend
+## Currently implemented backends (v1.3.6)
 
 | Backend | Status | Notes |
 | --- | --- | --- |
-| `IBMPmDrv` | Implemented | Requires compatible Lenovo power-management driver and ThinkPad hardware |
-| `EnergyDrv` | Not implemented | Service discovery is informational only; no EnergyDrv control commands are sent |
-| Other ACPI / WMI / RGB backends | Not implemented | No claim of support for Yoga, IdeaPad, ThinkBook or Legion |
+| `IBMPmDrv` | Implemented; hardware-tested | **Preferred**: initialized first, with a read-only GET probe; tested on the developer's ThinkPad |
+| `EnergyDrv` v1/v2 | **Experimental; not hardware-tested** | Fallback only after IBMPmDrv initialization fails; recognized read-only GET required before enabling control; SET is checked with a subsequent GET |
+| Other Lenovo ACPI / WMI / RGB protocols | Not implemented | EnergyDrv v1/v2 does not establish compatibility with all ThinkBook, IdeaPad, Yoga or Legion models |
+
+The application does not bundle or install Lenovo drivers. **No EnergyDrv-equipped laptop has yet been tested with this fork.** A recognized protocol response does not prove that the physical keyboard LEDs respond as intended.
 
 ## Verified hardware
 
 | Laptop | Machine type / model | OS | Driver | Levels | Verification |
 | --- | --- | --- | --- | --- | --- |
-| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested: v1.3.4 → v1.3.5 MSI upgrade, internal/Bluetooth input, inactivity timeout, Raw Input diagnostics, Lenovo OSD preference, sleep/resume and restart/autostart |
+| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested through v1.3.6: locally rebuilt/reinstalled MSI, keyboard lighting and selected backend; earlier v1.3.4 → v1.3.5 upgrade, internal/Bluetooth input, inactivity timeout, diagnostics, OSD and restart/autostart |
 
 ### Community-reported hardware (limited verification)
 
@@ -22,15 +24,13 @@
 
 The developer-verified table remains limited to the X1 Extreme Gen 2. A community report is not equivalent to comprehensive hardware or MSI validation.
 
-## For a new model
+## For a new model / EnergyDrv testers
 
-1. Confirm that the Lenovo `IBMPmDrv` power-management driver is installed and running.
-2. Launch the app and verify that it starts without a hardware exception.
-3. Test keyboard, touchpad, TrackPoint, and (if enabled) external input devices.
-4. Test Low / High, inactivity timeout, lid close/open, sleep/resume, and Fn+Space.
-5. Use **Diagnostics...** to inspect/export diagnostic information, and review/redact it before sharing with maintainers.
-
-If `IBMPmDrv` is absent, do **not** install random third-party kernel drivers or turn off Windows security protections just to try this program.
+1. Confirm the original Lenovo driver for your laptop is installed normally. **Do not** install unrelated third-party kernel drivers, disable Windows security or change driver service states just to test this app.
+2. Run the application; use **Diagnostics...** to confirm which backend is selected. IBMPmDrv is tried first; EnergyDrv v1/v2 is only a fallback if its read-only GET response is recognized.
+3. If EnergyDrv is selected, cautiously check Off / Low / High against the actual keyboard LEDs, then automatic inactivity behavior and Fn+Space. **EnergyDrv has no hardware-validation claim**; stop testing if unexpected behavior occurs.
+4. Check built-in keyboard, touchpad/TrackPoint (when present), external input devices (when opted in), lid close/open, and sleep/resume.
+5. Report the exact laptop model, Windows build, selected backend, protocol variant shown in logs, and results; attach redacted **Diagnostics...** / **Export log...** output.
 
 ## Lenovo OSD option (v1.3.4)
 
@@ -57,12 +57,22 @@ If `IBMPmDrv` is absent, do **not** install random third-party kernel drivers or
 - **Phase 21:** missing OSD `Enable` was not created on app startup; explicit user interactions created and toggled the DWORD. Existing OSD behavior was retained.
 - **v1.3.4 released:** the maintainer reports successful local MSI installation and normal application operation on the verified ThinkPad. A complete v1.3.4 major-upgrade/uninstall regression matrix is not documented. Broader device coverage, EnergyDrv control, other Lenovo OSD revisions and exhaustive legacy settings/power-transition testing remain unverified.
 
+## v1.3.6 developer verification (1 November 2026)
+
+- **Phase 25C:** replaced diagnostic WMI driver-service discovery with read-only Windows Service Control Manager enumeration; the tested IBMPmDrv path remains the preferred hardware backend.
+- **Phase 25E.3:** added startup-only Raw Input enumeration and constructor timing logs. This is diagnostic instrumentation, not a claim that sporadic slow Windows-logon startup has been fixed.
+- **Phase 25F rollback:** removed the experimental Task Scheduler logon delay and restored automatic `hardware-report.txt` generation on application startup; manual **Diagnostics...** export remains available.
+- **Phase 26:** added experimental EnergyDrv v1/v2 read-only protocol recognition and optional GET/SET backend, attempted only after IBMPmDrv initialization fails. Protocol-level test passed without hardware IOCTLs; **EnergyDrv hardware control has not been tested**.
+- Developer reports successful v1.3.6 source build, uninstall/reinstall of a new MSI and functioning IBMPmDrv keyboard backlight on X1 Extreme Gen 2. Diagnostics report IBMPmDrv selected, EnergyDrv absent, and Off/Low/High capability. **No verified cross-driver compatibility or v1.3.5 → v1.3.6 in-place upgrade is claimed**.
+
 ## Known limits
 
-- EnergyDrv discovery in v5.1 only checks whether a Windows service exists. It does **not** validate EnergyDrv IOCTL compatibility.
-- Brightness levels come from the reported backend capabilities and may differ across ThinkPad generations.
-- Camera-based screen brightness is optional, disabled by default for new installations and not required for keyboard control.
-- Historical MSI verification: clean installation, uninstall with the app closed, reinstall and retention of saved settings were tested in October 2026. An in-place MSI upgrade from upstream 1.0.0 to fork 1.2.0 also passed on 27 October 2026. Those tests do not establish comprehensive upgrade coverage for v1.3.4.
+- **EnergyDrv is experimental.** Only recognized v1/v2 GET statuses are supported. Unrecognized responses are rejected rather than sending exploratory writes. Other EnergyDrv variants, keyboard lighting protocols and RGB control are not claimed.
+- An installed driver or compatible laptop family name does **not** guarantee physical keyboard lighting works.
+- Startup after Windows logon may still take longer than a normal manual launch; the startup task has **no intentional delay**.
+- Brightness levels depend on the selected backend; Off/Low/High for EnergyDrv are not yet physically verified.
+- Camera-based screen brightness is optional, disabled by default for new installations, and separate from keyboard control.
+- Historical MSI tests (upgrades to earlier releases) do not establish that every v1.3.6 upgrade scenario has been verified.
 
 ## Additional validation notes (27 October 2026)
 

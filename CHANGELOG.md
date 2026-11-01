@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.3.6 — planned release, 1 November 2026
+
+### Driver detection and startup diagnostics (Phases 25C / 25E.3)
+- Replaced diagnostic `Win32_SystemDriver` WMI enumeration with read-only Service Control Manager driver discovery and registry start-mode lookup. The proven IBMPmDrv hardware-control implementation remains unchanged.
+- Added startup-only Raw Input enumeration timing, device-count and per-device timing summaries to investigate occasional slow initialization.
+- Intermittent slow startup after Windows logon is **not claimed to be fixed**.
+
+### Experimental EnergyDrv v1/v2 backend (Phase 26)
+- Added an optional Lenovo `EnergyDrv` backend based on MIT-licensed open-source protocol implementations credited in `NOTICE`.
+- **IBMPmDrv remains the first-choice backend**; only when it cannot initialize does the application attempt EnergyDrv.
+- EnergyDrv variant selection requires a recognized **read-only GET** response. Unknown/unsupported responses are rejected without an exploratory SET; writes are checked by reading back the resulting level.
+- Added polling for external/manual brightness changes on EnergyDrv and updated **Diagnostics...** to report the actually selected backend and a backend-specific read-only probe.
+- **Experimental and not tested on actual EnergyDrv hardware.** Protocol-level checks passed without driver IOCTLs, but correct Off/Low/High behavior, Fn+Space interaction and model compatibility require community testing. No blanket ThinkBook/IdeaPad/Yoga/Legion support claim.
+
+### Startup behavior and local regression
+- Reverted the temporary Phase 25F 15-second logon delay experiment: the packaged scheduled task starts at logon **without an intentional delay**.
+- Restored automatic hardware-report generation at application startup while retaining the manual **Diagnostics...** export.
+- Updated assembly version to `1.3.6.0` and MSI ProductVersion to `1.3.6`. Developer reports a successful Release/MSI rebuild and uninstall/reinstall on ThinkPad X1 Extreme Gen 2, with working IBMPmDrv keyboard lighting; local diagnostic report confirms IBMPmDrv selection.
+- A v1.3.5 → v1.3.6 **in-place** MSI upgrade, EnergyDrv hardware compatibility and comprehensive cross-device testing have **not** been verified.
+
 ## v1.3.5 — 31 October 2026
 
 ### Read-only Raw Input diagnostics (Phase 22)
@@ -154,9 +174,9 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestone
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Outstanding validation and future work (after v1.3.5)
+## Outstanding validation and future work (after v1.3.6)
 
 - Continue investigating intermittent slow startup using the Phase 22/22.1 checkpoints; diagnostic instrumentation is not a performance fix.
 - Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.
 - For each subsequent release, confirm informational version, MSI/EXE versions, release asset hashes, upgrade behavior, packaging and signing decision.
-- Additional Lenovo driver families, including `EnergyDrv`, remain deferred pending protocol and hardware validation.
+- Obtain real EnergyDrv v1/v2 hardware tests and compare results across model families before calling the new backend stable; additional EnergyDrv protocol variants and other Lenovo driver families remain out of scope.
