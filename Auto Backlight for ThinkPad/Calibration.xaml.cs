@@ -195,22 +195,144 @@ namespace Auto_Backlight_for_ThinkPad
         /// Regenerate plot, including new smoothed curve
         /// </summary>
         /// <param name="newPoints">Optional new data-points to replace old</param>
+
+        // Phase 28C.3: Native OxyPlot 2.2.0 model; no Contrib WPF wrappers.
+        private OxyPlot.PlotModel _plotModel;
+        private OxyPlot.Axes.LinearAxis _xAxis;
+        private OxyPlot.Axes.LinearAxis _yAxis;
+        private OxyPlot.Series.LineSeries _smoothedSeries;
+        private OxyPlot.Series.LineSeries _scatterSeries;
+        private OxyPlot.Annotations.LineAnnotation _currentLineX;
+        private OxyPlot.Annotations.LineAnnotation _currentLineY;
+        private OxyPlot.Annotations.TextAnnotation _invalidText;
+
+        private void InitializeNativePlot()
+        {
+            _plotModel = new OxyPlot.PlotModel
+            {
+                Title = "Ambient light calibration curve",
+                Background = OxyPlot.OxyColors.Transparent,
+                TextColor = OxyPlot.OxyColors.White,
+                PlotAreaBackground = OxyPlot.OxyColor.FromRgb(33, 33, 33),
+                PlotAreaBorderColor = OxyPlot.OxyColors.White,
+                PlotMargins = new OxyPlot.OxyThickness(50, 0, 50, 50)
+            };
+            _xAxis = new OxyPlot.Axes.LinearAxis
+            {
+                Position = OxyPlot.Axes.AxisPosition.Bottom,
+                Title = "Ambient light (%)",
+                Minimum = -0.1, Maximum = 100.1,
+                IsPanEnabled = false, IsZoomEnabled = false,
+                MajorGridlineStyle = OxyPlot.LineStyle.Solid,
+                MinorGridlineStyle = OxyPlot.LineStyle.Dash,
+                MajorGridlineColor = OxyPlot.OxyColors.Gray,
+                MinorGridlineColor = OxyPlot.OxyColors.DimGray,
+                AxislineColor = OxyPlot.OxyColors.White,
+                TicklineColor = OxyPlot.OxyColors.White
+            };
+            _yAxis = new OxyPlot.Axes.LinearAxis
+            {
+                Position = OxyPlot.Axes.AxisPosition.Left,
+                Title = "Screen brightness (%)",
+                Minimum = -0.1, Maximum = 100.1,
+                IsPanEnabled = false, IsZoomEnabled = false,
+                MajorGridlineStyle = OxyPlot.LineStyle.Solid,
+                MinorGridlineStyle = OxyPlot.LineStyle.Dash,
+                MajorGridlineColor = OxyPlot.OxyColors.Gray,
+                MinorGridlineColor = OxyPlot.OxyColors.DimGray,
+                AxislineColor = OxyPlot.OxyColors.White,
+                TicklineColor = OxyPlot.OxyColors.White
+            };
+            _plotModel.Axes.Add(_xAxis);
+            _plotModel.Axes.Add(_yAxis);
+            _smoothedSeries = new OxyPlot.Series.LineSeries
+            {
+                Title = "Smooth curve", RenderInLegend = false,
+                CanTrackerInterpolatePoints = false,
+                LineStyle = OxyPlot.LineStyle.Solid,
+                Color = OxyPlot.OxyColors.White, StrokeThickness = 2
+            };
+            _scatterSeries = new OxyPlot.Series.LineSeries
+            {
+                Title = "Learn points", RenderInLegend = false,
+                CanTrackerInterpolatePoints = false,
+                LineStyle = OxyPlot.LineStyle.None,
+                MarkerFill = OxyPlot.OxyColors.Yellow,
+                MarkerSize = 5, MarkerType = OxyPlot.MarkerType.Circle
+            };
+            _plotModel.Series.Add(_smoothedSeries);
+            _plotModel.Series.Add(_scatterSeries);
+            _currentLineX = new OxyPlot.Annotations.LineAnnotation
+            {
+                Type = OxyPlot.Annotations.LineAnnotationType.Vertical,
+                X = 50, LineStyle = OxyPlot.LineStyle.Dot,
+                Color = OxyPlot.OxyColors.Yellow, StrokeThickness = 2
+            };
+            _currentLineY = new OxyPlot.Annotations.LineAnnotation
+            {
+                Type = OxyPlot.Annotations.LineAnnotationType.Horizontal,
+                Y = 50, LineStyle = OxyPlot.LineStyle.Dot,
+                Color = OxyPlot.OxyColors.Yellow, StrokeThickness = 2
+            };
+            _invalidText = new OxyPlot.Annotations.TextAnnotation
+            {
+                Text = "Invalid curvature",
+                TextPosition = OxyPlot.DataPoint.Undefined,
+                TextColor = OxyPlot.OxyColor.FromArgb(128, 255, 255, 255),
+                Background = OxyPlot.OxyColor.FromArgb(128, 255, 0, 0),
+                FontSize = 14
+            };
+            _plotModel.Annotations.Add(_currentLineX);
+            _plotModel.Annotations.Add(_currentLineY);
+            _plotModel.Annotations.Add(_invalidText);
+            Plot.Model = _plotModel;
+            // Disable default gestures; edits are routed through WPF pointer handlers.
+            var controller = new OxyPlot.PlotController();
+            controller.UnbindAll();
+            Plot.Controller = controller;
+        }
+
+        private OxyPlot.ScreenPoint MouseScreenPoint()
+        {
+            var point = Mouse.GetPosition(Plot);
+            return new OxyPlot.ScreenPoint(point.X, point.Y);
+        }
+
+        private DataPoint PlotDataPoint(OxyPlot.ScreenPoint pt)
+        {
+            double x = _xAxis.InverseTransform(pt.X);
+            double y = _yAxis.InverseTransform(pt.Y);
+            return new DataPoint(Math.Max(0, Math.Min(100, x)), Math.Max(0, Math.Min(100, y)));
+        }
+
+        private int HitLearnedPoint(OxyPlot.ScreenPoint pt)
+        {
+            var hit = _scatterSeries.HitTest(new OxyPlot.HitTestArguments(pt, _scatterSeries.MarkerSize));
+            if (hit == null) return -1;
+            int idx = (int)hit.Index;
+            return idx >= 0 && idx < _learnedPoints.Count ? idx : -1;
+        }
+
         public void RegenerateCurve()
         {
             // Regenerate smoothed
             bool valid = CreateSmoothCurve(_learnedPoints, _smoothedPoints, Curvature);
             if (valid)
             {
-                SmoothedSeries.Color = System.Windows.Media.Colors.White;
-                InvalidText.TextPosition = OxyPlot.DataPoint.Undefined;
+                _smoothedSeries.Color = OxyPlot.OxyColors.White;
+                _invalidText.TextPosition = OxyPlot.DataPoint.Undefined;
             }
             else
             {
-                InvalidText.TextPosition = new OxyPlot.DataPoint(50, 0);
-                SmoothedSeries.Color = System.Windows.Media.Colors.Red;
+                _invalidText.TextPosition = new OxyPlot.DataPoint(50, 0);
+                _smoothedSeries.Color = OxyPlot.OxyColors.Red;
             }
 
-            Plot.InvalidatePlot();
+            _smoothedSeries.Points.Clear();
+            foreach (var p in _smoothedPoints) _smoothedSeries.Points.Add(new OxyPlot.DataPoint(p.X, p.Y));
+            _scatterSeries.Points.Clear();
+            foreach (var p in _learnedPoints) _scatterSeries.Points.Add(new OxyPlot.DataPoint(p.X, p.Y));
+            Plot.InvalidatePlot(true);
         }
         /// <summary>
         /// Get/set the current (intensity, brightness) point for the crosshair lines on the plot.
@@ -268,6 +390,7 @@ namespace Auto_Backlight_for_ThinkPad
         public Calibration(List<DataPoint> learnedPoints = null, double curvature = 0.5)
         {
             InitializeComponent();
+            InitializeNativePlot();
             if (learnedPoints != null) LearnedPoints = learnedPoints;
             Curvature = curvature;
 
@@ -298,121 +421,82 @@ namespace Auto_Backlight_for_ThinkPad
             CancelButton.Click += (sender, e) => Close();
             OkButton.Click += (sender, e) => { Apply?.Invoke(this, EventArgs.Empty); Close(); };
 
-            bool allowMove = false;
-            bool allowAdd = false;
-            bool allowRemove = false;
-            Plot.ActualModel.MouseDown += (sender, e) =>
-            {
-                if (e.ChangedButton == OxyPlot.OxyMouseButton.Left)
-                {
-                    // Ctrl-click, insert point
-                    if (e.ModifierKeys == OxyPlot.OxyModifierKeys.Control && allowAdd)
-                    {
-                        // Convert to data coordinates
-                        var pos = e.Position;
-                        double x = XAxis.InternalAxis.InverseTransform(pos.X);
-                        double y = YAxis.InternalAxis.InverseTransform(pos.Y);
-                        if (x < 0) x = 0;
-                        if (x > 100) x = 100;
-                        if (y < 0) y = 0;
-                        if (y > 100) y = 100;
-                        var value = new DataPoint(x, y);
-
-                        // Add to series
-                        _LearnedPoints.Add(value);
-                        _LearnedPoints = _LearnedPoints;
-                    }
-                }
-            };
+            // Phase 28C.3: handle edits with WPF pointer events (not obsolete
+            // OxyPlot element events, which were attached to Contrib wrappers).
             int dragIdx = -1;
-            ScatterSeries.InternalSeries.MouseDown += (sender, e) =>
-            {
-                if (e.ChangedButton == OxyPlot.OxyMouseButton.Left)
-                {
-                    // Ctrl click, delete point
-                    if (e.ModifierKeys == OxyPlot.OxyModifierKeys.Control && allowRemove)
-                    {
-                        int idx = (int)e.HitTestResult.Index;
-                        _LearnedPoints.RemoveAt(idx);
-                        _LearnedPoints = _LearnedPoints;
-                    }
-                    if (e.ModifierKeys == OxyPlot.OxyModifierKeys.None && allowMove)
-                    {
-                        dragIdx = (int)e.HitTestResult.Index;
-                        e.Handled = true;
-                    }
-                }
-            };
-            ScatterSeries.InternalSeries.MouseMove += (sender, e) =>
-            {
-                if (dragIdx >= 0)
-                {
-                    e.Handled = true;
-                    // Convert to data coordinates
-                    var pos = e.Position;
-                    double x = XAxis.InternalAxis.InverseTransform(pos.X);
-                    double y = YAxis.InternalAxis.InverseTransform(pos.Y);
-                    if (x < 0) x = 0;
-                    if (x > 100) x = 100;
-                    if (y < 0) y = 0;
-                    if (y > 100) y = 100;
-                    var value = new DataPoint(x, y);
-
-                    // Distance to nearest other point must be large, avoids overlapping points
-                    double minDist = _LearnedPoints.Min(p => p == _LearnedPoints[dragIdx] ? double.PositiveInfinity : (p - value).Magnitude());
-                    if (minDist < ScatterSeries.MarkerSize) return;
-
-                    // Change point, re-index since index will change after sorting
-                    _LearnedPoints.RemoveAt(dragIdx);
-                    _LearnedPoints.Add(value);
-                    _LearnedPoints = _LearnedPoints;
-                    dragIdx = _LearnedPoints.IndexOf(value);
-                }
-            };
-            ScatterSeries.InternalSeries.MouseUp += (sender, e) =>
-            {
-                // End drag operation
-                if (dragIdx >= 0)
-                {
-                    dragIdx = -1;
-                    e.Handled = true;
-                }
-            };
             Action queryCursor = () =>
             {
-                var pos = Mouse.GetPosition(Plot);
-                var pt = new OxyPlot.ScreenPoint(pos.X, pos.Y);
-
-                Cursor cr = Cursors.Cross;
-                var inside = Plot.ActualModel.PlotArea.Contains(pt);
+                var pt = MouseScreenPoint();
+                bool inside = _plotModel.PlotArea.Contains(pt);
                 if (!inside)
                 {
                     Plot.Cursor = null;
                     return;
                 }
-
-                // Over point means drag operation
-                var hitPoint = ScatterSeries.InternalSeries.HitTest(new OxyPlot.HitTestArguments(pt, ScatterSeries.MarkerSize));
-                if (hitPoint != null)
-                    cr = Cursors.SizeAll;
-                // Ctrl pressed means Delete or Insert operation
-                if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
-                    if (hitPoint != null)
-                        cr = Cursors.No;
-                    else
-                        cr = Cursors.UpArrow;
-                // During drag operation
-                if (dragIdx >= 0)
-                    cr = Cursors.None;
-
-                Plot.Cursor = cr;
-                allowMove = cr == Cursors.SizeAll;
-                allowAdd = cr == Cursors.UpArrow;
-                allowRemove = cr == Cursors.No;
+                int idx = HitLearnedPoint(pt);
+                bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
+                Plot.Cursor = dragIdx >= 0 ? Cursors.None :
+                    ctrl ? (idx >= 0 ? Cursors.No : Cursors.UpArrow) :
+                    (idx >= 0 ? Cursors.SizeAll : Cursors.Cross);
             };
-            Plot.MouseMove += (sender, e) => { queryCursor(); };
-            KeyDown += (sender, e) => { if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) queryCursor(); };
-            KeyUp += (sender, e) => { if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) queryCursor(); };
+            Plot.PreviewMouseLeftButtonDown += (sender, e) =>
+            {
+                var pt = MouseScreenPoint();
+                if (!_plotModel.PlotArea.Contains(pt)) return;
+                int idx = HitLearnedPoint(pt);
+                bool ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
+                if (ctrl)
+                {
+                    if (idx >= 0) _LearnedPoints.RemoveAt(idx);
+                    else _LearnedPoints.Add(PlotDataPoint(pt));
+                    _LearnedPoints = _LearnedPoints;
+                    e.Handled = true;
+                }
+                else if (idx >= 0)
+                {
+                    dragIdx = idx;
+                    Plot.CaptureMouse();
+                    e.Handled = true;
+                }
+                queryCursor();
+            };
+            Plot.PreviewMouseMove += (sender, e) =>
+            {
+                if (dragIdx >= 0 && e.LeftButton == MouseButtonState.Pressed)
+                {
+                    var value = PlotDataPoint(MouseScreenPoint());
+                    // Keep distinct points separated by at least the marker radius.
+                    double nearest = _LearnedPoints.Where((p, i) => i != dragIdx)
+                        .Select(p => (p - value).Magnitude())
+                        .DefaultIfEmpty(double.PositiveInfinity).Min();
+                    if (nearest >= _scatterSeries.MarkerSize)
+                    {
+                        _LearnedPoints.RemoveAt(dragIdx);
+                        _LearnedPoints.Add(value);
+                        _LearnedPoints = _LearnedPoints;
+                        dragIdx = _LearnedPoints.IndexOf(value);
+                    }
+                    e.Handled = true;
+                }
+                queryCursor();
+            };
+            Plot.PreviewMouseLeftButtonUp += (sender, e) =>
+            {
+                if (dragIdx < 0) return;
+                dragIdx = -1;
+                if (Plot.IsMouseCaptured) Plot.ReleaseMouseCapture();
+                e.Handled = true;
+                queryCursor();
+            };
+            Plot.LostMouseCapture += (sender, e) => { dragIdx = -1; };
+            KeyDown += (sender, e) =>
+            {
+                if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) queryCursor();
+            };
+            KeyUp += (sender, e) =>
+            {
+                if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) queryCursor();
+            };
 
             ContextMenu cm = (ContextMenu)Plot.FindResource("PlotMenu");
             Plot.PreviewMouseRightButtonUp += (sender, e) =>
@@ -430,14 +514,14 @@ namespace Auto_Backlight_for_ThinkPad
                 // Check if selected a point
                 var pos = Mouse.GetPosition(Plot);
                 var pt = new OxyPlot.ScreenPoint(pos.X, pos.Y);
-                double x = XAxis.InternalAxis.InverseTransform(pos.X);
-                double y = YAxis.InternalAxis.InverseTransform(pos.Y);
+                double x = _xAxis.InverseTransform(pos.X);
+                double y = _yAxis.InverseTransform(pos.Y);
                 if (x < 0) x = 0;
                 if (x > 100) x = 100;
                 if (y < 0) y = 0;
                 if (y > 100) y = 100;
                 var value = new DataPoint(x, y);
-                var hitPoint = ScatterSeries.InternalSeries.HitTest(new OxyPlot.HitTestArguments(pt, ScatterSeries.MarkerSize));
+                var hitPoint = _scatterSeries.HitTest(new OxyPlot.HitTestArguments(pt, _scatterSeries.MarkerSize));
                 if (hitPoint != null) value = _LearnedPoints[(int)hitPoint.Index];
 
                 // Enable based on whether point was selected
@@ -449,8 +533,6 @@ namespace Auto_Backlight_for_ThinkPad
                 cm.Items.OfType<MenuItem>().First(m => ((string)m.Header).StartsWith("Edit")).Tag = value;
             };
 
-            SmoothedSeries.ItemsSource = _smoothedPoints.Select(p => new OxyPlot.DataPoint(p.X, p.Y));
-            ScatterSeries.ItemsSource = _learnedPoints.Select(p => new OxyPlot.DataPoint(p.X, p.Y));
             RegenerateCurve();
         }
         private void _MenuAddPoint(object sender, RoutedEventArgs e)
@@ -511,17 +593,19 @@ namespace Auto_Backlight_for_ThinkPad
         }
         private DataPoint _Current
         {
-            get => new DataPoint(CurrentLineX.X, CurrentLineY.Y);
+            get => new DataPoint(_currentLineX.X, _currentLineY.Y);
             set
             {
-                CurrentLineX.X = value.X;
-                CurrentLineY.Y = value.Y;
+                _currentLineX.X = value.X;
+                _currentLineY.Y = value.Y;
+                CurrentXText.Text = string.Format("({0:F0}%, ", value.X);
+                CurrentYText.Text = string.Format("{0:F0}%)", value.Y);
                 ManualSlider.Value = value.Y;
 
                 // Distance to nearest other point must be large, avoids overlapping points
                 double minDist = _LearnedPoints.Min(p => (p - value).Magnitude());
-                AddButton.IsEnabled = minDist > ScatterSeries.MarkerSize;
-                Plot.InvalidatePlot();
+                AddButton.IsEnabled = minDist > _scatterSeries.MarkerSize;
+                Plot.InvalidatePlot(true);
             }
         }
         private double _Curvature

@@ -105,19 +105,15 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="OxyPlot">
-      <HintPath>..\packages\OxyPlot.Core.2.1.2\lib\net45\OxyPlot.dll</HintPath>
+      <HintPath>..\packages\OxyPlot.Core.2.2.0\lib\net462\OxyPlot.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="OxyPlot.Wpf">
-      <HintPath>..\packages\OxyPlot.Wpf.2.1.2\lib\net45\OxyPlot.Wpf.dll</HintPath>
+      <HintPath>..\packages\OxyPlot.Wpf.2.2.0\lib\net462\OxyPlot.Wpf.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="OxyPlot.Wpf.Shared">
-      <HintPath>..\packages\OxyPlot.Wpf.Shared.2.1.2\lib\net45\OxyPlot.Wpf.Shared.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="OxyPlot.Contrib.Wpf">
-      <HintPath>..\packages\OxyPlot.Contrib.Wpf.2.1.2\lib\net45\OxyPlot.Contrib.Wpf.dll</HintPath>
+      <HintPath>..\packages\OxyPlot.Wpf.Shared.2.2.0\lib\net462\OxyPlot.Wpf.Shared.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="ReachFramework" />
@@ -206,17 +202,14 @@
     <EmbeddedResource Include="..\packages\Accord.Video.DirectShow.3.8.0\lib\net45\Accord.Video.DirectShow.dll">
       <Link>Accord.Video.DirectShow.dll</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\packages\OxyPlot.Wpf.2.1.2\lib\net45\OxyPlot.Wpf.dll">
+    <EmbeddedResource Include="..\packages\OxyPlot.Wpf.2.2.0\lib\net462\OxyPlot.Wpf.dll">
       <Link>OxyPlot.Wpf.dll</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\packages\OxyPlot.Core.2.1.2\lib\net45\OxyPlot.dll">
+    <EmbeddedResource Include="..\packages\OxyPlot.Core.2.2.0\lib\net462\OxyPlot.dll">
       <Link>OxyPlot.dll</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\packages\OxyPlot.Wpf.Shared.2.1.2\lib\net45\OxyPlot.Wpf.Shared.dll">
+    <EmbeddedResource Include="..\packages\OxyPlot.Wpf.Shared.2.2.0\lib\net462\OxyPlot.Wpf.Shared.dll">
       <Link>OxyPlot.Wpf.Shared.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\packages\OxyPlot.Contrib.Wpf.2.1.2\lib\net45\OxyPlot.Contrib.Wpf.dll">
-      <Link>OxyPlot.Contrib.Wpf.dll</Link>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

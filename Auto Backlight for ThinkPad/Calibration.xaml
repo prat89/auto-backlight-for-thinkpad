@@ -20,7 +20,7 @@ limitations under the License.
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Auto_Backlight_for_ThinkPad"
-        xmlns:oxy="http://oxyplot.org/wpf/contrib"
+        xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:x1="clr-namespace:System;assembly=mscorlib"
         Title="Calibration" Name="Window" SizeToContent="WidthAndHeight"
         ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen"
@@ -65,8 +65,8 @@ limitations under the License.
             <RowDefinition/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <oxy:Plot Name="Plot" PlotMargins="50,0,50,50" Title="Ambient light calibration curve" Background="Transparent" TextColor="White" PlotAreaBorderColor="White" PlotAreaBackground="#FF212121" TitleToolTip="Mapping from ambient light level to screen brightness level">
-            <oxy:Plot.Resources>
+        <oxy:PlotView x:Name="Plot" ToolTip="Mapping from ambient light level to screen brightness level">
+            <oxy:PlotView.Resources>
                 <Color x:Key="RedTrans" R="255" G="0" B="0" A="128"/>
                 <Color x:Key="WhiteTrans" R="255" G="255" B="255" A="128"/>
                 <ContextMenu x:Key="PlotMenu">
@@ -103,21 +103,8 @@ limitations under the License.
                         </StackPanel>
                     </Grid>
                 </Window>
-            </oxy:Plot.Resources>
-            <oxy:Plot.Axes>
-                <oxy:LinearAxis Name="XAxis" Position="Bottom" Title="Ambient light (%)" IsPanEnabled="False" IsZoomEnabled="False" Minimum="-0.1" Maximum="100.1" MajorGridlineStyle="Solid" MinorGridlineStyle="Dash" MajorGridlineColor="Gray" MinorGridlineColor="DimGray" AxislineColor="White" TicklineColor="White" ToolTip="Ambient light level received from webcam image intensity"/>
-                <oxy:LinearAxis Name="YAxis" Position="Left" Title="Screen brightness (%)" IsPanEnabled="False" IsZoomEnabled="False" Minimum="-0.1" Maximum="100.1" MajorGridlineStyle="Solid" MinorGridlineStyle="Dash" MajorGridlineColor="Gray" MinorGridlineColor="DimGray" AxislineColor="White" TicklineColor="White" ToolTip="Desired screen brightness level"/>
-            </oxy:Plot.Axes>
-            <oxy:Plot.Series>
-                <oxy:LineSeries Name="SmoothedSeries" Title="Smooth curve" RenderInLegend="False" CanTrackerInterpolatePoints="False" LineStyle="Solid" Color="White" StrokeThickness="2"/>
-                <oxy:LineSeries Name="ScatterSeries" Title="Learn points" RenderInLegend="False" CanTrackerInterpolatePoints="False" LineStyle="None" MarkerFill="Yellow" MarkerSize="5" MarkerType="Circle"/>
-            </oxy:Plot.Series>
-            <oxy:Plot.Annotations>
-                <oxy:LineAnnotation Name="CurrentLineX" Type="Vertical" X="50" LineStyle="Dot" Color="Yellow" StrokeThickness="2" ToolTip="Current ambient light level"/>
-                <oxy:LineAnnotation Name="CurrentLineY" Type="Horizontal" Y="50" LineStyle="Dot" Color="Yellow" StrokeThickness="2" ToolTip="Current screen brightness level"/>
-                <oxy:TextAnnotation Name="InvalidText" Text="Invalid curvature" TextColor="{StaticResource WhiteTrans}" Background="{StaticResource RedTrans}" FontSize="14" FontWeight="Bold" TextHorizontalAlignment="Center" HorizontalAlignment="Center"/>
-            </oxy:Plot.Annotations>
-        </oxy:Plot>
+            </oxy:PlotView.Resources>
+        </oxy:PlotView>
         <Grid Grid.Row="1" HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
@@ -136,8 +123,8 @@ limitations under the License.
                 <Label HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="0,0,0,3" Width="75" ToolTip="Last sampled light level and screen brightness">
                     <Label.Content>
                         <TextBlock>
-                            <Run Text="{Binding ElementName=CurrentLineX, Path=X, StringFormat={}({0:F0}%\,}"/>
-                            <Run Text="{Binding ElementName=CurrentLineY, Path=Y, StringFormat={}{0:F0}%)}"/>
+                            <Run x:Name="CurrentXText" Text="(50%, "/>
+                            <Run x:Name="CurrentYText" Text="50%)"/>
                         </TextBlock>
                     </Label.Content>
                 </Label>
