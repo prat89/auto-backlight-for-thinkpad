@@ -20,7 +20,7 @@ limitations under the License.
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Auto_Backlight_for_ThinkPad"
-        xmlns:oxy="http://oxyplot.org/wpf"
+        xmlns:oxy="http://oxyplot.org/wpf/contrib"
         xmlns:x1="clr-namespace:System;assembly=mscorlib"
         Title="Calibration" Name="Window" SizeToContent="WidthAndHeight"
         ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen"
