@@ -37,7 +37,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             finally
             {
-                DiagnosticsLog.Info("Phase22.1 startup: WMI service discovery elapsed=" +
+                DiagnosticsLog.Info("Phase25C startup: SCM service discovery elapsed=" +
                     phase221Clock.ElapsedMilliseconds + "ms");
             }
             DiagnosticsLog.Info("Backlight backend selection: trying IBMPmDrv");

@@ -284,12 +284,28 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
                     yield return dc;
             }
         }
+        // Phase 25E.3: synchronous startup enumeration only.
+        private bool _phase25E3StartupEnumeration;
+
+        private static string _Phase25E3Ms(long ticks)
+        {
+            return (ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency)
+                .ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         /// <summary>
         /// Rebuild the <see cref="EnumeratedDevices"/> list by querying for currently attached hardware.
         /// </summary>
         /// <returns>List of available devices, same as <see cref="EnumeratedDevices"/></returns>
         public IEnumerable<Device> EnumerateDevices()
         {
+            bool phase25E3 = _phase25E3StartupEnumeration;
+            long phase25E3Start = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            long phase25E3ListCountTicks = 0, phase25E3ListDataTicks = 0;
+            long phase25E3AddTicks = 0, phase25E3AddMaxTicks = 0;
+            int phase25E3Reported = 0, phase25E3Attempted = 0, phase25E3Failures = 0;
+            try
+            {
             // Remove devices
             // Snapshot handles: _EnumerateRemove mutates the dictionary.
             foreach (IntPtr hDevice in _devices.Keys.ToArray())
@@ -297,43 +313,83 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
 
             // Populate list of current devices
             uint numDevices = 0;
+            long phase25E3Call = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             if (0 > GetRawInputDeviceList(null, ref numDevices, (uint)(Marshal.SizeOf(typeof(RAWINPUTDEVICELIST)))))
                 throw new Exception("Bad return value from Win32 function");
+            if (phase25E3) phase25E3ListCountTicks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3Call;
+            if (phase25E3) phase25E3Reported = (int)numDevices;
             if (numDevices <= 0) return EnumeratedDevices;
             var ridList = new RAWINPUTDEVICELIST[numDevices];
+            phase25E3Call = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             if (0 >= GetRawInputDeviceList(ridList, ref numDevices, (uint)(Marshal.SizeOf(typeof(RAWINPUTDEVICELIST)))))
                 throw new Exception("Bad return value from Win32 function");
+            if (phase25E3) phase25E3ListDataTicks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3Call;
 
             // Add devices, looping through each struct in the array
             foreach (RAWINPUTDEVICELIST rid in ridList)
             {
                 if (rid.dwType >= 0 && rid.dwType <= RIM_TYPEMAX && rid.hDevice != null)
                 {
+                    long phase25E3AddStart = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    if (phase25E3) phase25E3Attempted++;
                     try { _EnumerateAdd(rid.hDevice); }
                     catch (Exception ex)
                     {
+                        if (phase25E3) phase25E3Failures++;
                         Auto_Backlight_for_ThinkPad.DiagnosticsLog.Error(
                             "Raw Input enumeration skipped device=" + rid.hDevice, ex);
+                    }
+                    finally
+                    {
+                        if (phase25E3)
+                        {
+                            long ticks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3AddStart;
+                            phase25E3AddTicks += ticks;
+                            if (ticks > phase25E3AddMaxTicks) phase25E3AddMaxTicks = ticks;
+                        }
                     }
                 }
             }
             return EnumeratedDevices;
+            }
+            finally
+            {
+                if (phase25E3)
+                {
+                    long totalTicks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3Start;
+                    Auto_Backlight_for_ThinkPad.DiagnosticsLog.Info(
+                        "Phase25E.3 startup: RawInput enumeration elapsed=" + _Phase25E3Ms(totalTicks) +
+                        "ms; listCount=" + _Phase25E3Ms(phase25E3ListCountTicks) +
+                        "ms; listData=" + _Phase25E3Ms(phase25E3ListDataTicks) +
+                        "ms; devicesReported=" + phase25E3Reported +
+                        "; devicesAttempted=" + phase25E3Attempted +
+                        "; enumerateAddTotal=" + _Phase25E3Ms(phase25E3AddTicks) +
+                        "ms; enumerateAddMax=" + _Phase25E3Ms(phase25E3AddMaxTicks) +
+                        "ms; enumerateAddFailures=" + phase25E3Failures);
+                }
+            }
         }
         /// <summary>
         /// Initialize window access. Automatically run <see cref="EnumerateDevices"/> to build internal devices list.
         /// </summary>
         public RawInput() : base()
         {
+            long phase25E3ConstructorStart = System.Diagnostics.Stopwatch.GetTimestamp();
             _nullDevices[Device.DeviceType.Mouse] = new Device(Device.DeviceType.Mouse, "", null);
             _nullDevices[Device.DeviceType.Keyboard] = new Device(Device.DeviceType.Keyboard, "", null);
             _nullDevices[Device.DeviceType.Hid] = new Device(Device.DeviceType.Hid, "", null);
-            EnumerateDevices();
+            _phase25E3StartupEnumeration = true;
+            try { EnumerateDevices(); }
+            finally { _phase25E3StartupEnumeration = false; }
 
             Initialized += (sender, e) =>
             {
                 _hwnd = new WindowInteropHelper(Window.GetWindow(this)).EnsureHandle();
                 HwndSource.FromHwnd(_hwnd).AddHook(new HwndSourceHook(_WndProc));
             };
+            Auto_Backlight_for_ThinkPad.DiagnosticsLog.Info(
+                "Phase25E.3 startup: RawInput constructor elapsed=" +
+                _Phase25E3Ms(System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3ConstructorStart) + "ms");
         }
 
         // WndProc special message handling
