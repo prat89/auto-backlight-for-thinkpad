@@ -93,19 +93,27 @@ namespace Auto_Backlight_for_ThinkPad
                 _vdev.PlayingFinished += (sender, e) => _finished.Set();
                 _vdev.NewFrame += (sender, e) =>
                 {
-                    int o_exp = -3;
-                    CameraControlFlags o_flag = CameraControlFlags.Auto;
                     if (_cnt == 0)
                     {
-                        // 1st frame, camera is open and working. Change settings to fixed constants.
-                        _vdev.GetCameraProperty(CameraControlProperty.Exposure, out o_exp, out o_flag);
-                        _vdev.SetCameraProperty(CameraControlProperty.Exposure, -3, CameraControlFlags.Manual);
+                        // If a previous restore failed, retry before saving new settings.
+                        _RestoreExposure();
+                        if (!_exposureModified)
+                        {
+                            int originalExposure;
+                            CameraControlFlags originalFlags;
+                            if (_vdev.GetCameraProperty(CameraControlProperty.Exposure, out originalExposure, out originalFlags))
+                            {
+                                _originalExposure = originalExposure;
+                                _originalExposureFlags = originalFlags;
+                                _exposureModified = _vdev.SetCameraProperty(CameraControlProperty.Exposure, -3, CameraControlFlags.Manual);
+                            }
+                        }
                     }
                     if (_cnt == 4)
                     {
                         // 5th frame, keep this frame. Revert camera settings. Signal to stop querying for frames.
                         _img = e.Frame.Clone(new System.Drawing.Rectangle(0, 0, e.Frame.Width, e.Frame.Height), System.Drawing.Imaging.PixelFormat.DontCare);
-                        _vdev.SetCameraProperty(CameraControlProperty.Exposure, o_exp, o_flag);
+                        _RestoreExposure();
                         _vdev.SignalToStop();
                     }
                     _cnt++;
@@ -127,6 +135,8 @@ namespace Auto_Backlight_for_ThinkPad
                         _vdev.Start();
                         if (!_finished.WaitOne(TimeSpan.FromSeconds(3)))
                         {
+                            // Best-effort restoration while the camera is still running.
+                            _RestoreExposure();
                             _vdev.SignalToStop();
                             _vdev.WaitForStop();
                         }
@@ -143,9 +153,26 @@ namespace Auto_Backlight_for_ThinkPad
                     return ret;
                 });
             }
+            // Restore camera exposure also if capture stopped before the fifth frame.
+            private void _RestoreExposure()
+            {
+                if (!_exposureModified) return;
+                try
+                {
+                    if (_vdev.SetCameraProperty(CameraControlProperty.Exposure, _originalExposure, _originalExposureFlags))
+                        _exposureModified = false;
+                    else
+                        DiagnosticsLog.Info("Webcam exposure restoration was rejected; will retry if possible");
+                }
+                catch (Exception ex)
+                {
+                    DiagnosticsLog.Error("Unable to restore original webcam exposure", ex);
+                }
+            }
             // Reset internal vars to receive next batch
             private void _ResetVars()
             {
+                _RestoreExposure();
                 _cnt = 0;
                 _img?.Dispose();
                 _img = null;
@@ -156,6 +183,9 @@ namespace Auto_Backlight_for_ThinkPad
             private EventWaitHandle _finished;
             private System.Drawing.Bitmap _img;
             private int _cnt;
+            private int _originalExposure;
+            private CameraControlFlags _originalExposureFlags;
+            private bool _exposureModified;
         }
         private Cam _cam = new Cam();
     }
