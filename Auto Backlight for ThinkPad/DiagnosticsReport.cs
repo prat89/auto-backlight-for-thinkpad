@@ -31,7 +31,7 @@ namespace Auto_Backlight_for_ThinkPad
                 sb.AppendLine("Keyboard brightness maximum reported by driver: " +
                     (maximumKeyboardLevel.HasValue ? maximumKeyboardLevel.Value.ToString() : "unavailable"));
                 sb.AppendLine("Keyboard brightness control backend: " +
-                    (keyboardAvailable ? "IBMPMDRV" : "unavailable"));
+                    (keyboardAvailable ? KeyboardBacklightBackendFactory.ActiveBackendName : "unavailable"));
                 // Read-only capability interpretation. Does not modify backlight hardware.
                 if (!maximumKeyboardLevel.HasValue)
                     sb.AppendLine("Keyboard backlight capabilities: unavailable (driver/controller not initialized)");
@@ -70,9 +70,9 @@ namespace Auto_Backlight_for_ThinkPad
                 AppendExtendedDiagnostics(sb);
                 // PHASE20A_READ_ONLY_DRIVER_PROBE: report raw GET only when controller initialized.
                 sb.AppendLine("--- Keyboard driver probe (read-only) ---");
-                sb.AppendLine("Backend: " + (keyboardAvailable ? "IBMPmDrv" : "unavailable"));
+                sb.AppendLine("Backend: " + (keyboardAvailable ? KeyboardBacklightBackendFactory.ActiveBackendName : "unavailable"));
                 if (keyboardAvailable)
-                    sb.AppendLine(Backlight.ReadOnlyDriverProbe());
+                    sb.AppendLine(KeyboardBacklightBackendFactory.ReadOnlySelectedBackendProbe());
                 else
                 {
                     sb.AppendLine("GET operation: skipped (keyboard controller unavailable)");

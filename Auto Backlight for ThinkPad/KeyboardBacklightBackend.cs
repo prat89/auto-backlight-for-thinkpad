@@ -22,10 +22,19 @@ namespace Auto_Backlight_for_ThinkPad
         void Write(int level);
     }
 
-    // Only IBMPmDrv is supported in v5.0. Add other backend implementations
-    // and probe them here in future releases; do not probe by writing levels.
+    // IBMPmDrv is preferred; EnergyDrv v1/v2 GET-only fallback is optional.
     public static class KeyboardBacklightBackendFactory
     {
+        // Current selection is set only after successful read-only backend probing.
+        internal static string ActiveBackendName { get; private set; } = "unavailable";
+        private static IKeyboardBacklightBackend _selectedBackend;
+
+        internal static string ReadOnlySelectedBackendProbe()
+        {
+            EnergyDrvBacklightBackend energy = _selectedBackend as EnergyDrvBacklightBackend;
+            if (energy != null) return energy.ReadOnlyDriverProbe();
+            return Backlight.ReadOnlyDriverProbe();
+        }
         public static IKeyboardBacklightBackend Create()
         {
             // Diagnostic probe: Windows service state only; no IOCTL or write.
@@ -41,20 +50,40 @@ namespace Auto_Backlight_for_ThinkPad
                     phase221Clock.ElapsedMilliseconds + "ms");
             }
             DiagnosticsLog.Info("Backlight backend selection: trying IBMPmDrv");
-            // Constructor performs the same read-only hardware initialization
-            // as the v4.3 controller. Errors propagate to existing isolation.
+            // IBMPmDrv construction retains the proven ThinkPad GET-only probe.
             phase221Clock.Restart();
             IKeyboardBacklightBackend backend;
             try
             {
-                backend = new Backlight();
+                // Preserve the existing, hardware-tested ThinkPad path first.
+                // Only if it fails do a read-only EnergyDrv GET to choose v1 or v2.
+                try
+                {
+                    backend = new Backlight();
+                    ActiveBackendName = "IBMPmDrv";
+                }
+                catch (Exception ibmError)
+                {
+                    DiagnosticsLog.Error("IBMPmDrv initialization failed; testing EnergyDrv GET-only fallback", ibmError);
+                    try
+                    {
+                        backend = new EnergyDrvBacklightBackend();
+                        ActiveBackendName = "EnergyDrv";
+                    }
+                    catch (Exception energyError)
+                    {
+                        DiagnosticsLog.Error("EnergyDrv GET-only fallback rejected", energyError);
+                        throw new InvalidOperationException("No supported Lenovo keyboard backlight backend found", energyError);
+                    }
+                }
             }
             finally
             {
                 DiagnosticsLog.Info("Phase22.1 startup: IBMPmDrv backend construction elapsed=" +
                     phase221Clock.ElapsedMilliseconds + "ms");
             }
-            DiagnosticsLog.Info("Backlight backend selected: IBMPmDrv; max level=" + backend.Limit);
+            DiagnosticsLog.Info("Backlight backend selected: " + ActiveBackendName + "; max level=" + backend.Limit);
+            _selectedBackend = backend;
             return backend;
         }
     }
