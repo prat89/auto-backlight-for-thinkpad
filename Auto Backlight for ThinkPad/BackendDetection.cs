@@ -52,8 +52,9 @@ namespace Auto_Backlight_for_ThinkPad
                 result.Add("Backend service detection: unavailable (SCM enumeration failed)");
                 DiagnosticsLog.Error("Read-only SCM backend service detection failed", ex);
             }
-            result.Add("EnergyDrv protocol: known v1/v2 GET signatures; hardware SET not verified on this device");
-            result.Add("Active backend policy: IBMPmDrv preferred; EnergyDrv GET-only detection fallback (Phase26)");
+            result.Add("EnergyDrv protocols: legacy v1/v2 GET(0x32); guarded capability GET(0x01) + status GET(0x22)");
+            result.Add("EnergyDrv guarded requirements: capabilities=0x00000005; hardware control not tested on physical EnergyDrv laptop");
+            result.Add("Active backend policy: IBMPmDrv first; EnergyDrv fallback only if IBMPmDrv initialization fails; detection uses GET only (no SET)");
             return result.ToArray();
         }
 
