@@ -28,6 +28,12 @@ One community user also reported the app working on a **ThinkPad P14s Gen 5 AMD*
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troubleshooting.
 
+## Lenovo compatibility scanner (experimental)
+
+Owners of ThinkBook, IdeaPad, Yoga, Legion, LOQ, and other Lenovo laptops can help research hardware compatibility using the optional [Lenovo Compatibility Scanner](tools/LenovoCompatibilityScanner/README.md). The standalone PowerShell script reads **metadata only** (Windows device model, optional BIOS version, relevant driver services, and WMI class/method declarations). It does not control the backlight, invoke firmware methods, open driver handles, install anything, or upload results.
+
+A successful scan **does not confirm hardware support**. Please review and redact the local JSON and TXT reports before voluntarily sharing them in a [compatibility report issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues/new/choose); the model, BIOS version and firmware metadata can be identifying.
+
 ## Installation
 
 1. Visit [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) and select a release from **this fork** (not upstream).
