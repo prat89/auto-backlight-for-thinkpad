@@ -216,6 +216,8 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Auto Backlight for Thinkpad.ico" />
+    <Resource Include="Resources\TrayIcons\TrayIcon.PngConcept.ForLightTaskbar.ico" />
+    <Resource Include="Resources\TrayIcons\TrayIcon.PngConcept.ForDarkTaskbar.ico" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
