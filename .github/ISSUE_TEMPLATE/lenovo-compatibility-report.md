@@ -13,7 +13,7 @@ title: "[Compatibility] Lenovo model (replace this text)"
 ## Scanner result
 
 1. Download `tools/LenovoCompatibilityScanner/Scan-LenovoCompatibility.ps1` from this repository.
-2. Read the [scanner instructions](../../tools/LenovoCompatibilityScanner/README.md).
+2. Read the [scanner instructions](https://github.com/prat89/auto-backlight-for-thinkpad/blob/master/tools/LenovoCompatibilityScanner/README.md).
 3. Run the script in a **normal**, non-elevated Windows PowerShell 5.1 session.
 4. Read **both** `LenovoCompatibilityReport.json` and `LenovoCompatibilitySummary.txt` before posting.
 5. Paste a **sanitized summary** below; attach the JSON only if you explicitly agree to share its contents.
