@@ -66,13 +66,24 @@ limitations under the License.
             </Setter>
         </Style>
 
+        <!-- PHASE30A_TRAY_THEME: menu-only palette, updated from Windows app theme. -->
+        <SolidColorBrush x:Key="P30A_Surface" Color="#FFFAFBFD"/>
+        <SolidColorBrush x:Key="P30A_Text" Color="#FF202632"/>
+        <SolidColorBrush x:Key="P30A_Border" Color="#FFD5DCE5"/>
+        <SolidColorBrush x:Key="P30A_Separator" Color="#FFDDE3EA"/>
+        <SolidColorBrush x:Key="P30A_Hover" Color="#FFE9EDF3"/>
+        <SolidColorBrush x:Key="P30A_Icon" Color="#FF647182"/>
+        <SolidColorBrush x:Key="P30A_Check" Color="#FF596575"/>
+        <SolidColorBrush x:Key="P30A_InputSurface" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="P30A_InputBorder" Color="#FFB8C2D0"/>
+
         <!-- PHASE16_2_REFINEMENT; PHASE16_1_MODERN_ITEMS: complete compact menu templates; WPF owns MenuItem interactions. -->
         <Style x:Key="P161_MenuSurface" TargetType="{x:Type ContextMenu}">
-            <Setter Property="Background" Value="#FFFAFBFD"/>
-            <Setter Property="Foreground" Value="#FF202632"/>
-            <Setter Property="BorderBrush" Value="#FFD5DCE5"/>
+            <Setter Property="Background" Value="{DynamicResource P30A_Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource P30A_Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Padding" Value="2,4"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ContextMenu}">
@@ -94,7 +105,7 @@ limitations under the License.
         <Style x:Key="P161_MenuSeparator" TargetType="{x:Type Separator}">
             <Setter Property="Margin" Value="34,3,7,3"/>
             <Setter Property="Height" Value="1"/>
-            <Setter Property="Background" Value="#FFDDE3EA"/>
+            <Setter Property="Background" Value="{DynamicResource P30A_Separator}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Separator}">
@@ -112,7 +123,7 @@ limitations under the License.
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Path x:Name="CheckGlyph" Grid.Column="0" Visibility="Collapsed"
-                          Data="M 4,9 L 8,13 L 16,5" Stroke="#FF596575" StrokeThickness="1.55"
+                          Data="M 4,9 L 8,13 L 16,5" Stroke="{DynamicResource P30A_Check}" StrokeThickness="1.55"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Width="12" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <ContentPresenter x:Name="IconSlot" Grid.Column="0" ContentSource="Icon" Width="15" Height="15"
@@ -127,7 +138,7 @@ limitations under the License.
                     <Setter TargetName="IconSlot" Property="Visibility" Value="Collapsed"/>
                 </Trigger>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter TargetName="ItemBounds" Property="Background" Value="#FFE9EDF3"/>
+                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource P30A_Hover}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.47"/>
@@ -149,15 +160,15 @@ limitations under the License.
                         <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
                                           Margin="2,1,9,1" VerticalAlignment="Center"/>
                         <Path Grid.Column="2" Width="7" Height="11" Data="M 1,1 L 6,5.5 L 1,10"
-                              Stroke="#FF647182" StrokeThickness="1.5" StrokeStartLineCap="Round"
+                              Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.5" StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Grid>
                 </Border>
                 <Popup x:Name="PART_Popup" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
-                       Placement="Right" HorizontalOffset="-2" AllowsTransparency="True"
+                       Placement="Right" HorizontalOffset="-2" VerticalOffset="-5" AllowsTransparency="True"
                        Focusable="False" PopupAnimation="Fade">
-                    <Border Background="#FFFAFBFD" BorderBrush="#FFD5DCE5" BorderThickness="1"
-                            CornerRadius="8" Padding="5" SnapsToDevicePixels="True">
+                    <Border Background="{DynamicResource P30A_Surface}" BorderBrush="{DynamicResource P30A_Border}" BorderThickness="1"
+                            CornerRadius="8" Padding="2,4" SnapsToDevicePixels="True">
                         <Border.Effect>
                             <DropShadowEffect Color="#FF000000" Opacity="0.17" BlurRadius="12" ShadowDepth="3"/>
                         </Border.Effect>
@@ -170,10 +181,10 @@ limitations under the License.
             </Grid>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter TargetName="ItemBounds" Property="Background" Value="#FFE9EDF3"/>
+                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource P30A_Hover}"/>
                 </Trigger>
                 <Trigger Property="IsSubmenuOpen" Value="True">
-                    <Setter TargetName="ItemBounds" Property="Background" Value="#FFE9EDF3"/>
+                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource P30A_Hover}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.47"/>
@@ -181,7 +192,7 @@ limitations under the License.
             </ControlTemplate.Triggers>
         </ControlTemplate>
         <Style x:Key="P161_AllMenuItems" TargetType="{x:Type MenuItem}">
-            <Setter Property="Foreground" Value="#FF202632"/>
+            <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
             <Setter Property="Template" Value="{StaticResource P161_LeafTemplate}"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Style.Triggers>
@@ -193,14 +204,130 @@ limitations under the License.
                 </Trigger>
             </Style.Triggers>
         </Style>
-<ContextMenu x:Key="SysTrayMenu" Padding="0" Style="{StaticResource P161_MenuSurface}">
+        <!-- PHASE30A1_COMBOBOX: scoped to the tray ContextMenu; keeps editable/non-editable support. -->
+        <ControlTemplate x:Key="P30A1_EditorTextTemplate" TargetType="{x:Type TextBox}">
+            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+        </ControlTemplate>
+        <ControlTemplate x:Key="P30A1_ComboToggleTemplate" TargetType="{x:Type ToggleButton}">
+            <Grid Background="Transparent" SnapsToDevicePixels="True">
+                <Border x:Name="ArrowBackground" Width="21" Background="Transparent"
+                        HorizontalAlignment="Right" CornerRadius="0,3,3,0">
+                    <Path Data="M 5,8 L 9,12 L 13,8" Width="10" Height="8"
+                          Stroke="{DynamicResource P30A_Text}" StrokeThickness="1.5"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"/>
+                </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="ArrowBackground" Property="Background" Value="{DynamicResource P30A_InputBorder}"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <ControlTemplate x:Key="P30A1_ComboItemTemplate" TargetType="{x:Type ComboBoxItem}">
+            <Border x:Name="ItemSurface" Background="{TemplateBinding Background}"
+                    Padding="{TemplateBinding Padding}" CornerRadius="3" SnapsToDevicePixels="True">
+                <ContentPresenter ContentSource="Content" RecognizesAccessKey="True"
+                                  TextElement.Foreground="{TemplateBinding Foreground}"
+                                  VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                </Trigger>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter TargetName="ItemSurface" Property="Opacity" Value="0.6"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <ControlTemplate x:Key="P30A1_ComboBoxTemplate" TargetType="{x:Type ComboBox}">
+            <Grid x:Name="ComboRoot" SnapsToDevicePixels="True">
+                <Border x:Name="ComboBorder" Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3"/>
+                <!-- Full-width toggle preserves mouse opening on non-editable combos. -->
+                <ToggleButton x:Name="DropDownToggle" Focusable="False" ClickMode="Press"
+                              Template="{StaticResource P30A1_ComboToggleTemplate}"
+                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False"
+                                  Content="{TemplateBinding SelectionBoxItem}"
+                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                  TextElement.Foreground="{TemplateBinding Foreground}"
+                                  Margin="6,0,24,0" VerticalAlignment="Center"/>
+                <TextBox x:Name="PART_EditableTextBox" Style="{x:Null}"
+                         Template="{StaticResource P30A1_EditorTextTemplate}"
+                         Foreground="{TemplateBinding Foreground}" CaretBrush="{DynamicResource P30A_Text}"
+                         Background="Transparent" BorderThickness="0" IsReadOnly="{TemplateBinding IsReadOnly}"
+                         Focusable="True" Visibility="Hidden" Margin="6,1,24,1"
+                         HorizontalContentAlignment="Left" VerticalContentAlignment="Center"/>
+                <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True"
+                       Focusable="False" PopupAnimation="Fade"
+                       IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                    <Grid x:Name="DropDown" MinWidth="{TemplateBinding ActualWidth}"
+                          MaxHeight="{TemplateBinding MaxDropDownHeight}" SnapsToDevicePixels="True">
+                        <Border Background="{DynamicResource P30A_InputSurface}"
+                                BorderBrush="{DynamicResource P30A_InputBorder}"
+                                BorderThickness="1" CornerRadius="4" Padding="3">
+                            <ScrollViewer x:Name="DropDownScrollViewer" CanContentScroll="True"
+                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsEditable" Value="True">
+                    <Setter Property="IsTabStop" Value="False"/>
+                    <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden"/>
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource P30A_Text}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter TargetName="ComboRoot" Property="Opacity" Value="0.8"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+<ContextMenu x:Key="SysTrayMenu" Style="{StaticResource P161_MenuSurface}" Opened="_Phase30ATrayMenuOpened">
             <ContextMenu.Resources>
                 <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource P161_AllMenuItems}"/>
                 <Style TargetType="{x:Type Separator}" BasedOn="{StaticResource P161_MenuSeparator}"/>
+                <!-- Phase 30A: adapt nested editor controls without replacing their native templates. -->
+                <Style TargetType="{x:Type Label}">
+                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+                </Style>
+                <!-- Phase 30A.1: render the closed field, editable text and popup using one palette. -->
+                <Style TargetType="{x:Type ComboBox}">
+                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+                    <Setter Property="Background" Value="{DynamicResource P30A_InputSurface}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource P30A_InputBorder}"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Template" Value="{StaticResource P30A1_ComboBoxTemplate}"/>
+                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                </Style>
+                <Style TargetType="{x:Type ComboBoxItem}">
+                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Padding" Value="6,3"/>
+                    <Setter Property="Template" Value="{StaticResource P30A1_ComboItemTemplate}"/>
+                </Style>
+                <Style TargetType="{x:Type TextBox}">
+                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+                    <Setter Property="Background" Value="{DynamicResource P30A_InputSurface}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource P30A_InputBorder}"/>
+                    <Setter Property="CaretBrush" Value="{DynamicResource P30A_Text}"/>
+                </Style>
             </ContextMenu.Resources>
             <MenuItem Header="Settings">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,2 L 12,2 L 13,5 L 15,6 L 18,5 L 20,8 L 18,10 L 18,13 L 20,15 L 18,18 L 15,17 L 13,18 L 12,21 L 9,21 L 8,18 L 6,17 L 3,18 L 1,15 L 3,13 L 3,10 L 1,8 L 3,5 L 6,6 L 8,5 Z"/>
                 </MenuItem.Icon>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Keyboard_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="KeyboardMenu_Init"
@@ -311,23 +438,23 @@ limitations under the License.
             <Separator/>
             <MenuItem Header="Diagnostics..." Click="_ExportDiagnosticReport">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 2,12 L 6,12 L 9,5 L 13,19 L 16,12 L 22,12"/>
                 </MenuItem.Icon></MenuItem>
             <!-- PHASE18_EXPORT_APPLICATION_LOG: export a read-only copy of application.log -->
             <MenuItem Header="Export log..." Click="_ExportApplicationLog">
                 <MenuItem.Icon>
-                    <Path Data="M 6,3 L 15,3 L 19,7 L 19,21 L 6,21 Z M 15,3 L 15,7 L 19,7 M 9,12 L 16,12 M 13,9 L 16,12 L 13,15" Stroke="#FF647182" StrokeThickness="1.6" Fill="Transparent" Width="15" Height="15" Stretch="Uniform"/>
+                    <Path Data="M 6,3 L 15,3 L 19,7 L 19,21 L 6,21 Z M 15,3 L 15,7 L 19,7 M 9,12 L 16,12 M 13,9 L 16,12 L 13,15" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6" Fill="Transparent" Width="15" Height="15" Stretch="Uniform"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="About" Click="_ShowAbout">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 12,3 A 9,9 0 1 1 11.99,3 Z M 12,10 L 12,16 M 12,7 L 12,7"/>
                 </MenuItem.Icon></MenuItem>
             <MenuItem Header="Exit" Click="_ExitApplication">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="#FF647182" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,3 L 4,3 L 4,21 L 10,21 M 13,7 L 18,12 L 13,17 M 9,12 L 18,12"/>
                 </MenuItem.Icon></MenuItem>
         </ContextMenu>

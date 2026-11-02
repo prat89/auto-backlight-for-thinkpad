@@ -68,6 +68,7 @@ namespace Auto_Backlight_for_ThinkPad
             try
             {
                 InitializeComponent();
+                _Phase30ARefreshTrayTheme(); // Initial palette before tray resources are created.
                 DiagnosticsLog.Info("Startup checkpoint: InitializeComponent complete");
             _Phase22Checkpoint("InitializeComponent");
             }
@@ -169,6 +170,59 @@ namespace Auto_Backlight_for_ThinkPad
         private AutoKeyboardBacklightController _autoKeyboard;
         private AutoScreenBrightnessController _autoScreen;
         private object _lastPoint;
+
+        // PHASE30A_TRAY_THEME: visual-only; no settings serialization or driver operations.
+        private bool? _phase30aLastDarkTheme;
+        private const string Phase30AWindowsThemePath =
+            @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+        private void _Phase30ATrayMenuOpened(object sender, RoutedEventArgs e)
+        {
+            // Re-read on every menu open, so switching Windows themes needs no app restart.
+            _Phase30ARefreshTrayTheme();
+        }
+
+        private void _Phase30ARefreshTrayTheme()
+        {
+            bool dark = false; // Preserve the existing light menu if Windows has no preference.
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(Phase30AWindowsThemePath, false))
+                {
+                    object value = key == null ? null : key.GetValue("AppsUseLightTheme", null);
+                    dark = value is int && (int)value == 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Info("Tray theme: Windows preference unavailable (using light); " + ex.GetType().Name);
+            }
+
+            if (_phase30aLastDarkTheme.HasValue && _phase30aLastDarkTheme.Value == dark)
+                return;
+
+            // Only menu resources are changed; no WPF control templates or handlers replaced.
+            _Phase30ASetBrush("P30A_Surface", dark ? "#FF22252B" : "#FFFAFBFD");
+            _Phase30ASetBrush("P30A_Text", dark ? "#FFF3F4F6" : "#FF202632");
+            _Phase30ASetBrush("P30A_Border", dark ? "#FF454A52" : "#FFD5DCE5");
+            _Phase30ASetBrush("P30A_Separator", dark ? "#FF414751" : "#FFDDE3EA");
+            _Phase30ASetBrush("P30A_Hover", dark ? "#FF393F49" : "#FFE9EDF3");
+            _Phase30ASetBrush("P30A_Icon", dark ? "#FFAAB4C1" : "#FF647182");
+            _Phase30ASetBrush("P30A_Check", dark ? "#FFCCD5E2" : "#FF596575");
+            _Phase30ASetBrush("P30A_InputSurface", dark ? "#FF303641" : "#FFFFFFFF");
+            _Phase30ASetBrush("P30A_InputBorder", dark ? "#FF566271" : "#FFB8C2D0");
+            _phase30aLastDarkTheme = dark;
+            DiagnosticsLog.Info("Tray theme: applied " + (dark ? "dark" : "light") + " palette");
+        }
+
+        private void _Phase30ASetBrush(string key, string hex)
+        {
+            var color = (System.Windows.Media.Color)
+                System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            var brush = new System.Windows.Media.SolidColorBrush(color);
+            brush.Freeze();
+            Resources[key] = brush; // DynamicResource references update immediately.
+        }
 
         // Setup on app startup
         private void _Starting(object sender, StartupEventArgs e)
