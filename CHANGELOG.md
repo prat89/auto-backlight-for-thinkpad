@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.3.8 — 2 November 2026
+
+### WPF and plotting dependency maintenance (Phases 28B, 28C.3)
+- Updated `Hardcodet.NotifyIcon.Wpf` from 1.0.8 to 2.0.1, updating its embedded DLL reference and third-party notice. Tray menu behavior was validated locally in the rebuilt application.
+- Updated `OxyPlot.Core`, `OxyPlot.Wpf` and `OxyPlot.Wpf.Shared` from 2.0.0 to 2.2.0. Migrated Calibration from the incompatible `OxyPlot.Contrib.Wpf` control to native `PlotView`/`PlotModel`, removing Contrib and retaining chart point editing.
+- The interim OxyPlot 2.1.2 stage and unsuccessful mixed Contrib 2.1.2 / OxyPlot 2.2.0 experiment were development-only; v1.3.8 uses a consistent 2.2.0 runtime without Contrib.
+
+### Camera exposure and compatibility (Phase 28D)
+- Corrected restoration of saved webcam exposure settings for optional automatic screen brightness, including a best-effort restore on frame timeout.
+- Fixed MSI Error 1001 (`ReflectionTypeLoadException`) during installer type discovery: store the original camera control flags as an `int` rather than a field of type `Accord.Video.DirectShow.CameraControlFlags`. The original flags are converted back to the Accord enum when restoring exposure, avoiding premature assembly resolution during `InstallUtil` reflection. Accord.NET remains embedded in the EXE.
+- Retained Accord.NET 3.8.0 (six NuGet package entries) after an audit; no unverified replacement or camera framework upgrade.
+- No changes to keyboard-backlight backend selection, experimental EnergyDrv implementation, or user-facing inactivity controls.
+
+### Validation
+- Maintainer reports successful Release EXE build and local functional tests for tray, Calibration point interactions and camera-based brightness.
+- **Release acceptance passed on the developer-tested ThinkPad X1 Extreme Gen 2 (2 November 2026):** completed a direct MSI upgrade from installed v1.3.7 to v1.3.8 without Error 1001. The final MSI payload EXE matched the validated Release EXE (SHA-256 `45510B15D235E5FD352D5BBF38922FD3C83E7E24C51CC0877273829A3406ACF8`); `Assembly.GetTypes()` without a resolver loaded all 119 application types, including the installer class.
+- Maintainer confirmed normal application operation, keyboard backlight, camera-based screen-brightness response to changing light, camera exposure restoration, and startup after a Windows restart. This is a single-device upgrade and functional test, not comprehensive clean-install, uninstall or cross-model coverage.
+- EnergyDrv support remains experimental and not validated on physical EnergyDrv hardware.
+
 ## v1.3.7 — 1 November 2026
 
 ### Guarded experimental EnergyDrv protocol (Phase 27)
@@ -188,7 +207,7 @@ The `v4.x`/`v5.x` and `v6.0 Phase 1–8` names below refer to internal milestone
 
 Original project and credits: [pspatel321/auto-backlight-for-thinkpad](https://github.com/pspatel321/auto-backlight-for-thinkpad).
 
-## Outstanding validation and future work (after v1.3.7)
+## Outstanding validation and future work (after v1.3.8)
 
 - Continue investigating intermittent slow startup using the Phase 22/22.1 checkpoints; diagnostic instrumentation is not a performance fix.
 - Broader failure-mode and hardware regression coverage for driver errors, camera, power transitions and legacy settings variants.

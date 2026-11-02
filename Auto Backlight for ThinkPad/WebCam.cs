@@ -104,7 +104,7 @@ namespace Auto_Backlight_for_ThinkPad
                             if (_vdev.GetCameraProperty(CameraControlProperty.Exposure, out originalExposure, out originalFlags))
                             {
                                 _originalExposure = originalExposure;
-                                _originalExposureFlags = originalFlags;
+                                _originalExposureFlags = (int)(originalFlags);
                                 _exposureModified = _vdev.SetCameraProperty(CameraControlProperty.Exposure, -3, CameraControlFlags.Manual);
                             }
                         }
@@ -159,7 +159,7 @@ namespace Auto_Backlight_for_ThinkPad
                 if (!_exposureModified) return;
                 try
                 {
-                    if (_vdev.SetCameraProperty(CameraControlProperty.Exposure, _originalExposure, _originalExposureFlags))
+                    if (_vdev.SetCameraProperty(CameraControlProperty.Exposure, _originalExposure, (CameraControlFlags)_originalExposureFlags))
                         _exposureModified = false;
                     else
                         DiagnosticsLog.Info("Webcam exposure restoration was rejected; will retry if possible");
@@ -184,7 +184,7 @@ namespace Auto_Backlight_for_ThinkPad
             private System.Drawing.Bitmap _img;
             private int _cnt;
             private int _originalExposure;
-            private CameraControlFlags _originalExposureFlags;
+            private int _originalExposureFlags;
             private bool _exposureModified;
         }
         private Cam _cam = new Cam();

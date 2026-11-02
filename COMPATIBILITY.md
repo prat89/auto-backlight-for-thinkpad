@@ -1,6 +1,6 @@
 # Hardware compatibility
 
-## Currently implemented backends (v1.3.7)
+## Currently implemented backends (unchanged in v1.3.8)
 
 | Backend | Status | Notes |
 | --- | --- | --- |
@@ -15,7 +15,7 @@ The application does not bundle or install Lenovo drivers. **No EnergyDrv-equipp
 
 | Laptop | Machine type / model | OS | Driver | Levels | Verification |
 | --- | --- | --- | --- | --- | --- |
-| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested through v1.3.7: Release rebuild, direct v1.3.6 → v1.3.7 MSI upgrade, and normal IBMPmDrv lighting/input behavior; v1.3.6 MSI installation and backend; earlier v1.3.4 → v1.3.5 upgrade, internal/Bluetooth input, inactivity timeout, diagnostics, OSD and restart/autostart |
+| ThinkPad X1 Extreme Gen 2 | `20QVCTO1WW` | Windows 11 | `IBMPmDrv` running | Off / Low / High | Developer-tested through v1.3.8: direct v1.3.7 → v1.3.8 MSI upgrade, verified MSI EXE payload, keyboard lighting, optional camera brightness and exposure restoration, and restart/autostart; earlier v1.3.6 → v1.3.7 and v1.3.4 → v1.3.5 upgrades, input, diagnostics and OSD |
 
 ### Community-reported hardware (limited verification)
 
@@ -24,6 +24,14 @@ The application does not bundle or install Lenovo drivers. **No EnergyDrv-equipp
 | ThinkPad P14s Gen 5 AMD | One user reported the application working | Machine type, Windows build, Lenovo driver, tested brightness levels and power transitions |
 
 The developer-verified table remains limited to the X1 Extreme Gen 2. A community report is not equivalent to comprehensive hardware or MSI validation.
+
+## v1.3.8 dependency maintenance (Phase 28)
+
+- **Hardcodet.NotifyIcon.Wpf:** updated from 1.0.8 to 2.0.1; the maintainer tested opening the system-tray menu in the rebuilt EXE.
+- **OxyPlot:** Core, Wpf and Wpf.Shared updated from 2.0.0 to 2.2.0. Calibration now uses native `PlotView`/`PlotModel`; incompatible `OxyPlot.Contrib.Wpf` was removed. The maintainer tested opening Calibration and adding, moving and removing points.
+- **Accord.NET:** all six package entries remain at 3.8.0. A targeted webcam-exposure restoration fix was tested locally with the camera brightness option. Compatibility with other webcams/exposure drivers is not guaranteed.
+- **Hardware backends:** no changes to IBMPmDrv or experimental EnergyDrv. Verified model coverage remains unchanged.
+- **Final v1.3.8 acceptance (2 November 2026):** the developer successfully upgraded from installed v1.3.7 using the rebuilt v1.3.8 MSI. The executable extracted from that MSI matched the tested Release EXE (SHA-256 `45510B15D235E5FD352D5BBF38922FD3C83E7E24C51CC0877273829A3406ACF8`). `Assembly.GetTypes()` without a resolver loaded all 119 application types. Keyboard illumination, optional camera-driven screen brightness, exposure restoration, and startup after reboot were reported working. The installed EXE hash was not separately recorded for v1.3.8.
 
 ## For a new model / EnergyDrv testers
 
@@ -74,6 +82,12 @@ The developer-verified table remains limited to the X1 Extreme Gen 2. A communit
 - **Not yet validated:** physical EnergyDrv devices or EnergyDrv Fn+Space/brightness behavior. The v1.3.6 → v1.3.7 in-place MSI upgrade was successful on one ThinkPad; this is not an exhaustive cross-device upgrade matrix.
 - No Lenovo Vantage runtime dependency, Lenovo Lighting WMI backend or RGB control was added.
 
+## v1.3.8 MSI regression and camera validation (2 November 2026)
+
+- The pre-fix v1.3.8 EXE failed `Assembly.GetTypes()` with `ReflectionTypeLoadException` because `WebCam.Cam` contained a field typed as `Accord.Video.DirectShow.CameraControlFlags`. The class is inspected by Windows Installer before the application entry point can register its embedded-DLL resolver.
+- The fixed EXE stores the saved flag value as `int`, converts it to the enum only when restoring camera exposure, and loads all 119 application types without an assembly resolver.
+- A direct v1.3.7 → v1.3.8 MSI upgrade succeeded on the verified ThinkPad, with working keyboard backlight, camera-driven brightness, exposure restoration and Windows restart startup. Testing does not establish compatibility with all webcam exposure drivers, EnergyDrv hardware or every legacy settings combination.
+
 ## Known limits
 
 - **EnergyDrv is experimental.** Only recognized legacy v1/v2 replies or the exact guarded three-state capability/status replies are supported. Unknown/Auto responses are rejected without exploratory writes. Other EnergyDrv variants, Lenovo Lighting WMI protocols and RGB control are not claimed.
@@ -81,7 +95,7 @@ The developer-verified table remains limited to the X1 Extreme Gen 2. A communit
 - Startup after Windows logon may still take longer than a normal manual launch; the startup task has **no intentional delay**.
 - Brightness levels depend on the selected backend; Off/Low/High for EnergyDrv are not yet physically verified.
 - Camera-based screen brightness is optional, disabled by default for new installations, and separate from keyboard control.
-- Historical MSI tests (upgrades to earlier releases) do not establish that every v1.3.7 upgrade scenario has been verified.
+- The successful v1.3.7 → v1.3.8 MSI upgrade validates the tested machine and path only; clean installs, uninstall/reinstall and other upgrade paths were not comprehensively retested for v1.3.8.
 
 ## Additional validation notes (27 October 2026)
 

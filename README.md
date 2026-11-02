@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns a compatible Lenovo laptop keyboard backlight on when you use the computer, and off after an adjustable period of inactivity.
 
-**Current source version: v1.3.7.** This version adds a capability-gated experimental EnergyDrv variant alongside the v1/v2 variants introduced in v1.3.6. IBMPmDrv remains the preferred backend. The new EnergyDrv protocol was tested without hardware access; **no EnergyDrv laptop has been physically verified**. The maintainer confirmed a successful Release rebuild and direct MSI upgrade from installed v1.3.6 to v1.3.7, followed by normal keyboard, mouse and touchpad-triggered backlight behavior using IBMPmDrv. See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for published installers.
+**Latest stable source version: v1.3.8 (validated 2 November 2026).** This maintenance release updates the WPF tray dependency to Hardcodet.NotifyIcon.Wpf 2.0.1, migrates Calibration to native OxyPlot 2.2.0 `PlotView`/`PlotModel` (removing OxyPlot.Contrib.Wpf), improves webcam exposure restoration, and fixes MSI Error 1001 caused by early Accord.NET type resolution during installation. Accord.NET remains at 3.8.0; the preferred IBMPmDrv and experimental EnergyDrv backends are unchanged. The developer successfully upgraded from v1.3.7 using the final v1.3.8 MSI and verified keyboard illumination, camera brightness, exposure restoration and startup after a Windows restart. See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for **published** installers.
 
 ## Features
 
@@ -13,11 +13,11 @@ A lightweight Windows system-tray application that automatically turns a compati
 - Configurable inactivity timeout and **Off / Low / High** backlight states on the verified three-level backend (Off = 0, Low = 1, High = 2). The **High** label replaces the earlier **Full** label without changing the underlying hardware level.
 - Cooperates with the laptop's **Fn+Space** shortcut; manual level changes may affect subsequent automatic brightness.
 - Improved handling of power/display and lid close/open notifications, with explicit pause/resume and Raw Input capture recovery. Intermittent scenarios are still under observation.
-- Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default on new installations**. Existing saved preferences are respected; enabling it may briefly activate the camera.
+- Optional camera-based automatic **screen brightness** control, independent from keyboard lighting and **off by default for new configurations**. v1.3.8 fixes restoring saved camera exposure settings, including the timeout path. The maintainer tested the camera feature locally; exposure behavior can differ with other drivers. Accord.NET 3.8.0 remains unchanged.
 - **Diagnostics...** in the tray menu exports hardware and backend information; a hardware report is also written automatically at startup. v1.3.5 added read-only Raw Input counters and startup checkpoints; v1.3.6 adds startup-only Raw Input enumeration timings, SCM driver-service discovery, and reporting for the actually selected backend. These diagnostics do not record keystroke contents or Raw Input device paths; review and redact exported files before sharing.
 - **Disable on-screen display** supports compatible Lenovo OSD installations where `HKCU\Software\Lenovo\OnScreenDisplay` exists even when `Enable` is missing. The app does not create a missing `Enable` on startup; a user-initiated toggle can create the DWORD and set `0` (OSD disabled) or `1` (OSD enabled). Its preference is stored separately from legacy settings; behavior depends on the installed Lenovo OSD software.
-- **Modern tray menu** (v1.3.0) replaces the legacy menu visuals with native WPF templates, rounded corners, subtle highlighting, icons and compact checkmarks. No additional UI library is required.
-- **Driver backends (v1.3.7):** `IBMPmDrv` is preferred. Experimental `EnergyDrv` v1/v2 remains the first fallback (GET `0x32`); if that protocol cannot be recognized, a guarded EnergyDrv variant can use a read-only capability query (`0x01`) followed by a recognized brightness-state query (`0x22`). Only the known three-state capability and Off/Low/High states are accepted; SET (`0x23`) is verified by another GET. Unknown/Auto responses are rejected, and no speculative SET is sent during detection. No Lenovo drivers or Vantage DLLs are bundled.
+- **Modern tray menu** (v1.3.0), with Hardcodet.NotifyIcon.Wpf updated to 2.0.1 in v1.3.8. The context menu was verified to open on the maintainer's development EXE; other DPI and Windows configurations are not yet exhaustively tested.
+- **Driver backends (unchanged in v1.3.8):** `IBMPmDrv` is preferred; experimental `EnergyDrv` v1/v2 and the guarded capability-based variant remain fallback options. EnergyDrv has not been verified on physical EnergyDrv hardware. No Lenovo drivers or Vantage DLLs are bundled.
 - Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
 
 ## Compatibility
@@ -44,6 +44,8 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for requirements, diagnostics and troub
 To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
 
 **Updates:** the original application's automatic download/uninstall/install updater is disabled in this fork. Check the fork's [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) page manually; do not use an original-project MSI as an update to this fork.
+
+**v1.3.8 validated upgrade (2 November 2026):** The maintainer successfully completed a v1.3.7 → v1.3.8 MSI upgrade on the ThinkPad X1 Extreme Gen 2. The EXE extracted from the final MSI matched the tested Release EXE (SHA-256 `45510B15D235E5FD352D5BBF38922FD3C83E7E24C51CC0877273829A3406ACF8`), and all 119 application types loaded during resolver-free .NET reflection. The application, keyboard lighting, camera-controlled screen brightness, exposure restoration and startup after Windows restart were confirmed working. This does not claim comprehensive clean-install or cross-device validation; the installed EXE hash was not separately recorded for this upgrade.
 
 ## Usage
 
@@ -79,7 +81,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x`, `v6.0` and `Phase` labels refer to **internal development milestones**, not public version tags. The current **source version is v1.3.7**; [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) is authoritative for published installers. The maintainer successfully performed a direct **v1.3.6 → v1.3.7 MSI upgrade** and confirmed normal IBMPmDrv lighting/input behavior on one ThinkPad. **EnergyDrv hardware behavior remains unverified.**
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase` labels are internal development milestones, not public tags. The latest locally validated stable source version is **v1.3.8**. See [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for actual published installers. This release updates the tray dependency and Calibration plotting stack, and fixes camera exposure restoration; it does not expand the experimental EnergyDrv hardware compatibility claim.
 
 See [CHANGELOG.md](CHANGELOG.md) for historical releases and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware and historical MSI tests. Installation on one machine does not establish support across all ThinkPads or power transitions. Earlier MSI builds were not digitally signed; confirm the signing status of each download rather than assuming an authenticated publisher. GitHub Releases are authoritative for published release assets.
 
