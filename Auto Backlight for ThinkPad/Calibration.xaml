@@ -24,31 +24,42 @@ limitations under the License.
         xmlns:x1="clr-namespace:System;assembly=mscorlib"
         Title="Calibration" Name="Window" SizeToContent="WidthAndHeight"
         ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen"
-        Background="#FF282828" MinHeight="500" MinWidth="600">
+        Background="{DynamicResource P30C_Surface}" MinHeight="500" MinWidth="600">
     <Window.Resources>
         <local:TimeFormatter x:Key="TimeFormatter"/>
+        <!-- PHASE30C_CALIBRATION_THEME: window-local brushes; App tray styles untouched. -->
+        <SolidColorBrush x:Key="P30C_Surface" Color="#FF22252B"/>
+        <SolidColorBrush x:Key="P30C_Text" Color="#FFF3F4F6"/>
+        <SolidColorBrush x:Key="P30C_ButtonSurface" Color="#FF303641"/>
+        <SolidColorBrush x:Key="P30C_ButtonBorder" Color="#FF8793A3"/>
+        <SolidColorBrush x:Key="P30C_DisabledText" Color="#FF828A96"/>
         <Style x:Key="style" TargetType="Control">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource P30C_Text}"/>
         </Style>
         <Style BasedOn="{StaticResource style}" TargetType="CheckBox"/>
         <Style BasedOn="{StaticResource style}" TargetType="Label"/>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource P30C_Text}"/>
+            <Setter Property="Background" Value="{DynamicResource P30C_ButtonSurface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource P30C_ButtonBorder}"/>
+        </Style>
         <ControlTemplate x:Key="button" TargetType="Button">
             <Label Content="{TemplateBinding Content}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{TemplateBinding IsEnabled}"
-                    Height="{TemplateBinding Height}" Width="{TemplateBinding Width}" Padding="0,0,0,1" Background="#FF212121">
+                    Height="{TemplateBinding Height}" Width="{TemplateBinding Width}" Padding="0,0,0,1" Background="{DynamicResource P30C_ButtonSurface}">
                 <Label.Style>
                     <Style TargetType="Label">
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="false">
-                                <Setter Property="BorderBrush" Value="White"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource P30C_ButtonBorder}"/>
                                 <Setter Property="BorderThickness" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="false">
-                                <Setter Property="Foreground" Value="DimGray"/>
-                                <Setter Property="BorderBrush" Value="DimGray"/>
+                                <Setter Property="Foreground" Value="{DynamicResource P30C_DisabledText}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource P30C_DisabledText}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="true">
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="BorderBrush" Value="White"/>
+                                <Setter Property="Foreground" Value="{DynamicResource P30C_Text}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource P30C_ButtonBorder}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="true">
                                 <Setter Property="BorderBrush" Value="LightBlue"/>
@@ -65,7 +76,7 @@ limitations under the License.
             <RowDefinition/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <oxy:PlotView x:Name="Plot" ToolTip="Mapping from ambient light level to screen brightness level">
+        <oxy:PlotView x:Name="Plot" Background="{DynamicResource P30C_Surface}" ToolTip="Mapping from ambient light level to screen brightness level">
             <oxy:PlotView.Resources>
                 <Color x:Key="RedTrans" R="255" G="0" B="0" A="128"/>
                 <Color x:Key="WhiteTrans" R="255" G="255" B="255" A="128"/>
@@ -128,7 +139,7 @@ limitations under the License.
                         </TextBlock>
                     </Label.Content>
                 </Label>
-                <Button Margin="10,0,0,0" Name="AddButton" IsEnabled="False" Template="{StaticResource button}" HorizontalAlignment="Right" Content="Add this point" Height="25" Width="75" ToolTip="Add this point to the curve"/>
+                <Button Margin="10,0,0,0" Name="AddButton" IsEnabled="False" Template="{StaticResource button}" HorizontalAlignment="Right" Content="Add point" Height="25" Width="75" ToolTip="Add this point to the curve"/>
                 <Button Margin="10,0,0,0" Name="RefreshButton" Template="{StaticResource button}" HorizontalAlignment="Right" Content="Refresh now" Height="25" Width="75" ToolTip="Sample light level and update screen brightness"/>
             </StackPanel>
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Height="30" Width="245">

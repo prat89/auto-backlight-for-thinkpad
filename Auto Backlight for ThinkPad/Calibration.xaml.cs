@@ -22,6 +22,10 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Threading;
+using Microsoft.Win32;
+using System.Runtime.InteropServices;
 using System.Windows.Markup;
 using System.Xml;
 using UIElement = System.Windows.UIElement;
@@ -96,6 +100,184 @@ namespace Auto_Backlight_for_ThinkPad
     /// </summary>
     public partial class Calibration : Window
     {
+        // PHASE30C_CALIBRATION_THEME: use Windows APP theme, not taskbar theme.
+        // Win11 native title bar is controlled via DWM; no custom chrome/title buttons.
+        private const string Phase30CThemePath =
+            @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+        private const int Phase30CDwmDarkTitle = 20;
+        private const int Phase30CDwmCaptionColor = 35;
+        private const int Phase30CDwmTextColor = 36;
+        private bool? _phase30cLastDark;
+        private bool _phase30cSubscribed;
+        private DispatcherTimer _phase30cThemeRetry;
+
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(IntPtr window, int attribute,
+            ref int value, int size);
+
+        private static System.Windows.Media.SolidColorBrush Phase30CBrush(string color)
+        {
+            var brush = new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color));
+            brush.Freeze();
+            return brush;
+        }
+
+        // PHASE30C1_CALIBRATION_WINDOW_ICON: match caption contrast without changing EXE/tray branding.
+        // Reuse the same embedded ICO resources as the adaptive tray icon.
+        private System.Windows.Media.ImageSource _phase30c1IconForLightCaption;
+        private System.Windows.Media.ImageSource _phase30c1IconForDarkCaption;
+
+        private void Phase30C1RefreshWindowIcon(bool dark)
+        {
+            try
+            {
+                if (dark)
+                {
+                    if (_phase30c1IconForDarkCaption == null)
+                        _phase30c1IconForDarkCaption = System.Windows.Media.Imaging.BitmapFrame.Create(
+                            new Uri("pack://application:,,,/Resources/TrayIcons/TrayIcon.PngConcept.ForDarkTaskbar.ico", UriKind.Absolute));
+                    Icon = _phase30c1IconForDarkCaption;  // Pale glyph against dark title bar.
+                }
+                else
+                {
+                    if (_phase30c1IconForLightCaption == null)
+                        _phase30c1IconForLightCaption = System.Windows.Media.Imaging.BitmapFrame.Create(
+                            new Uri("pack://application:,,,/Resources/TrayIcons/TrayIcon.PngConcept.ForLightTaskbar.ico", UriKind.Absolute));
+                    Icon = _phase30c1IconForLightCaption; // Dark glyph against light title bar.
+                }
+            }
+            catch (Exception ex)
+            {
+                // Title bar artwork must never interrupt calibration or its theme updates.
+                DiagnosticsLog.Info("Calibration theme: could not update window icon; " + ex.GetType().Name);
+            }
+        }
+
+        private bool Phase30CReadDarkMode()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(Phase30CThemePath, false))
+                {
+                    object value = key == null ? null : key.GetValue("AppsUseLightTheme", null);
+                    return value is int && (int)value == 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Info("Calibration theme: Windows preference unavailable; " + ex.GetType().Name);
+                return false; // same light fallback as tray menu
+            }
+        }
+
+        private void Phase30CApplyTitleBar(bool dark)
+        {
+            IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) return; // wait for SourceInitialized
+            try
+            {
+                int enabled = dark ? 1 : 0;
+                DwmSetWindowAttribute(hwnd, Phase30CDwmDarkTitle, ref enabled, sizeof(int));
+                // DWM COLORREF format is 0x00BBGGRR. Supported on Windows 11.
+                int caption = dark ? 0x002B2522 : 0x00FDFBFA;
+                int text = dark ? 0x00F6F4F3 : 0x00322620;
+                DwmSetWindowAttribute(hwnd, Phase30CDwmCaptionColor, ref caption, sizeof(int));
+                DwmSetWindowAttribute(hwnd, Phase30CDwmTextColor, ref text, sizeof(int));
+                // On older Windows unsupported attributes fail harmlessly (HRESULT).
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Info("Calibration theme: title bar color unavailable; " + ex.GetType().Name);
+            }
+        }
+
+        private void Phase30CRefreshTheme(bool forceTitleBar = false)
+        {
+            bool dark = Phase30CReadDarkMode();
+            bool changed = !_phase30cLastDark.HasValue || _phase30cLastDark.Value != dark;
+            if (!changed && !forceTitleBar) return;
+
+            if (changed)
+            {
+                Resources["P30C_Surface"] = Phase30CBrush(dark ? "#FF22252B" : "#FFFAFBFD");
+                Resources["P30C_Text"] = Phase30CBrush(dark ? "#FFF3F4F6" : "#FF202632");
+                Resources["P30C_ButtonSurface"] = Phase30CBrush(dark ? "#FF303641" : "#FFFFFFFF");
+                Resources["P30C_ButtonBorder"] = Phase30CBrush(dark ? "#FF8793A3" : "#FFB8C2D0");
+                Resources["P30C_DisabledText"] = Phase30CBrush(dark ? "#FF828A96" : "#FF9DA5B0");
+
+                // Plot area stays dark (#212121); labels outside it must contrast
+                // with the themed PlotView surface, which used to render white.
+                if (_plotModel != null)
+                {
+                    _plotModel.Background = dark ? OxyPlot.OxyColor.FromRgb(34, 37, 43)
+                        : OxyPlot.OxyColor.FromRgb(250, 251, 253);
+                    _plotModel.TextColor = dark ? OxyPlot.OxyColors.White
+                        : OxyPlot.OxyColor.FromRgb(32, 38, 50);
+                    _plotModel.InvalidatePlot(false);
+                }
+                Phase30C1RefreshWindowIcon(dark);
+                _phase30cLastDark = dark;
+                DiagnosticsLog.Info("Calibration theme: applied " + (dark ? "dark" : "light") + " palette");
+            }
+            Phase30CApplyTitleBar(dark);
+        }
+
+        private void Phase30CThemeChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+            try
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Phase30CRefreshTheme();
+                    // Windows sometimes publishes its registry preference just after the event.
+                    if (_phase30cThemeRetry == null)
+                    {
+                        _phase30cThemeRetry = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+                        _phase30cThemeRetry.Tick += (o, args) =>
+                        {
+                            _phase30cThemeRetry.Stop();
+                            Phase30CRefreshTheme();
+                        };
+                    }
+                    _phase30cThemeRetry.Stop();
+                    _phase30cThemeRetry.Start();
+                }));
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Info("Calibration theme: event dispatch ignored; " + ex.GetType().Name);
+            }
+        }
+
+        private void Phase30CInitializeTheme()
+        {
+            SourceInitialized += (sender, e) => Phase30CRefreshTheme(true);
+            Activated += (sender, e) => Phase30CRefreshTheme();
+            Closed += (sender, e) =>
+            {
+                if (_phase30cThemeRetry != null) _phase30cThemeRetry.Stop();
+                if (_phase30cSubscribed)
+                {
+                    SystemEvents.UserPreferenceChanged -= Phase30CThemeChanged;
+                    _phase30cSubscribed = false;
+                }
+            };
+            try
+            {
+                SystemEvents.UserPreferenceChanged += Phase30CThemeChanged;
+                _phase30cSubscribed = true;
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Info("Calibration theme: preference events unavailable; " + ex.GetType().Name);
+            }
+            Phase30CRefreshTheme();
+        }
+
         /// <summary>
         /// Linear interpolate inside a set of points
         /// </summary>
@@ -391,6 +573,7 @@ namespace Auto_Backlight_for_ThinkPad
         {
             InitializeComponent();
             InitializeNativePlot();
+            Phase30CInitializeTheme();
             if (learnedPoints != null) LearnedPoints = learnedPoints;
             Curvature = curvature;
 

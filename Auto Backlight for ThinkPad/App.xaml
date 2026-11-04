@@ -433,7 +433,7 @@ limitations under the License.
                 <MenuItem Click="_ShowCalibration" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}"
                           ToolTip="Edit mapping curve between screen brightness vs. ambient light level">
                     <MenuItem.Header>
-                        <Label VerticalAlignment="Center" Padding="3,1,3,1" HorizontalAlignment="Left" Content="Calibration ..."/>
+                        <Label VerticalAlignment="Center" Padding="3,1,3,1" HorizontalAlignment="Left" Content="Calibration..."/>
                     </MenuItem.Header>
                 </MenuItem>
             </MenuItem>
