@@ -29,6 +29,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Auto_Backlight_for_ThinkPad
@@ -182,9 +183,15 @@ namespace Auto_Backlight_for_ThinkPad
         private readonly HttpClient _httpClient;
         private bool _disposed;
 
-        public OnlineUpdater()
+        public OnlineUpdater() : this(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false })
         {
-            _httpClient = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
+        }
+
+        // Test seam. Production always uses the no-redirect, no-cookie handler above.
+        internal OnlineUpdater(HttpMessageHandler handler)
+        {
+            if (handler == null) throw new ArgumentNullException("handler");
+            _httpClient = new HttpClient(handler);
             _httpClient.Timeout = TimeSpan.FromSeconds(12);
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AutoBacklightForThinkPad/" + version);
@@ -411,6 +418,221 @@ namespace Auto_Backlight_for_ThinkPad
             UpdateCheckResult result = await CheckForUpdatesAsync().ConfigureAwait(false);
             return result.Status == CheckStatus.UpdateAvailable ? result.Update : null;
         }
+
+        // PHASE30B4_VERIFIED_MSI_STAGING_V1
+        // Stages a downloaded MSI only; never launches msiexec, exits the app, or elevates.
+        // GitHub's digest detects accidental replacement/corruption; it is NOT a publisher signature.
+        private const long Phase30B4MaximumMsiBytes = 128L * 1024L * 1024L;
+        private const int Phase30B4MaximumRedirects = 5;
+        private static readonly byte[] Phase30B4CompoundFileMagic =
+            { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+
+        public enum StageStatus
+        {
+            Staged,
+            InvalidMetadata,
+            MissingDigest,
+            InvalidRedirect,
+            HttpError,
+            NetworkError,
+            SizeMismatch,
+            HashMismatch,
+            InvalidMsiHeader,
+            IoError
+        }
+
+        public sealed class StageResult
+        {
+            public StageStatus Status { get; private set; }
+            public string Message { get; private set; }
+            public string Path { get; private set; }
+            public string Sha256 { get; private set; }
+            public long SizeBytes { get; private set; }
+            internal StageResult(StageStatus status, string message, string path = null,
+                string sha256 = null, long sizeBytes = 0)
+            {
+                Status = status;
+                Message = message;
+                Path = path;
+                Sha256 = sha256;
+                SizeBytes = sizeBytes;
+            }
+        }
+
+        private static bool Phase30B4ValidUpdate(Downloadable update)
+        {
+            if (update == null || update.Version == null || update.Url == null ||
+                update.AssetSizeBytes < 8 || update.AssetSizeBytes > Phase30B4MaximumMsiBytes ||
+                !IsKnownMsiAssetName(update.AssetName)) return false;
+            Uri url = update.Url;
+            if (url.Scheme != Uri.UriSchemeHttps || !url.IsDefaultPort ||
+                !String.IsNullOrEmpty(url.UserInfo) || !String.IsNullOrEmpty(url.Query) ||
+                !String.IsNullOrEmpty(url.Fragment) ||
+                !String.Equals(url.Host, "github.com", StringComparison.OrdinalIgnoreCase)) return false;
+            string path = Uri.UnescapeDataString(url.AbsolutePath);
+            if (!path.StartsWith(ReleaseDownloadPathPrefix, StringComparison.OrdinalIgnoreCase)) return false;
+            string suffix = path.Substring(ReleaseDownloadPathPrefix.Length);
+            int separator = suffix.IndexOf('/');
+            if (separator <= 0 || separator != suffix.LastIndexOf('/')) return false;
+            string tag = suffix.Substring(0, separator);
+            string assetName = suffix.Substring(separator + 1);
+            Version parsed;
+            return TryParseStableMsiVersion(tag, out parsed) &&
+                CompareMsiVersions(parsed, update.Version) == 0 &&
+                String.Equals(assetName, update.AssetName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool Phase30B4SafeRedirect(Uri destination, Uri original)
+        {
+            if (destination == null || destination.Scheme != Uri.UriSchemeHttps ||
+                !destination.IsDefaultPort || !String.IsNullOrEmpty(destination.UserInfo) ||
+                !String.IsNullOrEmpty(destination.Fragment)) return false;
+            if (String.Equals(destination.Host, "github.com", StringComparison.OrdinalIgnoreCase))
+                return destination.Equals(original); // no other GitHub path may replace the release asset
+            return String.Equals(destination.Host, "release-assets.githubusercontent.com", StringComparison.OrdinalIgnoreCase) ||
+                String.Equals(destination.Host, "objects.githubusercontent.com", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Downloads a verified MSI to the current user's local staging directory.
+        /// This method does not install; the existing DownloadVersion remains disabled.
+        /// A missing digest fails closed. No proxy credentials/cookies or redirects to arbitrary hosts.
+        /// </summary>
+        public async Task<StageResult> StageMsiAsync(Downloadable update,
+            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (_disposed) throw new ObjectDisposedException("OnlineUpdater");
+            if (!Phase30B4ValidUpdate(update))
+                return new StageResult(StageStatus.InvalidMetadata, "Invalid release asset metadata.");
+            if (String.IsNullOrEmpty(update.Sha256Digest) ||
+                !Regex.IsMatch(update.Sha256Digest, "^[0-9a-fA-F]{64}$", RegexOptions.CultureInvariant))
+                return new StageResult(StageStatus.MissingDigest, "GitHub asset has no usable SHA-256 digest.");
+
+            string temporaryDirectory = null;
+            bool success = false;
+            try
+            {
+                using (var timeout = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                {
+                    timeout.CancelAfter(TimeSpan.FromMinutes(2));
+                    Uri current = update.Url;
+                    HttpResponseMessage final = null;
+                    for (int redirectCount = 0; redirectCount <= Phase30B4MaximumRedirects; redirectCount++)
+                    {
+                        HttpResponseMessage response;
+                        using (var request = new HttpRequestMessage(HttpMethod.Get, current))
+                        {
+                            // API discovery uses JSON; an MSI download must request binary data.
+                            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                            response = await _httpClient.SendAsync(request,
+                                HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+                        }
+                        int statusCode = (int)response.StatusCode;
+                        if (statusCode == 301 || statusCode == 302 || statusCode == 303 ||
+                            statusCode == 307 || statusCode == 308)
+                        {
+                            Uri location = response.Headers.Location;
+                            response.Dispose();
+                            if (location == null || redirectCount == Phase30B4MaximumRedirects)
+                                return new StageResult(StageStatus.InvalidRedirect, "Missing or excessive redirect.");
+                            Uri next = location.IsAbsoluteUri ? location : new Uri(current, location);
+                            if (!Phase30B4SafeRedirect(next, update.Url))
+                                return new StageResult(StageStatus.InvalidRedirect, "Untrusted redirect target.");
+                            current = next;
+                            continue;
+                        }
+                        if (response.StatusCode != HttpStatusCode.OK)
+                        {
+                            response.Dispose();
+                            return new StageResult(StageStatus.HttpError, "MSI download returned HTTP " + statusCode + ".");
+                        }
+                        final = response;
+                        break;
+                    }
+                    if (final == null)
+                        return new StageResult(StageStatus.InvalidRedirect, "Redirect limit exceeded.");
+                    using (final)
+                    {
+                        if (final.Content == null ||
+                            (final.Content.Headers.ContentLength.HasValue &&
+                             final.Content.Headers.ContentLength.Value != update.AssetSizeBytes))
+                            return new StageResult(StageStatus.SizeMismatch, "Unexpected MSI Content-Length.");
+
+                        string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            "Auto Backlight for ThinkPad", "UpdateStaging");
+                        temporaryDirectory = Path.Combine(root, Guid.NewGuid().ToString("N"));
+                        Directory.CreateDirectory(temporaryDirectory);
+                        string partialPath = Path.Combine(temporaryDirectory, "update.partial");
+                        long bytesReadTotal = 0;
+                        using (Stream source = await final.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                        using (var destination = new FileStream(partialPath, FileMode.CreateNew,
+                            FileAccess.Write, FileShare.None, 81920, true))
+                        {
+                            byte[] buffer = new byte[81920];
+                            int count;
+                            while ((count = await source.ReadAsync(buffer, 0, buffer.Length,
+                                timeout.Token).ConfigureAwait(false)) > 0)
+                            {
+                                bytesReadTotal += count;
+                                if (bytesReadTotal > update.AssetSizeBytes ||
+                                    bytesReadTotal > Phase30B4MaximumMsiBytes)
+                                    return new StageResult(StageStatus.SizeMismatch, "MSI exceeded expected size.");
+                                await destination.WriteAsync(buffer, 0, count, timeout.Token).ConfigureAwait(false);
+                            }
+                            await destination.FlushAsync(timeout.Token).ConfigureAwait(false);
+                        }
+                        if (bytesReadTotal != update.AssetSizeBytes)
+                            return new StageResult(StageStatus.SizeMismatch, "MSI size differs from release metadata.");
+
+                        string actualHash;
+                        using (var source = new FileStream(partialPath, FileMode.Open,
+                            FileAccess.Read, FileShare.Read))
+                        using (var hash = System.Security.Cryptography.SHA256.Create())
+                        {
+                            byte[] header = new byte[Phase30B4CompoundFileMagic.Length];
+                            if (source.Read(header, 0, header.Length) != header.Length ||
+                                !header.SequenceEqual(Phase30B4CompoundFileMagic))
+                                return new StageResult(StageStatus.InvalidMsiHeader, "Invalid MSI compound-file signature.");
+                            source.Position = 0;
+                            actualHash = BitConverter.ToString(hash.ComputeHash(source)).Replace("-", "");
+                        }
+                        if (!String.Equals(actualHash, update.Sha256Digest, StringComparison.OrdinalIgnoreCase))
+                            return new StageResult(StageStatus.HashMismatch, "MSI SHA-256 differs from GitHub metadata.");
+                        string completePath = Path.Combine(temporaryDirectory,
+                            "AutoBacklight-" + update.Version.ToString(3) + ".msi");
+                        File.Move(partialPath, completePath);
+                        success = true;
+                        return new StageResult(StageStatus.Staged, "MSI downloaded and verified; not installed.",
+                            completePath, actualHash, bytesReadTotal);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return new StageResult(StageStatus.NetworkError, "MSI download was cancelled or timed out.");
+            }
+            catch (HttpRequestException)
+            {
+                return new StageResult(StageStatus.NetworkError, "Could not download the MSI from GitHub.");
+            }
+            catch (IOException)
+            {
+                return new StageResult(StageStatus.IoError, "Could not stage the MSI on disk.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return new StageResult(StageStatus.IoError, "MSI staging directory is not writable.");
+            }
+            finally
+            {
+                if (!success && temporaryDirectory != null)
+                {
+                    try { Directory.Delete(temporaryDirectory, true); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+            }
+        }
+
 
         /// <summary>Phase 30B.1 explicitly cannot download or execute an installer.</summary>
         public Task<bool> DownloadVersion(Downloadable update)
