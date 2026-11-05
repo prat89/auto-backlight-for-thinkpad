@@ -63,8 +63,7 @@ namespace Auto_Backlight_for_ThinkPad
         {
             DiagnosticsLog.Info("App constructor started; PID=" + System.Diagnostics.Process.GetCurrentProcess().Id);
             // v5.5 startup checkpoint: expose where initialization stops.
-            // Check for updates in Release mode
-// v5.2: automatic update checks disabled; users visit fork Releases manually.
+            // Phase30B2 schedules a metadata-only update check after startup initialization.
             DiagnosticsLog.Info("Startup checkpoint: InitializeComponent begin");
             try
             {
@@ -413,7 +412,47 @@ namespace Auto_Backlight_for_ThinkPad
             _settings.PropertyChanged += _Settings_PropertyChanged;
             _settings.Update();
             DiagnosticsLog.Info("Startup event: settings applied");
+            // Phase 30B.2: queue metadata-only check after startup; never block driver initialization.
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
+                new Action(_Phase30B2CheckAtStartupAsync));
         }
+
+        // PHASE30B2_UPDATE_UI: background notification only; MSI execution remains disabled.
+        private async void _Phase30B2CheckAtStartupAsync()
+        {
+            try
+            {
+                if (!Phase30B2UpdatePreferences.TryReserveStartupCheck()) return;
+                OnlineUpdater.UpdateCheckResult result;
+                using (var updater = new OnlineUpdater())
+                    result = await updater.CheckForUpdatesAsync();
+
+                if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+                if (result.Status != OnlineUpdater.CheckStatus.UpdateAvailable) return;
+
+                var tray = FindResource("SysTrayIcon") as Hardcodet.Wpf.TaskbarNotification.TaskbarIcon;
+                if (tray == null) return;
+                // Clicking the Windows notification opens About; it never starts MSI.
+                tray.TrayBalloonTipClicked -= _Phase30B2BalloonClicked;
+                tray.TrayBalloonTipClicked += _Phase30B2BalloonClicked;
+                tray.ShowBalloonTip("Auto Backlight for ThinkPad update available",
+                    "Version v" + result.LatestVersion.ToString(3) +
+                    " is available. Open About to review it. MSI auto-install is not active yet.",
+                    Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+                DiagnosticsLog.Info("Phase30B2: update available; version=" + result.LatestVersion.ToString(3));
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase30B2: background update check failed", ex);
+            }
+        }
+
+        private void _Phase30B2BalloonClicked(object sender, RoutedEventArgs e)
+        {
+            _ShowAbout(sender, e);
+            if (_about != null) _about.Activate();
+        }
+
         // The Lenovo OSD switch is global to the current Windows user.
         // It is persisted separately so existing binary serialized settings stay compatible.
         private const string LenovoOsdRegistryPath = @"Software\Lenovo\OnScreenDisplay";

@@ -86,7 +86,7 @@ limitations under the License.
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0" Name="Subheader" Content="Subheader" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Name="UpdateButton" Template="{StaticResource button}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="View releases ..." ToolTip="Open releases of this fork in a web browser (no automatic installation)" 
+                    <Button Grid.Column="1" Name="UpdateButton" Template="{StaticResource button}" HorizontalAlignment="Right" VerticalAlignment="Center" Content="View releases..." ToolTip="Open releases of this fork in a web browser (no automatic installation)"
                             Height="25" Width="125"/>
                 </Grid>
                 <Label Width="480" HorizontalAlignment="Left" VerticalAlignment="Bottom">
@@ -103,6 +103,23 @@ limitations under the License.
                 <FlowDocument Name="License" FontSize="10" FontFamily="Arial" Foreground="White" Background="#FF212121"/>
             </FlowDocumentScrollViewer.Document>
         </FlowDocumentScrollViewer>
+        <!-- PHASE30B2_UPDATE_UI: metadata-only check and stored future-install preference. -->
+        <Grid Margin="0,10,0,0" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Content="Install updates automatically"
+                      HorizontalAlignment="Left" VerticalAlignment="Center"
+                      ToolTip="Saves your preference. Automatic MSI installation is NOT active in this version."/>
+            <Button Grid.Column="1" Name="CheckUpdatesButton" Template="{StaticResource button}"
+                    HorizontalAlignment="Right" VerticalAlignment="Center" Content="Check for updates"
+                    ToolTip="Check GitHub Releases for a newer stable MSI (metadata only)"
+                    Height="25" Width="140"/>
+        </Grid>
+        <TextBlock Name="UpdateStatusText" Margin="1,4,0,0" FontSize="11"
+                   Foreground="#FFC7CDD8" TextWrapping="Wrap"
+                   Text="Automatic MSI installation is not active yet. The checkbox saves your preference for a future update."/>
         <Grid Margin="0,15,0,0" HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
