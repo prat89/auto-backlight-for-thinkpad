@@ -38,10 +38,32 @@ namespace Auto_Backlight_for_ThinkPad
     {
         // PHASE30B2_UPDATE_UI: no MSI download or installation in this phase.
         private bool _phase30b2Closed;
+        // PHASE30B7D6M3A_UI_STATE_V1
+        private OnlineUpdater.Downloadable _phase30b7d6m3Candidate;
+        private bool _phase30b7d6m3Busy;
+        private System.Threading.CancellationTokenSource _phase30b7d6m3Cancellation;
+        // PHASE30B7D6M3B_LOCAL_REVIEW_STATE_V1
+        private string _phase30b7d6m3bStagedMsi;
+        // PHASE30B7D6M3C_EXPLICIT_PROTECTED_PREPARE_STATE_V1
+        private string _phase30b7d6m3cReviewedMsi;
+        // PHASE30B7D6M3D_PREVIEW_STATE_V1
+        private string _phase30b7d6m3dProtectedMsi;
+        // PHASE30B7D6M3E_CONSENT_CANDIDATE_V1
+        private string _phase30b7d6m3eApprovedCandidate;
 
         private async Task Phase30B2CheckForUpdatesAsync()
         {
-            if (_phase30b2Closed) return;
+            if (_phase30b2Closed || _phase30b7d6m3Busy) return;
+            _phase30b7d6m3Candidate = null;
+            _phase30b7d6m3bStagedMsi = null;
+            _phase30b7d6m3cReviewedMsi = null;
+            _phase30b7d6m3dProtectedMsi = null;
+            _phase30b7d6m3eApprovedCandidate = null;
+            InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+            ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+            PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+            ReviewSignedMsiButton.Visibility = Visibility.Collapsed;
+            PrepareSignedMsiButton.Visibility = Visibility.Collapsed;
             CheckUpdatesButton.IsEnabled = false;
             UpdateStatusText.Text = "Checking the latest stable GitHub release...";
             try
@@ -54,17 +76,16 @@ namespace Auto_Backlight_for_ThinkPad
                 switch (result.Status)
                 {
                     case OnlineUpdater.CheckStatus.UpdateAvailable:
-                        UpdateStatusText.Text = "New version v" + result.LatestVersion.ToString(3) +
-                            " available. In-app MSI installation is not enabled yet.";
-                        if (MessageBox.Show(this,
-                            "Version v" + result.LatestVersion.ToString(3) + " is available.\n\n" +
-                            "MSI installation from the app is not implemented yet.\n" +
-                            "Open the project's GitHub Releases page?",
-                            "Update available", MessageBoxButton.YesNo,
-                            MessageBoxImage.Information) == MessageBoxResult.Yes)
+                        if (Phase30B7D6M3SignedDownloadUiPolicy.CanOfferSignedDownload(result))
                         {
-                            OpenProjectUrl("https://github.com/prat89/auto-backlight-for-thinkpad/releases");
+                            _phase30b7d6m3Candidate = result.Update;
+                            PrepareSignedMsiButton.Visibility = Visibility.Visible;
+                            UpdateStatusText.Text = "Version v" + result.LatestVersion.ToString(3) +
+                                " available. You may download and verify its signed MSI. " +
+                                "Installation requires a separate explicit confirmation.";
                         }
+                        else
+                            UpdateStatusText.Text = "New release metadata is insufficient for a signed download.";
                         break;
                     case OnlineUpdater.CheckStatus.UpToDate:
                         UpdateStatusText.Text = "You're up to date (" +
@@ -87,6 +108,331 @@ namespace Auto_Backlight_for_ThinkPad
             finally
             {
                 if (!_phase30b2Closed) CheckUpdatesButton.IsEnabled = true;
+            }
+        }
+
+        // PHASE30B7D6M3A_EXPLICIT_SIGNED_STAGE_UI_V1
+        private async Task Phase30B7D6M3PrepareSignedMsiAsync()
+        {
+            if (_phase30b2Closed || _phase30b7d6m3Busy ||
+                _phase30b7d6m3Candidate == null) return;
+            OnlineUpdater.Downloadable candidate = _phase30b7d6m3Candidate;
+            _phase30b7d6m3bStagedMsi = null;
+            _phase30b7d6m3cReviewedMsi = null;
+            _phase30b7d6m3dProtectedMsi = null;
+            _phase30b7d6m3eApprovedCandidate = null;
+            InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+            ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+            PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+            ReviewSignedMsiButton.Visibility = Visibility.Collapsed;
+            _phase30b7d6m3Busy = true;
+            PrepareSignedMsiButton.IsEnabled = false;
+            CheckUpdatesButton.IsEnabled = false;
+            UpdateStatusText.Text = "Downloading and checking the publisher-signed MSI; no installation...";
+            var cancel = new System.Threading.CancellationTokenSource();
+            _phase30b7d6m3Cancellation = cancel;
+            try
+            {
+                OnlineUpdater.StageResult staged;
+                using (var updater = new OnlineUpdater())
+                    staged = await updater.StageSignedMsiAsync(candidate, cancel.Token);
+                if (_phase30b2Closed) return;
+                if (Phase30B7D6M3BLocalReview.CanOfferReview(staged))
+                {
+                    _phase30b7d6m3Candidate = null; // one-shot explicit user action
+                    _phase30b7d6m3bStagedMsi = staged.Path;
+                    PrepareSignedMsiButton.Visibility = Visibility.Collapsed;
+                    ReviewSignedMsiButton.Visibility = Visibility.Visible;
+                    UpdateStatusText.Text = "Signed MSI downloaded to user staging. " +
+                        "You may verify it again locally. Not installed.";
+                }
+                else if (staged.Status == OnlineUpdater.StageStatus.Staged)
+                    UpdateStatusText.Text = "Downloaded MSI cannot be reviewed safely. Installation disabled.";
+                else
+                    UpdateStatusText.Text = "Signed MSI preparation failed: " + staged.Message;
+            }
+            catch (OperationCanceledException)
+            {
+                if (!_phase30b2Closed) UpdateStatusText.Text = "Download cancelled; no installation.";
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase30B7D6M3A: signed download failed", ex);
+                if (!_phase30b2Closed)
+                    UpdateStatusText.Text = "Signed MSI preparation failed. See application.log.";
+            }
+            finally
+            {
+                if (Object.ReferenceEquals(_phase30b7d6m3Cancellation, cancel))
+                    _phase30b7d6m3Cancellation = null;
+                cancel.Dispose();
+                _phase30b7d6m3Busy = false;
+                if (!_phase30b2Closed)
+                {
+                    CheckUpdatesButton.IsEnabled = true;
+                    PrepareSignedMsiButton.IsEnabled = true;
+                }
+            }
+        }
+
+        // PHASE30B7D6M3B_LOCAL_READ_ONLY_REVIEW_UI_V1
+        private async Task Phase30B7D6M3BReviewSignedMsiAsync()
+        {
+            if (_phase30b2Closed || _phase30b7d6m3Busy ||
+                String.IsNullOrWhiteSpace(_phase30b7d6m3bStagedMsi)) return;
+            string path = _phase30b7d6m3bStagedMsi;
+            _phase30b7d6m3dProtectedMsi = null;
+            _phase30b7d6m3eApprovedCandidate = null;
+            InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+            ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+            _phase30b7d6m3Busy = true;
+            CheckUpdatesButton.IsEnabled = false;
+            ReviewSignedMsiButton.IsEnabled = false;
+            UpdateStatusText.Text = "Rechecking local RSA signature, MSI hash and identity (read-only)...";
+            try
+            {
+                bool valid = await Task.Run(() => Phase30B7D6M3BLocalReview.ReviewReadOnly(path));
+                if (_phase30b2Closed) return;
+                if (!String.Equals(_phase30b7d6m3bStagedMsi, path, StringComparison.Ordinal))
+                    return;
+                if (valid)
+                {
+                    // Never offer privileged preparation from the developer EXE.
+                    if (Phase30B7D6M3CProtectedHandoff.CanOfferFromUi(path))
+                    {
+                        _phase30b7d6m3cReviewedMsi = path;
+                        PrepareProtectedMsiButton.Visibility = Visibility.Visible;
+                        UpdateStatusText.Text = "Publisher signature and MSI verified. " +
+                            "Protected copy available by explicit click; MSI installation disabled.";
+                    }
+                    else
+                    {
+                        _phase30b7d6m3cReviewedMsi = null;
+                        PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+                        UpdateStatusText.Text = "Local signed MSI verification passed. " +
+                            "Protected copy requires a trusted installed application build.";
+                    }
+                }
+                else
+                {
+                    _phase30b7d6m3cReviewedMsi = null;
+                    PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+                    _phase30b7d6m3bStagedMsi = null;
+                    ReviewSignedMsiButton.Visibility = Visibility.Collapsed;
+                    UpdateStatusText.Text = "Local signed MSI review failed; bundle invalid or changed. " +
+                        "Installation remains disabled.";
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase30B7D6M3B: read-only local review failed", ex);
+                if (!_phase30b2Closed)
+                {
+                    _phase30b7d6m3bStagedMsi = null;
+                    _phase30b7d6m3cReviewedMsi = null;
+                    PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+                    ReviewSignedMsiButton.Visibility = Visibility.Collapsed;
+                    UpdateStatusText.Text = "Local bundle review unavailable. Installation disabled.";
+                }
+            }
+            finally
+            {
+                _phase30b7d6m3Busy = false;
+                if (!_phase30b2Closed)
+                {
+                    CheckUpdatesButton.IsEnabled = true;
+                    ReviewSignedMsiButton.IsEnabled = true;
+                }
+            }
+        }
+
+        // PHASE30B7D6M3C_EXPLICIT_PROTECTED_STAGE_UI_V1
+        private async Task Phase30B7D6M3CPrepareProtectedMsiAsync()
+        {
+            if (_phase30b2Closed || _phase30b7d6m3Busy ||
+                String.IsNullOrWhiteSpace(_phase30b7d6m3cReviewedMsi)) return;
+            string path = _phase30b7d6m3cReviewedMsi;
+            _phase30b7d6m3dProtectedMsi = null;
+            _phase30b7d6m3eApprovedCandidate = null;
+            InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+            ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+            if (!String.Equals(_phase30b7d6m3bStagedMsi, path, StringComparison.Ordinal) ||
+                !Phase30B7D6M3CProtectedHandoff.CanOfferFromUi(path))
+            {
+                _phase30b7d6m3cReviewedMsi = null;
+                PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+                UpdateStatusText.Text = "Protected copy refused: file or trust state changed.";
+                return;
+            }
+            if (MessageBox.Show(this,
+                "Copy the verified MSI to administrator-protected storage? " +
+                "Windows may ask for administrator consent. This will NOT install or run the MSI.",
+                "Prepare verified update (no installation)", MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            _phase30b7d6m3Busy = true;
+            CheckUpdatesButton.IsEnabled = false;
+            ReviewSignedMsiButton.IsEnabled = false;
+            PrepareProtectedMsiButton.IsEnabled = false;
+            UpdateStatusText.Text = "Rechecking signed bundle and preparing a protected copy...";
+            try
+            {
+                int code = await Task.Run(() => Phase30B7D6M3CProtectedHandoff.RunFromUi(path));
+                if (_phase30b2Closed) return;
+                _phase30b7d6m3cReviewedMsi = null;
+                PrepareProtectedMsiButton.Visibility = Visibility.Collapsed;
+                if (code == 0 && Phase30B7D6M3DProtectedPreflightUi.CanOfferFromUi(path))
+                {
+                    _phase30b7d6m3dProtectedMsi = path;
+                    ReviewProtectedMsiButton.Visibility = Visibility.Visible;
+                    UpdateStatusText.Text = "Signed MSI copied into protected storage. " +
+                        "You may review the installation plan (read-only); installation disabled.";
+                }
+                else if (code == 0)
+                    UpdateStatusText.Text = "Protected copy completed, but trusted preflight UI unavailable.";
+                else
+                    UpdateStatusText.Text = "Protected preparation not completed (code " + code +
+                        "). No MSI installation was attempted.";
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase30B7D6M3C: protected copy failed", ex);
+                if (!_phase30b2Closed)
+                    UpdateStatusText.Text = "Protected preparation failed. No MSI installation attempted.";
+            }
+            finally
+            {
+                _phase30b7d6m3Busy = false;
+                if (!_phase30b2Closed)
+                {
+                    CheckUpdatesButton.IsEnabled = true;
+                    ReviewSignedMsiButton.IsEnabled = true;
+                    PrepareProtectedMsiButton.IsEnabled = true;
+                }
+            }
+        }
+
+        // PHASE30B7D6M3D_EXPLICIT_READONLY_INSTALL_PREFLIGHT_UI_V1
+        private async Task Phase30B7D6M3DReviewProtectedMsiAsync()
+        {
+            if (_phase30b2Closed || _phase30b7d6m3Busy ||
+                String.IsNullOrWhiteSpace(_phase30b7d6m3dProtectedMsi)) return;
+            string path = _phase30b7d6m3dProtectedMsi;
+            if (!Phase30B7D6M3DProtectedPreflightUi.CanOfferFromUi(path))
+            {
+                _phase30b7d6m3dProtectedMsi = null;
+                _phase30b7d6m3eApprovedCandidate = null;
+                InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+                ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+                UpdateStatusText.Text = "Read-only preflight unavailable: trusted installation required.";
+                return;
+            }
+            if (MessageBox.Show(this,
+                "Verify the protected MSI and check installation readiness? " +
+                "Windows may ask for administrator consent. This does NOT run or install MSI.",
+                "Review installation readiness (no installation)", MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            _phase30b7d6m3Busy = true;
+            CheckUpdatesButton.IsEnabled = false;
+            ReviewProtectedMsiButton.IsEnabled = false;
+            UpdateStatusText.Text = "Checking protected MSI and installation plan (read-only)...";
+            try
+            {
+                int code = await Task.Run(() => Phase30B7D6M3DProtectedPreflightUi.RunFromUi(path));
+                if (_phase30b2Closed) return;
+                _phase30b7d6m3dProtectedMsi = null; // one-shot; repeat requires fresh review/copy
+                _phase30b7d6m3eApprovedCandidate = null;
+                InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+                ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+                if (code == 0)
+                {
+                    // PHASE30B7D6M3E_NO_PRODUCTION_INSTALL_YET_V1
+                    if (Phase30B7D6M3EInstallConsentGate.CanOfferFromUi(path))
+                    {
+                        _phase30b7d6m3eApprovedCandidate = path;
+                        InstallVerifiedUpdateButton.IsEnabled = true;
+                        InstallVerifiedUpdateButton.Visibility = Visibility.Visible;
+                    }
+                    UpdateStatusText.Text = "Protected installation preflight passed. " +
+                        "Choose Install verified update to authorize the signed MSI.";
+                }
+                else
+                    UpdateStatusText.Text = "Protected preflight not completed (code " + code +
+                        "). No MSI executed.";
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase30B7D6M3D: protected preflight failed", ex);
+                if (!_phase30b2Closed)
+                {
+                    _phase30b7d6m3dProtectedMsi = null;
+                    _phase30b7d6m3eApprovedCandidate = null;
+                    InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+                    ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
+                    UpdateStatusText.Text = "Protected preflight failed. No MSI executed.";
+                }
+            }
+            finally
+            {
+                _phase30b7d6m3Busy = false;
+                if (!_phase30b2Closed)
+                {
+                    CheckUpdatesButton.IsEnabled = true;
+                    ReviewProtectedMsiButton.IsEnabled = true;
+                }
+            }
+        }
+
+        // PHASE30B7D6M3E_USER_INSTALL_CONSENT_UI_DISABLED_V1
+        private async Task Phase30B7D6M3EInstallVerifiedUpdateAsync()
+        {
+            if (_phase30b2Closed || _phase30b7d6m3Busy ||
+                String.IsNullOrWhiteSpace(_phase30b7d6m3eApprovedCandidate)) return;
+            string path = _phase30b7d6m3eApprovedCandidate;
+            if (!Phase30B7D6M3EInstallConsentGate.CanOfferFromUi(path))
+            {
+                _phase30b7d6m3eApprovedCandidate = null;
+                InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+                UpdateStatusText.Text = "Production installation is not enabled in this build.";
+                return;
+            }
+            if (MessageBox.Show(this,
+                "Install the verified update now? The running application will be closed. " +
+                "Save your work first. This action requires administrator approval.",
+                "Confirm MSI installation", MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            _phase30b7d6m3Busy = true;
+            CheckUpdatesButton.IsEnabled = false;
+            InstallVerifiedUpdateButton.IsEnabled = false;
+            try
+            {
+                int status = await Task.Run(() => Phase30B7D6M3EInstallConsentGate.RunFromUi(path));
+                if (!_phase30b2Closed)
+                {
+                    if (status == 0)
+                    {
+                        UpdateStatusText.Text = "Protected update worker armed. Closing the app for MSI upgrade...";
+                        // The detached worker waits for this GUI process to exit.
+                        Application.Current.Shutdown();
+                        return;
+                    }
+                    UpdateStatusText.Text = "Installation was not authorized (code " + status +
+                        "). Review the package and try again.";
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase30B7D6M3E: install authorization refused", ex);
+                if (!_phase30b2Closed) UpdateStatusText.Text = "Installation blocked; no MSI started.";
+            }
+            finally
+            {
+                _phase30b7d6m3eApprovedCandidate = null;
+                _phase30b7d6m3Busy = false;
+                if (!_phase30b2Closed)
+                {
+                    InstallVerifiedUpdateButton.Visibility = Visibility.Collapsed;
+                    CheckUpdatesButton.IsEnabled = true;
+                }
             }
         }
 
@@ -246,6 +592,10 @@ namespace Auto_Backlight_for_ThinkPad
         {
             InitializeComponent();
             Phase30B2AInitializeTheme();
+            // Read-only status from the latest protected detached MSI transaction.
+            string latestInstall = Phase30BProductionInstaller.LastResultForAbout();
+            if (!String.IsNullOrWhiteSpace(latestInstall))
+                UpdateStatusText.Text = latestInstall;
 
             // Load strings
             Header.Content = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product;
@@ -305,7 +655,17 @@ namespace Auto_Backlight_for_ThinkPad
                 }
             };
             CheckUpdatesButton.Click += async (sender, e) => await Phase30B2CheckForUpdatesAsync();
-            Closed += (sender, e) => _phase30b2Closed = true;
+            PrepareSignedMsiButton.Click += async (sender, e) => await Phase30B7D6M3PrepareSignedMsiAsync();
+            ReviewSignedMsiButton.Click += async (sender, e) => await Phase30B7D6M3BReviewSignedMsiAsync();
+            PrepareProtectedMsiButton.Click += async (sender, e) => await Phase30B7D6M3CPrepareProtectedMsiAsync();
+            ReviewProtectedMsiButton.Click += async (sender, e) => await Phase30B7D6M3DReviewProtectedMsiAsync();
+            InstallVerifiedUpdateButton.Click += async (sender, e) => await Phase30B7D6M3EInstallVerifiedUpdateAsync();
+            Closed += (sender, e) =>
+            {
+                _phase30b2Closed = true;
+                if (_phase30b7d6m3Cancellation != null)
+                    _phase30b7d6m3Cancellation.Cancel();
+            };
             CloseButton.Click += (sender, e) => Close();
             UpdateButton.Click += (sender, e) => OpenProjectUrl("https://github.com/prat89/auto-backlight-for-thinkpad/releases");
         }

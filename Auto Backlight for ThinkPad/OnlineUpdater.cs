@@ -634,10 +634,313 @@ namespace Auto_Backlight_for_ThinkPad
         }
 
 
+        // PHASE30B7C_SIGNED_RELEASE_DOWNLOAD_V1
+        // Verify independently signed release assets *before* downloading an MSI.
+        // This path does not elevate, invoke UpdateHelper, or execute installers.
+        private const string Phase30B7CManifestName = "update-manifest-v1.txt";
+        private const string Phase30B7CSignatureName = "update-manifest-v1.sig";
+        private const int Phase30B7CMaximumManifestBytes = 2048;
+        private const int Phase30B7CMaximumSignatureBytes = 512;
+
+        public enum SignedManifestStatus
+        {
+            Verified,
+            InvalidMetadata,
+            HttpError,
+            InvalidRedirect,
+            Oversize,
+            SignatureRejected,
+            NetworkError
+        }
+
+        // PHASE30B7D2_SIGNED_BUNDLE_STAGING_V1
+        // Authenticated bytes are carried from verification to per-release staging.
+        // This is STILL USER-WRITABLE staging; it is never a privilege boundary.
+        public sealed class SignedManifestResult
+        {
+            public SignedManifestStatus Status { get; private set; }
+            public string Message { get; private set; }
+            public bool IsVerified { get { return Status == SignedManifestStatus.Verified; } }
+            internal byte[] ManifestBytes { get; private set; }
+            internal byte[] SignatureBytes { get; private set; }
+            internal SignedManifestResult(SignedManifestStatus status, string message,
+                byte[] manifest = null, byte[] signature = null)
+            {
+                Status = status;
+                Message = message;
+                if (status == SignedManifestStatus.Verified)
+                {
+                    if (manifest == null || signature == null)
+                        throw new InvalidDataException("Verified release is missing signed asset bytes.");
+                    ManifestBytes = (byte[])manifest.Clone();
+                    SignatureBytes = (byte[])signature.Clone();
+                }
+            }
+        }
+
+        private sealed class Phase30B7CAssetFailure : Exception
+        {
+            internal SignedManifestStatus Status { get; private set; }
+            internal Phase30B7CAssetFailure(SignedManifestStatus status) { Status = status; }
+        }
+
+        private static Uri Phase30B7CAssetUrl(Downloadable candidate, string assetName)
+        {
+            // Phase30B4ValidUpdate enforces the exact repository/tag/MSI URL shape.
+            if (!Phase30B4ValidUpdate(candidate) ||
+                (assetName != Phase30B7CManifestName && assetName != Phase30B7CSignatureName))
+                throw new InvalidDataException("Release metadata does not identify a trusted asset location.");
+            string url = candidate.Url.AbsoluteUri;
+            int slash = url.LastIndexOf('/');
+            if (slash <= 0) throw new InvalidDataException("Unexpected release asset URL.");
+            Uri result = new Uri(url.Substring(0, slash + 1) + assetName, UriKind.Absolute);
+            if (result.Scheme != Uri.UriSchemeHttps || !result.IsDefaultPort ||
+                !String.Equals(result.Host, "github.com", StringComparison.OrdinalIgnoreCase) ||
+                !String.IsNullOrEmpty(result.Query) || !String.IsNullOrEmpty(result.Fragment))
+                throw new InvalidDataException("Invalid signed asset origin.");
+            return result;
+        }
+
+        private async Task<byte[]> Phase30B7CReadBoundedAssetAsync(Uri origin, int limit,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            Uri current = origin;
+            for (int i = 0; i <= Phase30B4MaximumRedirects; i++)
+            {
+                HttpResponseMessage response;
+                using (var request = new HttpRequestMessage(HttpMethod.Get, current))
+                {
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                    response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
+                        cancellationToken).ConfigureAwait(false);
+                }
+                using (response)
+                {
+                    int code = (int)response.StatusCode;
+                    if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308)
+                    {
+                        if (response.Headers.Location == null || i == Phase30B4MaximumRedirects)
+                            throw new Phase30B7CAssetFailure(SignedManifestStatus.InvalidRedirect);
+                        Uri location = response.Headers.Location.IsAbsoluteUri
+                            ? response.Headers.Location : new Uri(current, response.Headers.Location);
+                        if (!Phase30B4SafeRedirect(location, origin))
+                            throw new Phase30B7CAssetFailure(SignedManifestStatus.InvalidRedirect);
+                        current = location;
+                        continue;
+                    }
+                    if (response.StatusCode != HttpStatusCode.OK || response.Content == null)
+                        throw new Phase30B7CAssetFailure(SignedManifestStatus.HttpError);
+                    if (response.Content.Headers.ContentLength.HasValue &&
+                        response.Content.Headers.ContentLength.Value > limit)
+                        throw new Phase30B7CAssetFailure(SignedManifestStatus.Oversize);
+                    using (Stream stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var destination = new MemoryStream())
+                    {
+                        byte[] buffer = new byte[1024];
+                        int count;
+                        while ((count = await stream.ReadAsync(buffer, 0, buffer.Length,
+                            cancellationToken).ConfigureAwait(false)) > 0)
+                        {
+                            if (destination.Length + count > limit)
+                                throw new Phase30B7CAssetFailure(SignedManifestStatus.Oversize);
+                            destination.Write(buffer, 0, count);
+                        }
+                        return destination.ToArray();
+                    }
+                }
+            }
+            throw new Phase30B7CAssetFailure(SignedManifestStatus.InvalidRedirect);
+        }
+
+        /// <summary>Fetches the expected release .txt/.sig and verifies the embedded publisher key.
+        /// Does not download or execute an installer. Missing or invalid signature is fail-closed.
+        /// </summary>
+        public async Task<SignedManifestResult> VerifyRemoteReleaseAsync(Downloadable candidate,
+            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (_disposed) throw new ObjectDisposedException("OnlineUpdater");
+            if (!Phase30B4ValidUpdate(candidate) || String.IsNullOrEmpty(candidate.Sha256Digest) ||
+                !Regex.IsMatch(candidate.Sha256Digest, "^[0-9a-fA-F]{64}$", RegexOptions.CultureInvariant))
+                return new SignedManifestResult(SignedManifestStatus.InvalidMetadata,
+                    "Release metadata is missing or invalid.");
+            try
+            {
+                using (var timeout = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                {
+                    timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                    byte[] manifest = await Phase30B7CReadBoundedAssetAsync(
+                        Phase30B7CAssetUrl(candidate, Phase30B7CManifestName),
+                        Phase30B7CMaximumManifestBytes, timeout.Token).ConfigureAwait(false);
+                    byte[] signature = await Phase30B7CReadBoundedAssetAsync(
+                        Phase30B7CAssetUrl(candidate, Phase30B7CSignatureName),
+                        Phase30B7CMaximumSignatureBytes, timeout.Token).ConfigureAwait(false);
+                    string status;
+                    if (!VerifySignedManifestForDiscoveredRelease(candidate, manifest, signature, out status))
+                        return new SignedManifestResult(SignedManifestStatus.SignatureRejected,
+                            "Publisher signature or signed release metadata was rejected.");
+                    return new SignedManifestResult(SignedManifestStatus.Verified,
+                        "Publisher-signed release manifest verified.", manifest, signature);
+                }
+            }
+            catch (Phase30B7CAssetFailure ex)
+            {
+                return new SignedManifestResult(ex.Status,
+                    "Signed release asset unavailable or invalid (" + ex.Status + ").");
+            }
+            catch (InvalidDataException)
+            {
+                return new SignedManifestResult(SignedManifestStatus.InvalidMetadata,
+                    "Signed release asset URL is invalid.");
+            }
+            catch (OperationCanceledException)
+            {
+                return new SignedManifestResult(SignedManifestStatus.NetworkError,
+                    "Signed release request timed out or was cancelled.");
+            }
+            catch (HttpRequestException)
+            {
+                return new SignedManifestResult(SignedManifestStatus.NetworkError,
+                    "Could not fetch signed release assets.");
+            }
+            catch (IOException)
+            {
+                return new SignedManifestResult(SignedManifestStatus.NetworkError,
+                    "Could not read signed release assets.");
+            }
+        }
+
+        // PHASE30B7D2_SIGNED_BUNDLE_STAGE_METHOD_V1
+        // Manifest/signature and MSI are preserved in the same GUID folder for independent helper
+        // assessment. This folder is controlled by the signed-in user, NOT an elevated installer.
+        private static bool Phase30B7D2ExpectedStageDirectory(string msiPath)
+        {
+            if (String.IsNullOrEmpty(msiPath)) return false;
+            string root = Path.GetFullPath(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Auto Backlight for ThinkPad", "UpdateStaging"));
+            string folder = Path.GetDirectoryName(Path.GetFullPath(msiPath));
+            if (!String.Equals(Path.GetDirectoryName(folder), root,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !Regex.IsMatch(Path.GetFileName(folder), "^[0-9a-f]{32}$", RegexOptions.CultureInvariant))
+                return false;
+            if ((File.GetAttributes(folder) & FileAttributes.ReparsePoint) != 0 ||
+                (File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
+                return false;
+            return true;
+        }
+
+        private static void Phase30B7D2WriteNewSmallFile(string path, byte[] data, int limit)
+        {
+            if (data == null || data.Length == 0 || data.Length > limit)
+                throw new InvalidDataException("Signed release asset exceeds the expected length.");
+            using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                stream.Write(data, 0, data.Length);
+                stream.Flush(true);
+            }
+        }
+
+        /// <summary>Fetches the verified manifest/signature and MSI into ONE user-writable folder.
+        /// This is not protected staging, never elevates, never runs an MSI, and must never be
+        /// treated as approval to install. Future privileged helper must independently authenticate
+        /// and securely copy/rehash each asset before executing any installer.</summary>
+        public async Task<StageResult> StageSignedMsiAsync(Downloadable candidate,
+            System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            SignedManifestResult trust = await VerifyRemoteReleaseAsync(candidate,
+                cancellationToken).ConfigureAwait(false);
+            if (!trust.IsVerified)
+                return new StageResult(StageStatus.InvalidMetadata,
+                    "Publisher-signed release verification failed; MSI download refused.");
+            StageResult msi = await StageMsiAsync(candidate, cancellationToken).ConfigureAwait(false);
+            if (msi.Status != StageStatus.Staged) return msi;
+            string stagedFolder = null;
+            bool complete = false;
+            try
+            {
+                if (!Phase30B7D2ExpectedStageDirectory(msi.Path))
+                    throw new InvalidDataException("Unexpected unsigned staging location.");
+                stagedFolder = Path.GetDirectoryName(Path.GetFullPath(msi.Path));
+                string manifestPath = Path.Combine(stagedFolder, Phase30B7CManifestName);
+                string signaturePath = Path.Combine(stagedFolder, Phase30B7CSignatureName);
+                Phase30B7D2WriteNewSmallFile(manifestPath, trust.ManifestBytes,
+                    Phase30B7CMaximumManifestBytes);
+                Phase30B7D2WriteNewSmallFile(signaturePath, trust.SignatureBytes,
+                    Phase30B7CMaximumSignatureBytes);
+                byte[] savedManifest = File.ReadAllBytes(manifestPath);
+                byte[] savedSignature = File.ReadAllBytes(signaturePath);
+                string outcome;
+                if (!VerifySignedManifestForDiscoveredRelease(candidate, savedManifest,
+                    savedSignature, out outcome))
+                    throw new InvalidDataException("Staged release signature was not verified.");
+                using (var file = new FileStream(msi.Path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                {
+                    if (file.Length != msi.SizeBytes || file.Length != candidate.AssetSizeBytes ||
+                        !String.Equals(BitConverter.ToString(sha.ComputeHash(file)).Replace("-", ""),
+                            candidate.Sha256Digest, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("Staged MSI does not match signed manifest.");
+                }
+                complete = true;
+                return new StageResult(StageStatus.Staged,
+                    "Signed release bundle staged for independent assessment only; not installable yet.",
+                    msi.Path, msi.Sha256, msi.SizeBytes);
+            }
+            catch (IOException)
+            {
+                return new StageResult(StageStatus.IoError, "Unable to persist signed release bundle.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return new StageResult(StageStatus.IoError, "Signed release staging access denied.");
+            }
+            catch (InvalidDataException)
+            {
+                return new StageResult(StageStatus.InvalidMetadata, "Signed release bundle integrity failure.");
+            }
+            finally
+            {
+                // Delete ONLY our newly created GUID folder, never a caller-provided arbitrary path.
+                if (!complete && stagedFolder != null)
+                {
+                    try
+                    {
+                        if (Phase30B7D2ExpectedStageDirectory(msi.Path))
+                            Directory.Delete(stagedFolder, true);
+                    }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+            }
+        }
+
         /// <summary>Phase 30B.1 explicitly cannot download or execute an installer.</summary>
         public Task<bool> DownloadVersion(Downloadable update)
         {
             return Task.FromResult(false);
+        }
+
+        // PHASE30B7B_SIGNED_MANIFEST_BRIDGE_V1 - verification only; no MSI execution.
+        // The next phase must fetch both assets from the same release and call this BEFORE trusting the MSI.
+        public static bool VerifySignedManifestForDiscoveredRelease(Downloadable candidate,
+            byte[] manifestBytes, byte[] signatureBase64Bytes, out string status)
+        {
+            try
+            {
+                if (candidate == null) throw new InvalidDataException("Missing candidate release.");
+                Phase30B7BVerifiedManifest signed = Phase30B7BReleaseManifestTrust.Verify(
+                    manifestBytes, signatureBase64Bytes);
+                Phase30B7BReleaseManifestTrust.AssertMatchesMetadata(signed,
+                    candidate.Version, candidate.AssetName, candidate.Sha256Digest, candidate.AssetSizeBytes);
+                status = "SIGNED_MANIFEST_MATCH=TRUE";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Fail closed and keep status independent of attacker-controlled input strings.
+                status = "SIGNED_MANIFEST_MATCH=FALSE; ERROR=" + ex.GetType().Name;
+                return false;
+            }
         }
 
         public void Dispose()

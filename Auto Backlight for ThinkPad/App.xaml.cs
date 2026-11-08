@@ -412,6 +412,24 @@ namespace Auto_Backlight_for_ThinkPad
             _settings.PropertyChanged += _Settings_PropertyChanged;
             _settings.Update();
             DiagnosticsLog.Info("Startup event: settings applied");
+            // PHASE30B7D6M3F1_COOPERATIVE_ENDPOINT_START
+            // App exits through its ordinary Shutdown()/Exit handlers, not Kill().
+            try
+            {
+                bool ready = Phase30B7D6M3FCooperativeShutdown.StartForApp(() =>
+                {
+                    Dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() =>
+                    {
+                        if (!Dispatcher.HasShutdownStarted && !Dispatcher.HasShutdownFinished)
+                            Shutdown();
+                    }));
+                });
+                if (!ready) DiagnosticsLog.Info("Cooperative update exit: endpoint unavailable");
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Cooperative update exit: registration failed", ex);
+            }
             // Phase 30B.2: queue metadata-only check after startup; never block driver initialization.
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
                 new Action(_Phase30B2CheckAtStartupAsync));
@@ -655,6 +673,9 @@ namespace Auto_Backlight_for_ThinkPad
         // Stop and cleanup on app exit
         private void _Exiting(object sender, ExitEventArgs e)
         {
+            // PHASE30B7D6M3F1_COOPERATIVE_ENDPOINT_STOP
+            try { Phase30B7D6M3FCooperativeShutdown.StopForApp(); }
+            catch (Exception ex) { DiagnosticsLog.Error("Cooperative update exit: cleanup failed", ex); }
             if (_phase30aThemeRetryTimer != null)
             {
                 try { _phase30aThemeRetryTimer.Stop(); }

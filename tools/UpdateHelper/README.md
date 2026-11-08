@@ -114,3 +114,32 @@ UpdateHelper.exe --execute --msi PATH --sha256 SHA --expected 1.3.8
 ```
 
 Both return a nonzero status if 1.3.8 is already installed. No automatic update is enabled.
+
+
+## Phase 30B7D.1 — independently signed read-only assessment
+
+Build the standalone helper from **both** `tools/UpdateHelper/Program.cs` and
+`Auto Backlight for ThinkPad/ReleaseManifestTrust.cs`, using a trusted local
+compiler. The helper now supports:
+
+```
+--signed-assess --manifest PATH --signature PATH --msi PATH
+```
+
+Unlike older `--assess` modes, this command does NOT accept a user-supplied
+SHA-256 or version as authorization. It verifies the same fixed RSA-3072
+public key as the app, the detached signature, exact manifest schema, current
+Windows Installer registration, MSI file digest/size, package metadata and a
+changed ProductCode. Manifest, signature and MSI must be adjacent in the
+current user's UpdateStaging per-release directory. Only properly named
+`update-manifest-v1.txt` and `update-manifest-v1.sig` are accepted.
+
+**Security boundary:** This is read-only inspection of unprivileged staging.
+It is NOT a privileged installation authorization; the files can still be
+replaced between assessment and an eventual install. The helper does not
+copy to ACL-protected storage, elevate, shut down the app or invoke msiexec.
+The pre-existing `--execute` remains blocked. For production: re-verify all
+assets in a trusted elevated process after copying into a strictly
+admin-controlled, non-reparse protected staging directory and then install
+from that protected copy. A runtime build of this helper is not yet part of
+`.sln` or `.vdproj`; separate packaging work remains.

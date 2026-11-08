@@ -523,6 +523,87 @@ namespace AutoBacklightUpdateHelper
             return 7;
         }
 
+        // PHASE30B7D1_INDEPENDENT_SIGNED_ASSESS_V1
+        // This is a read-only trust boundary. It NEVER launches msiexec or elevates privileges.
+        // Never treat signed-assess=PASS as permission to install from user-writable staging.
+        private static byte[] ReadSmallSignedAsset(string path, string expectedName, int maximum)
+        {
+            string full = Path.GetFullPath(path);
+            if (!String.Equals(Path.GetFileName(full), expectedName, StringComparison.Ordinal))
+                throw new InvalidOperationException("Unexpected signed asset filename.");
+            if ((File.GetAttributes(full) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException("Signed asset must not be a reparse point.");
+            using (var input = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (input.Length == 0 || input.Length > maximum)
+                    throw new InvalidOperationException("Signed asset size outside limit.");
+                byte[] result = new byte[(int)input.Length];
+                int position = 0;
+                while (position < result.Length)
+                {
+                    int count = input.Read(result, position, result.Length - position);
+                    if (count <= 0) throw new EndOfStreamException("Truncated signed asset.");
+                    position += count;
+                }
+                return result;
+            }
+        }
+
+        private static int SignedAssess(string[] args)
+        {
+            string manifestPath = Path.GetFullPath(RequireArg(args, "--manifest"));
+            string signaturePath = Path.GetFullPath(RequireArg(args, "--signature"));
+            string msiPath = Path.GetFullPath(RequireArg(args, "--msi"));
+            string parent = Path.GetDirectoryName(msiPath);
+            if (!String.Equals(Path.GetDirectoryName(manifestPath), parent, StringComparison.OrdinalIgnoreCase) ||
+                !String.Equals(Path.GetDirectoryName(signaturePath), parent, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Manifest, signature and MSI must share one staging directory.");
+            if (!Directory.Exists(parent) || (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException("Unexpected staging directory.");
+            string[] parents = { Path.GetDirectoryName(parent), Path.GetDirectoryName(Path.GetDirectoryName(parent)) };
+            foreach (string directory in parents)
+                if (String.IsNullOrEmpty(directory) || !Directory.Exists(directory) ||
+                    (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidOperationException("Unsafe staging parent directory.");
+
+            byte[] manifestBytes = ReadSmallSignedAsset(manifestPath, "update-manifest-v1.txt", 2048);
+            byte[] signatureBytes = ReadSmallSignedAsset(signaturePath, "update-manifest-v1.sig", 512);
+            Auto_Backlight_for_ThinkPad.Phase30B7BVerifiedManifest signed =
+                Auto_Backlight_for_ThinkPad.Phase30B7BReleaseManifestTrust.Verify(manifestBytes, signatureBytes);
+            Console.WriteLine("SIGNED_MANIFEST_VERIFIED=TRUE");
+            Console.WriteLine("PINNED_PUBLIC_CERT_SHA256=" +
+                Auto_Backlight_for_ThinkPad.Phase30B7BReleaseManifestTrust.PublicCertificateSha256);
+            ValidateStagingPath(msiPath, signed.Version);
+            InstalledProduct installed = ReadActualInstallation();
+            if (installed == null)
+                throw new InvalidOperationException("Application is not installed.");
+            Console.WriteLine("ACTUAL_INSTALLED_VERSION=" + installed.Version.ToString(3));
+            if (signed.Version.CompareTo(installed.Version) <= 0)
+            {
+                Console.WriteLine("PHASE30B7D1_SIGNED_ASSESS=NOT_NEWER");
+                Console.WriteLine("MSI_EXECUTED=FALSE");
+                return 3;
+            }
+            long length;
+            string calculatedHash = CalculateHash(msiPath, out length);
+            if (length != signed.SizeBytes ||
+                !String.Equals(calculatedHash, signed.Sha256, StringComparison.Ordinal))
+                throw new InvalidOperationException("Signed MSI size or digest mismatch.");
+            string[] check = { "--preflight", "--msi", msiPath,
+                "--sha256", signed.Sha256, "--current", installed.Version.ToString(3),
+                "--expected", signed.Version.ToString(3) };
+            int status = Preflight(check);
+            if (status != 0) throw new InvalidOperationException("MSI preflight rejected the signed package.");
+            string code = ReadMsi(msiPath, "ProductCode");
+            if (String.Equals(code, installed.Code, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Major upgrade requires a new ProductCode.");
+            Console.WriteLine("PHASE30B7D1_SIGNED_ASSESS=PASS");
+            Console.WriteLine("STAGING_TRUST_LEVEL=USER_WRITABLE_NOT_EXECUTION_SAFE");
+            Console.WriteLine("INSTALL_CAPABILITY=DISABLED");
+            Console.WriteLine("MSI_EXECUTED=FALSE");
+            return 0;
+        }
+
         // Phase 30B.5B: plan-only installer orchestration. Never executes msiexec.
         private static string QuoteWindowsArgument(string value)
         {
@@ -599,6 +680,7 @@ namespace AutoBacklightUpdateHelper
                 if (args.Length == 9 && args[0] == "--plan") return PlanInstall(args);
                 if (args.Length == 1 && args[0] == "--inventory") return Inventory();
                 if (args.Length == 7 && args[0] == "--assess") return AssessActualUpgrade(args);
+                if (args.Length == 7 && args[0] == "--signed-assess") return SignedAssess(args);
                 if (args.Length == 7 && args[0] == "--readiness") return ControlledUpgrade(args, false);
                 if (args.Length == 7 && args[0] == "--execute") return ControlledUpgrade(args, true);
                 if (args.Length >= 1 && args[0] == "--execute") return DenyExecution();
@@ -608,6 +690,7 @@ namespace AutoBacklightUpdateHelper
                 Console.Error.WriteLine("   or: UpdateHelper.exe --plan --msi PATH --sha256 HASH --current 1.3.7 --expected 1.3.8");
                 Console.Error.WriteLine("   or: UpdateHelper.exe --simulate-exit 3010");
                 Console.Error.WriteLine("   or: UpdateHelper.exe --inventory");
+                Console.Error.WriteLine("   or: UpdateHelper.exe --signed-assess --manifest PATH --signature PATH --msi PATH (READ ONLY)");
                 Console.Error.WriteLine("   or: UpdateHelper.exe --assess --msi PATH --sha256 HASH --expected 1.3.9");
                 Console.Error.WriteLine("   or: UpdateHelper.exe --readiness --msi PATH --sha256 HASH --expected 1.3.9");
                 Console.Error.WriteLine("   or: UpdateHelper.exe --execute --msi PATH --sha256 HASH --expected 1.3.9 (BLOCKED until protected staging + publisher signing)");

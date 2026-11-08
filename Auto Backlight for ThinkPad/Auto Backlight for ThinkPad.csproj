@@ -118,6 +118,7 @@
     </Reference>
     <Reference Include="ReachFramework" />
     <Reference Include="System" />
+    <Reference Include="System.Core" />
     <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -154,6 +155,29 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="OnlineUpdater.cs" />
+    <Compile Include="ReleaseManifestTrust.cs" />
+    <Compile Include="SingleExeUpdateAssessment.cs" />
+    <Compile Include="MsiIdentityReadOnly.cs" />
+    <Compile Include="ProtectedUpdateStaging.cs" />
+    <Compile Include="InstalledMsiGuard.cs" />
+    <Compile Include="SingleExeUacProbe.cs" />
+    <Compile Include="SingleExeStageUacHandoff.cs" />
+    <Compile Include="SingleExeDetachedLab.cs" />
+    <Compile Include="ProtectedInstallPreflight.cs" />
+    <Compile Include="ProtectedTransactionHandoffLab.cs" />
+    <Compile Include="ProtectedMsiExecutorLab.cs" />
+    <Compile Include="Phase30B7D6MReleaseSafetyGate.cs" />
+    <Compile Include="Phase30B7D6M2TrustedUacBoundary.cs" />
+    <Compile Include="Phase30B7D6M3SignedDownloadUiPolicy.cs" />
+    <Compile Include="Phase30B7D6M3BLocalReview.cs" />
+    <Compile Include="Phase30B7D6M3CProtectedHandoff.cs" />
+    <Compile Include="Phase30B7D6M3DProtectedPreflightUi.cs" />
+    <Compile Include="Phase30B7D6M3EInstallConsentGate.cs" />
+    <Compile Include="Phase30B7D6M3FCooperativeShutdown.cs" />
+    <Compile Include="Phase30B7D6M3F2ShutdownCoordinator.cs" />
+    <Compile Include="Phase30B7D6M3F3DetachedWorkerGate.cs" />
+    <Compile Include="Phase30B7D6M3F4WorkerPrelaunchContract.cs" />
+    <Compile Include="Phase30BProductionInstaller.cs" />
     <Compile Include="PowerManagement\NativeMethods.cs" />
     <Compile Include="PowerManagement\PowerManagement.cs" />
     <Compile Include="Program.cs" />

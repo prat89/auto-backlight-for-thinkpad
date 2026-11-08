@@ -109,9 +109,9 @@ limitations under the License.
                 <ColumnDefinition/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Content="Install updates automatically"
+            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Content="Auto-install preference (not active)"
                       HorizontalAlignment="Left" VerticalAlignment="Center"
-                      ToolTip="Saves your preference. Automatic MSI installation is NOT active in this version."/>
+                      ToolTip="Saves preference for a future release. In 1.3.9, installation requires explicit confirmation."/>
             <Button Grid.Column="1" Name="CheckUpdatesButton" Template="{StaticResource button}"
                     HorizontalAlignment="Right" VerticalAlignment="Center" Content="Check for updates"
                     ToolTip="Check GitHub Releases for a newer stable MSI (metadata only)"
@@ -119,7 +119,37 @@ limitations under the License.
         </Grid>
         <TextBlock Name="UpdateStatusText" Margin="1,4,0,0" FontSize="11"
                    Foreground="#FFC7CDD8" TextWrapping="Wrap"
-                   Text="Automatic MSI installation is not active yet. The checkbox saves your preference for a future update."/>
+                   Text="Updater: download and verify a signed MSI, then approve installation explicitly. Background auto-install is not enabled."/>
+        <!-- PHASE30B7D6M3A_EXPLICIT_SIGNED_STAGE_BUTTON_V1: manual download ONLY -->
+        <Button Name="PrepareSignedMsiButton" Template="{StaticResource button}"
+                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Content="Download &amp; verify MSI" Height="25" Width="165"
+                Visibility="Collapsed"
+                ToolTip="Explicitly download a publisher-signed bundle for verification. Never installs."/>
+        <!-- PHASE30B7D6M3B_LOCAL_READ_ONLY_REVIEW_BUTTON_V1 -->
+        <Button Name="ReviewSignedMsiButton" Template="{StaticResource button}"
+                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Content="Verify staged MSI again" Height="25" Width="165"
+                Visibility="Collapsed"
+                ToolTip="Read-only re-verification of publisher signature and MSI integrity. Never installs."/>
+        <!-- PHASE30B7D6M3C_TRUSTED_PROTECTED_COPY_BUTTON_V1 -->
+        <Button Name="PrepareProtectedMsiButton" Template="{StaticResource button}"
+                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Content="Prepare protected MSI" Height="25" Width="165"
+                Visibility="Collapsed"
+                ToolTip="With your consent, copy verified MSI into administrator-protected storage. Does NOT install."/>
+        <!-- PHASE30B7D6M3D_READONLY_PROTECTED_PREFLIGHT_BUTTON_V1 -->
+        <Button Name="ReviewProtectedMsiButton" Template="{StaticResource button}"
+                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Content="Review installation plan" Height="25" Width="185"
+                Visibility="Collapsed"
+                ToolTip="Read-only administrator-verified protected MSI preflight; never installs."/>
+        <!-- PHASE30B7D6M3E_INSTALL_BUTTON_RESERVED_DISABLED_V1 -->
+        <Button Name="InstallVerifiedUpdateButton" Template="{StaticResource button}"
+                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Content="Install verified update" Height="25" Width="185"
+                Visibility="Collapsed" IsEnabled="False"
+                ToolTip="Disabled until the production MSI executor and result reporting are validated."/>
         <Grid Margin="0,15,0,0" HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
