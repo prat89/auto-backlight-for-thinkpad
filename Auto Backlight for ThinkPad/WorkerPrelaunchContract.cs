@@ -18,6 +18,66 @@ namespace Auto_Backlight_for_ThinkPad
         private const string WorkerTemplate = @"# PHASE30B7D6M3F4_PREMSI_READONLY_WORKER_V1
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
+# The system Windows PowerShell host may serialize ordinary startup progress
+# as CLIXML on stderr even when the gate exits 0. Accept ONLY a bounded,
+# well-formed PowerShell CLIXML envelope containing progress stream records.
+# Real errors, mixed streams, plaintext, malformed XML and unknown XML fail closed.
+function Test-OnlyPowerShellProgress([string]$value) {
+    if ([String]::IsNullOrEmpty($value)) { return $true }
+    if ($value.Length -gt 4096 -or $value.Length -lt 11 -or
+        -not $value.StartsWith('#< CLIXML', [StringComparison]::Ordinal)) {
+        return $false
+    }
+    # PowerShell 5.1 typically writes a CRLF after '#< CLIXML'.
+    # Accept CRLF, LF, and the previously supported single space only.
+    # All remaining bytes must still parse as a bounded progress-only XML document.
+    if ($value[9] -eq [char]13 -and $value[10] -eq [char]10) {
+        $xmlText=$value.Substring(11)
+    } elseif ($value[9] -eq [char]10 -or $value[9] -eq [char]32) {
+        $xmlText=$value.Substring(10)
+    } else {
+        return $false
+    }
+    $settings=New-Object System.Xml.XmlReaderSettings
+    $settings.DtdProcessing=[System.Xml.DtdProcessing]::Prohibit
+    $settings.XmlResolver=$null
+    $settings.MaxCharactersInDocument=4096
+    $stringReader=$null; $xmlReader=$null
+    try {
+        $stringReader=New-Object System.IO.StringReader -ArgumentList $xmlText
+        $xmlReader=[System.Xml.XmlReader]::Create($stringReader,$settings)
+        $doc=New-Object System.Xml.XmlDocument
+        $doc.XmlResolver=$null
+        $doc.Load($xmlReader)
+        $root=$doc.DocumentElement
+        if ($null -eq $root -or $root.LocalName -cne 'Objs' -or
+            $root.NamespaceURI -cne 'http://schemas.microsoft.com/powershell/2004/04') {
+            return $false
+        }
+        $count=0
+        foreach ($node in $root.ChildNodes) {
+            if ($node.NodeType -ne [System.Xml.XmlNodeType]::Element -or
+                $node.LocalName -cne 'Obj' -or
+                $node.NamespaceURI -cne $root.NamespaceURI -or
+                $node.GetAttribute('S') -cne 'progress') { return $false }
+            # Require the expected PowerShell progress-record structure.
+            if ($null -eq $node.SelectSingleNode('*[local-name()=''MS'']/*[local-name()=''PR''][@N=''Record'']')) {
+                return $false
+            }
+            $count++
+        }
+        if ($count -lt 1 -or $count -gt 8) { return $false }
+        # Reject any nested object or record marked as a different stream.
+        foreach ($streamNode in $doc.SelectNodes('//*[@S]')) {
+            if ($streamNode.GetAttribute('S') -cne 'progress') { return $false }
+        }
+        return $true
+    } catch { return $false }
+    finally {
+        if ($null -ne $xmlReader) { $xmlReader.Dispose() }
+        if ($null -ne $stringReader) { $stringReader.Dispose() }
+    }
+}
 $encodedGate='__ENCODED_GATE__'
 try {
     $sys=[Environment]::GetFolderPath([Environment+SpecialFolder]::System)
@@ -46,7 +106,7 @@ try {
         $stderr=([string]$child.StandardError.ReadToEnd()).Trim()
     }
     finally { $child.Dispose() }
-    if ($stderr.Length -ne 0) { throw 'PROCESS_GATE_STDERR' }
+    if (-not (Test-OnlyPowerShellProgress $stderr)) { throw 'PROCESS_GATE_STDERR' }
     if ($code -eq 0 -and $stdout -ceq 'PROCESS_GATE=ABSENT;SCANS=3') {
         Write-Output 'PREMSI_GATE=READY'
         exit 0
