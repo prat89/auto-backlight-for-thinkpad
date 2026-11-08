@@ -34,6 +34,8 @@ Owners of ThinkBook, IdeaPad, Yoga, Legion, LOQ, and other Lenovo laptops can he
 
 A successful scan **does not confirm hardware support**. Please review and redact the local JSON and TXT reports before voluntarily sharing them in a [compatibility report issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues/new/choose); the model, BIOS version and firmware metadata can be identifying.
 
+**v1.3.10 release candidate:** prepared solely to validate the signed updater from installed v1.3.9. Do not consider the upgrade path validated before a successful, logged end-to-end installation.
+
 ## Installation
 
 1. Visit [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) and select a release from **this fork** (not upstream).

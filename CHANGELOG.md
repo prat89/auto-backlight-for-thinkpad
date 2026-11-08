@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.10 — 8 November 2026 (candidate; not yet released)
+
+### Updater end-to-end validation release
+- Version-only release candidate to test the published v1.3.9 → v1.3.10 signed GitHub MSI update flow.
+- No changes to updater execution, shutdown, installer logic, or supported hardware.
+- **Validation pending:** public GitHub discovery, signature/SHA-256 checks, protected staging, consent, app shutdown, MSI outcome, settings and Scheduled Task preservation.
+- Manual v1.3.8 → v1.3.9 MSI installation was reported to hang while the app was running; installation succeeded on retry after exit and cancellation. Root cause unconfirmed.
+
+
+
 ## v1.3.9 — 8 November 2026
 
 ### Secure GitHub MSI updater

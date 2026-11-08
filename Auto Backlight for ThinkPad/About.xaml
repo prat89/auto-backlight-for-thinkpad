@@ -111,7 +111,7 @@ limitations under the License.
             </Grid.ColumnDefinitions>
             <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Content="Auto-install preference (not active)"
                       HorizontalAlignment="Left" VerticalAlignment="Center"
-                      ToolTip="Saves preference for a future release. In 1.3.9, installation requires explicit confirmation."/>
+                      ToolTip="Saves preference for a future release. In 1.3.10, installation requires explicit confirmation."/>
             <Button Grid.Column="1" Name="CheckUpdatesButton" Template="{StaticResource button}"
                     HorizontalAlignment="Right" VerticalAlignment="Center" Content="Check for updates"
                     ToolTip="Check GitHub Releases for a newer stable MSI (metadata only)"

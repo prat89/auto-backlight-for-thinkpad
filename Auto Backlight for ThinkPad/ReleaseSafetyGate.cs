@@ -24,7 +24,7 @@ namespace Auto_Backlight_for_ThinkPad
         }
 
         // Release builds include a production update flow and passed a direct
-        // 1.3.8-to-1.3.9-RC MSI upgrade with settings and task preserved.
+        // 1.3.8-to-1.3.9-RC manual MSI upgrade with settings and task preserved.
         // Keep HOLD until an About-driven upgrade to a newer signed public
         // GitHub release has passed end-to-end validation.
         internal static string AuditStatus()
@@ -33,8 +33,8 @@ namespace Auto_Backlight_for_ThinkPad
                 return "BLOCK_UNSAFE_MSI_LAB_COMPILED";
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             if (version == null || version.Major != 1 || version.Minor != 3 ||
-                version.Build != 9 || version.Revision != 0)
-                return "HOLD_ASSEMBLY_VERSION_NOT_1_3_9";
+                version.Build != 10 || version.Revision != 0)
+                return "HOLD_ASSEMBLY_VERSION_NOT_1_3_10";
             return "HOLD_ABOUT_SIGNED_UPDATE_END_TO_END_NOT_VALIDATED";
         }
 
@@ -44,7 +44,7 @@ namespace Auto_Backlight_for_ThinkPad
                 return 10;
             string status = AuditStatus();
             if (status == "BLOCK_UNSAFE_MSI_LAB_COMPILED") return 23;
-            if (status == "HOLD_ASSEMBLY_VERSION_NOT_1_3_9") return 21;
+            if (status == "HOLD_ASSEMBLY_VERSION_NOT_1_3_10") return 21;
             return 22; // End-to-end update unverified; never report a false PASS.
         }
     }
