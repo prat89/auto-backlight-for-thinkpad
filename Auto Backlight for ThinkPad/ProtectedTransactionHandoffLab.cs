@@ -13,7 +13,7 @@ using System.Text;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6HProtectedTransactionHandoffLab
+    internal static class ProtectedTransactionHandoffLab
     {
         internal const string Switch = "--update-detached-preflight-lab";
         internal const string TransactionRootName = "AutoBacklightUpdateTransactions";
@@ -128,7 +128,7 @@ namespace Auto_Backlight_for_ThinkPad
             try
             {
                 // Previously verified stage must contain EXACTLY 3 locked-down files.
-                var plan = Phase30B7D6GProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
+                var plan = ProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
                 string stage = Path.GetDirectoryName(plan.Package);
                 string manifest = Path.Combine(stage, "update-manifest-v1.txt");
                 string signature = Path.Combine(stage, "update-manifest-v1.sig");

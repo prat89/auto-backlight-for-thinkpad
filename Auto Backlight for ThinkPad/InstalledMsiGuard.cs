@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6AInstalledMsiGuard
+    internal static class InstalledMsiGuard
     {
         internal const string AuditSwitch = "--update-installed-audit";
         private const string UpgradeCode = "{A78F780D-063F-4852-AC1B-D20FB7165BA2}";

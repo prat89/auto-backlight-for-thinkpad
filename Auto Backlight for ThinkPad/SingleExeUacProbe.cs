@@ -11,7 +11,7 @@ using System.Security.Principal;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6BUacProbe
+    internal static class UacProbe
     {
         internal const string ParentSwitch = "--update-uac-probe";
         internal const string ChildSwitch = "--update-elevated-probe";

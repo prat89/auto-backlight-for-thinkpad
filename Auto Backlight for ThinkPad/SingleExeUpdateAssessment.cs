@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D3SingleExeUpdateAssessment
+    internal static class SingleExeUpdateAssessment
     {
         internal const string Switch = "--update-assess";
         private const long MaxMsiBytes = 128L * 1024L * 1024L;
@@ -85,7 +85,7 @@ namespace Auto_Backlight_for_ThinkPad
             string signaturePath = Path.Combine(stage, SignatureName);
             byte[] manifest = ReadExactBounded(manifestPath, MaxManifestBytes);
             byte[] signature = ReadExactBounded(signaturePath, SignatureBytes);
-            var verified = Phase30B7BReleaseManifestTrust.Verify(manifest, signature);
+            var verified = ReleaseManifestTrust.Verify(manifest, signature);
             Version installed = Assembly.GetExecutingAssembly().GetName().Version;
             if (installed == null || installed.Build < 0 ||
                 (installed.Revision != 0 && installed.Revision != -1))
@@ -114,7 +114,7 @@ namespace Auto_Backlight_for_ThinkPad
                     throw new InvalidDataException("MSI digest mismatch.");
             }
             // PHASE30B7D4_NATIVE_MSI_IDENTITY_V1
-            Phase30B7D4MsiIdentity.Verify(msiPath, verified.Version);
+            MsiIdentity.Verify(msiPath, verified.Version);
             // Read-only identity validation is done AFTER signature, size and hash checks.
             // Later elevated installation MUST repeat checks on a protected, immutable copy.
         }

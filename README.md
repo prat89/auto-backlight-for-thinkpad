@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns a compatible Lenovo laptop keyboard backlight on when you use the computer, and off after an adjustable period of inactivity.
 
-**Latest stable source version: v1.3.8 (validated 2 November 2026).** This maintenance release updates the WPF tray dependency to Hardcodet.NotifyIcon.Wpf 2.0.1, migrates Calibration to native OxyPlot 2.2.0 `PlotView`/`PlotModel` (removing OxyPlot.Contrib.Wpf), improves webcam exposure restoration, and fixes MSI Error 1001 caused by early Accord.NET type resolution during installation. Accord.NET remains at 3.8.0; the preferred IBMPmDrv and experimental EnergyDrv backends are unchanged. The developer successfully upgraded from v1.3.7 using the final v1.3.8 MSI and verified keyboard illumination, camera brightness, exposure restoration and startup after a Windows restart. See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for **published** installers.
+**Current locally validated release source: v1.3.9 (7 November 2026).** This version introduces an explicitly approved, publisher-signed GitHub MSI update workflow (RSA signature and SHA-256 validation, protected staging, trusted UAC installation worker). The maintainer verified a v1.3.8 → v1.3.9 RC MSI upgrade with settings and Scheduled Task preserved. **End-to-end installation from About to a newer published release is still pending validation.** See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for **published** installers.
 
 ## Features
 
@@ -18,7 +18,7 @@ A lightweight Windows system-tray application that automatically turns a compati
 - **Disable on-screen display** supports compatible Lenovo OSD installations where `HKCU\Software\Lenovo\OnScreenDisplay` exists even when `Enable` is missing. The app does not create a missing `Enable` on startup; a user-initiated toggle can create the DWORD and set `0` (OSD disabled) or `1` (OSD enabled). Its preference is stored separately from legacy settings; behavior depends on the installed Lenovo OSD software.
 - **Modern tray menu** (v1.3.0), with Hardcodet.NotifyIcon.Wpf updated to 2.0.1 in v1.3.8. The context menu was verified to open on the maintainer's development EXE; other DPI and Windows configurations are not yet exhaustively tested.
 - **Driver backends (unchanged in v1.3.8):** `IBMPmDrv` is preferred; experimental `EnergyDrv` v1/v2 and the guarded capability-based variant remain fallback options. EnergyDrv has not been verified on physical EnergyDrv hardware. No Lenovo drivers or Vantage DLLs are bundled.
-- Improved settings persistence and validation, including compatibility recovery for previously saved settings. Legacy in-app automatic updater remains disabled.
+- Improved settings persistence and validation, including compatibility recovery for previously saved settings. The legacy upstream updater remains disabled; the new signed updater requires explicit install approval.
 
 ## Compatibility
 
@@ -49,7 +49,7 @@ A successful scan **does not confirm hardware support**. Please review and redac
 
 To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
 
-**Updates:** the original application's automatic download/uninstall/install updater is disabled in this fork. Check the fork's [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) page manually; do not use an original-project MSI as an update to this fork.
+**Updates (v1.3.9):** open **About → Check for updates** to discover newer stable releases of this fork. Signed MSI download, local verification and installation require separate explicit user actions. The public-release end-to-end update path is pending validation; manual installation from [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) remains supported. The original upstream updater is disabled. Do not install upstream MSI packages as updates to this fork.
 
 **v1.3.8 validated upgrade (2 November 2026):** The maintainer successfully completed a v1.3.7 → v1.3.8 MSI upgrade on the ThinkPad X1 Extreme Gen 2. The EXE extracted from the final MSI matched the tested Release EXE (SHA-256 `45510B15D235E5FD352D5BBF38922FD3C83E7E24C51CC0877273829A3406ACF8`), and all 119 application types loaded during resolver-free .NET reflection. The application, keyboard lighting, camera-controlled screen brightness, exposure restoration and startup after Windows restart were confirmed working. This does not claim comprehensive clean-install or cross-device validation; the installed EXE hash was not separately recorded for this upgrade.
 
@@ -87,7 +87,7 @@ To uninstall, exit the application first, then use **Windows Settings > Apps > I
 
 ## Development and releases
 
-The historical `v4.x`, `v5.x`, `v6.0` and `Phase` labels are internal development milestones, not public tags. The latest locally validated stable source version is **v1.3.8**. See [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for actual published installers. This release updates the tray dependency and Calibration plotting stack, and fixes camera exposure restoration; it does not expand the experimental EnergyDrv hardware compatibility claim.
+The historical `v4.x`, `v5.x`, `v6.0` and `Phase` labels are internal development milestones, not public tags. The latest locally validated release source is **v1.3.9**. See [GitHub Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for actual published installers. The signed updater is opt-in per installation and its full public-release end-to-end flow is pending verification. Compatibility claims for experimental EnergyDrv remain unchanged.
 
 See [CHANGELOG.md](CHANGELOG.md) for historical releases and [COMPATIBILITY.md](COMPATIBILITY.md) for verified hardware and historical MSI tests. Installation on one machine does not establish support across all ThinkPads or power transitions. Earlier MSI builds were not digitally signed; confirm the signing status of each download rather than assuming an authenticated publisher. GitHub Releases are authoritative for published release assets.
 

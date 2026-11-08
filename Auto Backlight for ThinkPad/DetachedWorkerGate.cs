@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3F3DetachedWorkerGate
+    internal static class DetachedWorkerGate
     {
         private const string ProductionProcessName = "Auto Backlight for ThinkPad";
         private const int ProductionPasses = 3;

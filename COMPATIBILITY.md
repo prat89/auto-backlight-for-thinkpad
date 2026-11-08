@@ -88,6 +88,13 @@ The developer-verified table remains limited to the X1 Extreme Gen 2. A communit
 - The fixed EXE stores the saved flag value as `int`, converts it to the enum only when restoring camera exposure, and loads all 119 application types without an assembly resolver.
 - A direct v1.3.7 → v1.3.8 MSI upgrade succeeded on the verified ThinkPad, with working keyboard backlight, camera-driven brightness, exposure restoration and Windows restart startup. Testing does not establish compatibility with all webcam exposure drivers, EnergyDrv hardware or every legacy settings combination.
 
+## v1.3.9 local upgrade and updater validation (7 November 2026)
+
+- On the maintainer's ThinkPad X1 Extreme Gen 2, an MSI major upgrade from verified official v1.3.8 to v1.3.9 RC completed with MSI return code 0 and no reboot required.
+- The installed product identity, application version, user settings and logon Scheduled Task passed post-upgrade checks; tray, backlight and built-in/external input activity worked in a subsequent manual check.
+- Signed GitHub MSI download and protected install flows passed source/build/negative checks, but an actual interactive update through About to a newer signed public release has **not** yet completed end-to-end validation.
+- This single-device result does not establish compatibility with other Lenovo hardware, EnergyDrv-backed models, every upgrade path or full unattended MSI installation.
+
 ## Known limits
 
 - **EnergyDrv is experimental.** Only recognized legacy v1/v2 replies or the exact guarded three-state capability/status replies are supported. Unknown/Auto responses are rejected without exploratory writes. Other EnergyDrv variants, Lenovo Lighting WMI protocols and RGB control are not claimed.

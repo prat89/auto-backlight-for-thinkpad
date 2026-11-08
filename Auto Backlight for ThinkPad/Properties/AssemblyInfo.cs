@@ -50,7 +50,7 @@ using System.Windows;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.3.9.0")]
 [assembly: AssemblyFileVersion("1.3.9.0")]
-[assembly: AssemblyInformationalVersion("1.3.9-rc.1")]
+[assembly: AssemblyInformationalVersion("1.3.9")]
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
 #else

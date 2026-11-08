@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3SignedDownloadUiPolicy
+    internal static class SignedDownloadUiPolicy
     {
         internal static bool ProductionMsiInstallationEnabled { get { return false; } }
 

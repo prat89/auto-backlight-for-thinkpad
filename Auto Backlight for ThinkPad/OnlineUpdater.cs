@@ -35,7 +35,7 @@ using System.Threading.Tasks;
 namespace Auto_Backlight_for_ThinkPad
 {
     /// <summary>Independent update UI preferences. Never touches legacy serialized Settings.</summary>
-    public static class Phase30B2UpdatePreferences
+    public static class UpdaterPreferences
     {
         private const string RegistryPath = @"Software\Auto Backlight for ThinkPad";
         private const string AutoInstallValue = "AutoInstallUpdates";
@@ -422,9 +422,9 @@ namespace Auto_Backlight_for_ThinkPad
         // PHASE30B4_VERIFIED_MSI_STAGING_V1
         // Stages a downloaded MSI only; never launches msiexec, exits the app, or elevates.
         // GitHub's digest detects accidental replacement/corruption; it is NOT a publisher signature.
-        private const long Phase30B4MaximumMsiBytes = 128L * 1024L * 1024L;
-        private const int Phase30B4MaximumRedirects = 5;
-        private static readonly byte[] Phase30B4CompoundFileMagic =
+        private const long UpdaterMaximumMsiBytes = 128L * 1024L * 1024L;
+        private const int MaximumRedirects = 5;
+        private static readonly byte[] CompoundFileMagic =
             { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
 
         public enum StageStatus
@@ -459,10 +459,10 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private static bool Phase30B4ValidUpdate(Downloadable update)
+        private static bool ValidUpdate(Downloadable update)
         {
             if (update == null || update.Version == null || update.Url == null ||
-                update.AssetSizeBytes < 8 || update.AssetSizeBytes > Phase30B4MaximumMsiBytes ||
+                update.AssetSizeBytes < 8 || update.AssetSizeBytes > UpdaterMaximumMsiBytes ||
                 !IsKnownMsiAssetName(update.AssetName)) return false;
             Uri url = update.Url;
             if (url.Scheme != Uri.UriSchemeHttps || !url.IsDefaultPort ||
@@ -482,7 +482,7 @@ namespace Auto_Backlight_for_ThinkPad
                 String.Equals(assetName, update.AssetName, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool Phase30B4SafeRedirect(Uri destination, Uri original)
+        private static bool SafeRedirect(Uri destination, Uri original)
         {
             if (destination == null || destination.Scheme != Uri.UriSchemeHttps ||
                 !destination.IsDefaultPort || !String.IsNullOrEmpty(destination.UserInfo) ||
@@ -501,7 +501,7 @@ namespace Auto_Backlight_for_ThinkPad
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (_disposed) throw new ObjectDisposedException("OnlineUpdater");
-            if (!Phase30B4ValidUpdate(update))
+            if (!ValidUpdate(update))
                 return new StageResult(StageStatus.InvalidMetadata, "Invalid release asset metadata.");
             if (String.IsNullOrEmpty(update.Sha256Digest) ||
                 !Regex.IsMatch(update.Sha256Digest, "^[0-9a-fA-F]{64}$", RegexOptions.CultureInvariant))
@@ -516,7 +516,7 @@ namespace Auto_Backlight_for_ThinkPad
                     timeout.CancelAfter(TimeSpan.FromMinutes(2));
                     Uri current = update.Url;
                     HttpResponseMessage final = null;
-                    for (int redirectCount = 0; redirectCount <= Phase30B4MaximumRedirects; redirectCount++)
+                    for (int redirectCount = 0; redirectCount <= MaximumRedirects; redirectCount++)
                     {
                         HttpResponseMessage response;
                         using (var request = new HttpRequestMessage(HttpMethod.Get, current))
@@ -532,10 +532,10 @@ namespace Auto_Backlight_for_ThinkPad
                         {
                             Uri location = response.Headers.Location;
                             response.Dispose();
-                            if (location == null || redirectCount == Phase30B4MaximumRedirects)
+                            if (location == null || redirectCount == MaximumRedirects)
                                 return new StageResult(StageStatus.InvalidRedirect, "Missing or excessive redirect.");
                             Uri next = location.IsAbsoluteUri ? location : new Uri(current, location);
-                            if (!Phase30B4SafeRedirect(next, update.Url))
+                            if (!SafeRedirect(next, update.Url))
                                 return new StageResult(StageStatus.InvalidRedirect, "Untrusted redirect target.");
                             current = next;
                             continue;
@@ -574,7 +574,7 @@ namespace Auto_Backlight_for_ThinkPad
                             {
                                 bytesReadTotal += count;
                                 if (bytesReadTotal > update.AssetSizeBytes ||
-                                    bytesReadTotal > Phase30B4MaximumMsiBytes)
+                                    bytesReadTotal > UpdaterMaximumMsiBytes)
                                     return new StageResult(StageStatus.SizeMismatch, "MSI exceeded expected size.");
                                 await destination.WriteAsync(buffer, 0, count, timeout.Token).ConfigureAwait(false);
                             }
@@ -588,9 +588,9 @@ namespace Auto_Backlight_for_ThinkPad
                             FileAccess.Read, FileShare.Read))
                         using (var hash = System.Security.Cryptography.SHA256.Create())
                         {
-                            byte[] header = new byte[Phase30B4CompoundFileMagic.Length];
+                            byte[] header = new byte[CompoundFileMagic.Length];
                             if (source.Read(header, 0, header.Length) != header.Length ||
-                                !header.SequenceEqual(Phase30B4CompoundFileMagic))
+                                !header.SequenceEqual(CompoundFileMagic))
                                 return new StageResult(StageStatus.InvalidMsiHeader, "Invalid MSI compound-file signature.");
                             source.Position = 0;
                             actualHash = BitConverter.ToString(hash.ComputeHash(source)).Replace("-", "");
@@ -637,10 +637,10 @@ namespace Auto_Backlight_for_ThinkPad
         // PHASE30B7C_SIGNED_RELEASE_DOWNLOAD_V1
         // Verify independently signed release assets *before* downloading an MSI.
         // This path does not elevate, invoke UpdateHelper, or execute installers.
-        private const string Phase30B7CManifestName = "update-manifest-v1.txt";
-        private const string Phase30B7CSignatureName = "update-manifest-v1.sig";
-        private const int Phase30B7CMaximumManifestBytes = 2048;
-        private const int Phase30B7CMaximumSignatureBytes = 512;
+        private const string SignedManifestName = "update-manifest-v1.txt";
+        private const string SignedSignatureName = "update-manifest-v1.sig";
+        private const int SignedMaximumManifestBytes = 2048;
+        private const int MaximumSignatureBytes = 512;
 
         public enum SignedManifestStatus
         {
@@ -678,17 +678,17 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private sealed class Phase30B7CAssetFailure : Exception
+        private sealed class SignedAssetFailure : Exception
         {
             internal SignedManifestStatus Status { get; private set; }
-            internal Phase30B7CAssetFailure(SignedManifestStatus status) { Status = status; }
+            internal SignedAssetFailure(SignedManifestStatus status) { Status = status; }
         }
 
-        private static Uri Phase30B7CAssetUrl(Downloadable candidate, string assetName)
+        private static Uri SignedAssetUrl(Downloadable candidate, string assetName)
         {
             // Phase30B4ValidUpdate enforces the exact repository/tag/MSI URL shape.
-            if (!Phase30B4ValidUpdate(candidate) ||
-                (assetName != Phase30B7CManifestName && assetName != Phase30B7CSignatureName))
+            if (!ValidUpdate(candidate) ||
+                (assetName != SignedManifestName && assetName != SignedSignatureName))
                 throw new InvalidDataException("Release metadata does not identify a trusted asset location.");
             string url = candidate.Url.AbsoluteUri;
             int slash = url.LastIndexOf('/');
@@ -701,11 +701,11 @@ namespace Auto_Backlight_for_ThinkPad
             return result;
         }
 
-        private async Task<byte[]> Phase30B7CReadBoundedAssetAsync(Uri origin, int limit,
+        private async Task<byte[]> ReadBoundedAssetAsync(Uri origin, int limit,
             System.Threading.CancellationToken cancellationToken)
         {
             Uri current = origin;
-            for (int i = 0; i <= Phase30B4MaximumRedirects; i++)
+            for (int i = 0; i <= MaximumRedirects; i++)
             {
                 HttpResponseMessage response;
                 using (var request = new HttpRequestMessage(HttpMethod.Get, current))
@@ -719,20 +719,20 @@ namespace Auto_Backlight_for_ThinkPad
                     int code = (int)response.StatusCode;
                     if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308)
                     {
-                        if (response.Headers.Location == null || i == Phase30B4MaximumRedirects)
-                            throw new Phase30B7CAssetFailure(SignedManifestStatus.InvalidRedirect);
+                        if (response.Headers.Location == null || i == MaximumRedirects)
+                            throw new SignedAssetFailure(SignedManifestStatus.InvalidRedirect);
                         Uri location = response.Headers.Location.IsAbsoluteUri
                             ? response.Headers.Location : new Uri(current, response.Headers.Location);
-                        if (!Phase30B4SafeRedirect(location, origin))
-                            throw new Phase30B7CAssetFailure(SignedManifestStatus.InvalidRedirect);
+                        if (!SafeRedirect(location, origin))
+                            throw new SignedAssetFailure(SignedManifestStatus.InvalidRedirect);
                         current = location;
                         continue;
                     }
                     if (response.StatusCode != HttpStatusCode.OK || response.Content == null)
-                        throw new Phase30B7CAssetFailure(SignedManifestStatus.HttpError);
+                        throw new SignedAssetFailure(SignedManifestStatus.HttpError);
                     if (response.Content.Headers.ContentLength.HasValue &&
                         response.Content.Headers.ContentLength.Value > limit)
-                        throw new Phase30B7CAssetFailure(SignedManifestStatus.Oversize);
+                        throw new SignedAssetFailure(SignedManifestStatus.Oversize);
                     using (Stream stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     using (var destination = new MemoryStream())
                     {
@@ -742,14 +742,14 @@ namespace Auto_Backlight_for_ThinkPad
                             cancellationToken).ConfigureAwait(false)) > 0)
                         {
                             if (destination.Length + count > limit)
-                                throw new Phase30B7CAssetFailure(SignedManifestStatus.Oversize);
+                                throw new SignedAssetFailure(SignedManifestStatus.Oversize);
                             destination.Write(buffer, 0, count);
                         }
                         return destination.ToArray();
                     }
                 }
             }
-            throw new Phase30B7CAssetFailure(SignedManifestStatus.InvalidRedirect);
+            throw new SignedAssetFailure(SignedManifestStatus.InvalidRedirect);
         }
 
         /// <summary>Fetches the expected release .txt/.sig and verifies the embedded publisher key.
@@ -759,7 +759,7 @@ namespace Auto_Backlight_for_ThinkPad
             System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (_disposed) throw new ObjectDisposedException("OnlineUpdater");
-            if (!Phase30B4ValidUpdate(candidate) || String.IsNullOrEmpty(candidate.Sha256Digest) ||
+            if (!ValidUpdate(candidate) || String.IsNullOrEmpty(candidate.Sha256Digest) ||
                 !Regex.IsMatch(candidate.Sha256Digest, "^[0-9a-fA-F]{64}$", RegexOptions.CultureInvariant))
                 return new SignedManifestResult(SignedManifestStatus.InvalidMetadata,
                     "Release metadata is missing or invalid.");
@@ -768,12 +768,12 @@ namespace Auto_Backlight_for_ThinkPad
                 using (var timeout = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 {
                     timeout.CancelAfter(TimeSpan.FromSeconds(30));
-                    byte[] manifest = await Phase30B7CReadBoundedAssetAsync(
-                        Phase30B7CAssetUrl(candidate, Phase30B7CManifestName),
-                        Phase30B7CMaximumManifestBytes, timeout.Token).ConfigureAwait(false);
-                    byte[] signature = await Phase30B7CReadBoundedAssetAsync(
-                        Phase30B7CAssetUrl(candidate, Phase30B7CSignatureName),
-                        Phase30B7CMaximumSignatureBytes, timeout.Token).ConfigureAwait(false);
+                    byte[] manifest = await ReadBoundedAssetAsync(
+                        SignedAssetUrl(candidate, SignedManifestName),
+                        SignedMaximumManifestBytes, timeout.Token).ConfigureAwait(false);
+                    byte[] signature = await ReadBoundedAssetAsync(
+                        SignedAssetUrl(candidate, SignedSignatureName),
+                        MaximumSignatureBytes, timeout.Token).ConfigureAwait(false);
                     string status;
                     if (!VerifySignedManifestForDiscoveredRelease(candidate, manifest, signature, out status))
                         return new SignedManifestResult(SignedManifestStatus.SignatureRejected,
@@ -782,7 +782,7 @@ namespace Auto_Backlight_for_ThinkPad
                         "Publisher-signed release manifest verified.", manifest, signature);
                 }
             }
-            catch (Phase30B7CAssetFailure ex)
+            catch (SignedAssetFailure ex)
             {
                 return new SignedManifestResult(ex.Status,
                     "Signed release asset unavailable or invalid (" + ex.Status + ").");
@@ -812,7 +812,7 @@ namespace Auto_Backlight_for_ThinkPad
         // PHASE30B7D2_SIGNED_BUNDLE_STAGE_METHOD_V1
         // Manifest/signature and MSI are preserved in the same GUID folder for independent helper
         // assessment. This folder is controlled by the signed-in user, NOT an elevated installer.
-        private static bool Phase30B7D2ExpectedStageDirectory(string msiPath)
+        private static bool ExpectedStageDirectory(string msiPath)
         {
             if (String.IsNullOrEmpty(msiPath)) return false;
             string root = Path.GetFullPath(Path.Combine(
@@ -829,7 +829,7 @@ namespace Auto_Backlight_for_ThinkPad
             return true;
         }
 
-        private static void Phase30B7D2WriteNewSmallFile(string path, byte[] data, int limit)
+        private static void WriteNewSmallFile(string path, byte[] data, int limit)
         {
             if (data == null || data.Length == 0 || data.Length > limit)
                 throw new InvalidDataException("Signed release asset exceeds the expected length.");
@@ -858,15 +858,15 @@ namespace Auto_Backlight_for_ThinkPad
             bool complete = false;
             try
             {
-                if (!Phase30B7D2ExpectedStageDirectory(msi.Path))
+                if (!ExpectedStageDirectory(msi.Path))
                     throw new InvalidDataException("Unexpected unsigned staging location.");
                 stagedFolder = Path.GetDirectoryName(Path.GetFullPath(msi.Path));
-                string manifestPath = Path.Combine(stagedFolder, Phase30B7CManifestName);
-                string signaturePath = Path.Combine(stagedFolder, Phase30B7CSignatureName);
-                Phase30B7D2WriteNewSmallFile(manifestPath, trust.ManifestBytes,
-                    Phase30B7CMaximumManifestBytes);
-                Phase30B7D2WriteNewSmallFile(signaturePath, trust.SignatureBytes,
-                    Phase30B7CMaximumSignatureBytes);
+                string manifestPath = Path.Combine(stagedFolder, SignedManifestName);
+                string signaturePath = Path.Combine(stagedFolder, SignedSignatureName);
+                WriteNewSmallFile(manifestPath, trust.ManifestBytes,
+                    SignedMaximumManifestBytes);
+                WriteNewSmallFile(signaturePath, trust.SignatureBytes,
+                    MaximumSignatureBytes);
                 byte[] savedManifest = File.ReadAllBytes(manifestPath);
                 byte[] savedSignature = File.ReadAllBytes(signaturePath);
                 string outcome;
@@ -905,7 +905,7 @@ namespace Auto_Backlight_for_ThinkPad
                 {
                     try
                     {
-                        if (Phase30B7D2ExpectedStageDirectory(msi.Path))
+                        if (ExpectedStageDirectory(msi.Path))
                             Directory.Delete(stagedFolder, true);
                     }
                     catch (IOException) { }
@@ -928,9 +928,9 @@ namespace Auto_Backlight_for_ThinkPad
             try
             {
                 if (candidate == null) throw new InvalidDataException("Missing candidate release.");
-                Phase30B7BVerifiedManifest signed = Phase30B7BReleaseManifestTrust.Verify(
+                VerifiedManifest signed = ReleaseManifestTrust.Verify(
                     manifestBytes, signatureBase64Bytes);
-                Phase30B7BReleaseManifestTrust.AssertMatchesMetadata(signed,
+                ReleaseManifestTrust.AssertMatchesMetadata(signed,
                     candidate.Version, candidate.AssetName, candidate.Sha256Digest, candidate.AssetSizeBytes);
                 status = "SIGNED_MANIFEST_MATCH=TRUE";
                 return true;

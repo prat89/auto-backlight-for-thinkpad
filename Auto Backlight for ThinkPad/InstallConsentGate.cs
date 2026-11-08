@@ -9,14 +9,14 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3EInstallConsentGate
+    internal static class InstallConsentGate
     {
         internal const string ParentSwitch = "--update-production-install-parent";
         internal const string ChildSwitch = "--update-production-install-child";
         internal const int RefusedProductionNotWired = 42;
 
         // PHASE30B7D6M3E_HARD_STOP_V1: two independent runtime refusal paths.
-        internal static bool ProductionExecutorEnabled { get { return !Phase30B7D6MReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled; } }
+        internal static bool ProductionExecutorEnabled { get { return !ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled; } }
 
         private static bool CanonicalId(string id)
         {
@@ -31,7 +31,7 @@ namespace Auto_Backlight_for_ThinkPad
         {
             // This policy NEVER enables Install on an installed or dev EXE in 6M.3E.
             if (!ProductionExecutorEnabled) return false;
-            return Phase30BProductionInstaller.CanOfferFromUi(stagedMsi);
+            return ProductionUpdateInstaller.CanOfferFromUi(stagedMsi);
         }
 
         internal static int RunFromUi(string stagedMsi)
@@ -39,7 +39,7 @@ namespace Auto_Backlight_for_ThinkPad
             // Double-check the disabled gate regardless of button Visibility.
             if (!ProductionExecutorEnabled) return RefusedProductionNotWired;
             if (!CanOfferFromUi(stagedMsi)) return 26;
-            return Phase30BProductionInstaller.LaunchFromUi(stagedMsi);
+            return ProductionUpdateInstaller.LaunchFromUi(stagedMsi);
         }
 
         internal static int Run(string[] args)

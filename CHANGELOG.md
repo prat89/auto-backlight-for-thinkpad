@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.3.9 — 7 November 2026
+
+### Secure GitHub MSI updater
+- Added stable-release discovery in About, explicit signed MSI download, local review, protected staging, and an installation approval flow.
+- Verify publisher-signed RSA manifest, SHA-256 digest, MSI metadata and installed-product identity; keep untrusted MSI bytes out of privileged execution paths.
+- Added a trusted elevation boundary, cooperative shutdown, independent process checks, protected worker and durable installation reporting. Installation requires explicit user consent. Unattended auto-install remains disabled.
+- The original upstream update/uninstall workflow remains disabled.
+
+### Local validation
+- 36 consolidated integration checks passed, including the Release WPF build and negative security checks.
+- A controlled MSI upgrade from verified official v1.3.8 to v1.3.9 RC succeeded on the maintainer's ThinkPad; settings and Scheduled Task survived.
+- The maintainer verified the installed RC's tray, keyboard backlight, built-in/external input detection and About window.
+- **Limitation:** the complete interactive About → GitHub signed download → MSI execution workflow has not yet been tested end to end against a publicly published newer version. This is not a claim of fully validated unattended updates.
+- No additional EnergyDrv hardware compatibility is claimed.
+
 ## v1.3.8 — 2 November 2026
 
 ### WPF and plotting dependency maintenance (Phases 28B, 28C.3)

@@ -253,7 +253,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Auto Backlight for ThinkPad"
         "ProductCode" = "8:{2D47CB8A-53C2-472A-BE32-70EE4D70EBD4}"
-        "PackageCode" = "8:{C3522C3B-B965-4832-9AEF-591E9554F880}"
+        "PackageCode" = "8:{025F42F0-DB53-4578-AD84-941FB7521D36}"
         "UpgradeCode" = "8:{A78F780D-063F-4852-AC1B-D20FB7165BA2}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"

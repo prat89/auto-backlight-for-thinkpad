@@ -13,7 +13,7 @@ using System.Security.Principal;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6CStageUacHandoff
+    internal static class StageUacHandoff
     {
         internal const string ParentSwitch = "--update-stage-uac-lab";
         internal const string ChildSwitch = "--update-elevated-stage-lab";
@@ -72,16 +72,16 @@ namespace Auto_Backlight_for_ThinkPad
                     // UAC credentials from another account must not silently
                     // read a different LocalAppData or install as someone else.
                     if (!String.Equals(CurrentSid(), args[2], StringComparison.Ordinal)) return 33;
-                    return Phase30B7D5ProtectedUpdateStaging.Run(new string[] {
-                        Phase30B7D5ProtectedUpdateStaging.Switch,
+                    return ProtectedUpdateStaging.Run(new string[] {
+                        ProtectedUpdateStaging.Switch,
                         SourcePath(args[1])
                     });
                 }
 
                 if (Elevated()) return 21;
                 string stage = SourcePath(args[1]);
-                if (Phase30B7D3SingleExeUpdateAssessment.Run(new string[] {
-                    Phase30B7D3SingleExeUpdateAssessment.Switch, stage
+                if (SingleExeUpdateAssessment.Run(new string[] {
+                    SingleExeUpdateAssessment.Switch, stage
                 }) != 0) return 34;
                 string ownExe = Path.GetFullPath(Assembly.GetExecutingAssembly().Location);
                 if (!File.Exists(ownExe) ||

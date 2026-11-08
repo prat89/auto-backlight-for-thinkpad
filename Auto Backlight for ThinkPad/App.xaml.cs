@@ -68,7 +68,7 @@ namespace Auto_Backlight_for_ThinkPad
             try
             {
                 InitializeComponent();
-                _Phase30ARefreshTrayTheme(); // Initial palette before tray resources are created.
+                _RefreshTrayTheme(); // Initial palette before tray resources are created.
                 DiagnosticsLog.Info("Startup checkpoint: InitializeComponent complete");
             _Phase22Checkpoint("InitializeComponent");
             }
@@ -155,8 +155,8 @@ namespace Auto_Backlight_for_ThinkPad
             DiagnosticsLog.Info("Startup checkpoint: tray resources begin");
             FindResource("SysTrayMenu");
             FindResource("SysTrayIcon");
-            _Phase30AApplyShellAppearance("tray-resources", false);
-            _Phase30ASubscribeThemeEvents();
+            _ApplyShellAppearance("tray-resources", false);
+            _SubscribeThemeEvents();
             DiagnosticsLog.Info("Tray icon initialized");
             _Phase22Checkpoint("Tray resources");
             DiagnosticsLog.Info("Startup checkpoint: hardware report begin");
@@ -174,30 +174,30 @@ namespace Auto_Backlight_for_ThinkPad
         private object _lastPoint;
 
         // PHASE30A_TRAY_THEME: visual-only; no settings serialization or driver operations.
-        private bool? _phase30aLastDarkTheme;
-        private bool _phase30aThemeEventsSubscribed;
-        private DispatcherTimer _phase30aThemeRetryTimer;
-        private const int Phase30AThemeRetryDelayMs = 250;
-        private const string Phase30AWindowsThemePath =
+        private bool? _lastDarkTheme;
+        private bool _themeEventsSubscribed;
+        private DispatcherTimer _themeRetryTimer;
+        private const int ThemeRetryDelayMs = 250;
+        private const string WindowsThemePath =
             @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 
         // PHASE30A2C_PNG_ADAPTIVE_TRAY_ICON: only the tray glyph changes; EXE/MSI branding stays unchanged.
-        private bool? _phase30a2LastSystemLight;
-        private System.Windows.Media.Imaging.BitmapImage _phase30a2ForLightTaskbar;
-        private System.Windows.Media.Imaging.BitmapImage _phase30a2ForDarkTaskbar;
+        private bool? _lastSystemLight;
+        private System.Windows.Media.Imaging.BitmapImage _trayIconForLightTaskbar;
+        private System.Windows.Media.Imaging.BitmapImage _trayIconForDarkTaskbar;
 
-        private void _Phase30ATrayMenuOpened(object sender, RoutedEventArgs e)
+        private void _TrayMenuOpened(object sender, RoutedEventArgs e)
         {
             // Re-read on every menu open, so switching Windows themes needs no app restart.
-            _Phase30AApplyShellAppearance("menu-open", false);
+            _ApplyShellAppearance("menu-open", false);
         }
 
-        private void _Phase30ARefreshTrayTheme()
+        private void _RefreshTrayTheme()
         {
             bool dark = false; // Preserve the existing light menu if Windows has no preference.
             try
             {
-                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(Phase30AWindowsThemePath, false))
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(WindowsThemePath, false))
                 {
                     object value = key == null ? null : key.GetValue("AppsUseLightTheme", null);
                     dark = value is int && (int)value == 0;
@@ -208,24 +208,24 @@ namespace Auto_Backlight_for_ThinkPad
                 DiagnosticsLog.Info("Tray theme: Windows preference unavailable (using light); " + ex.GetType().Name);
             }
 
-            if (_phase30aLastDarkTheme.HasValue && _phase30aLastDarkTheme.Value == dark)
+            if (_lastDarkTheme.HasValue && _lastDarkTheme.Value == dark)
                 return;
 
             // Only menu resources are changed; no WPF control templates or handlers replaced.
-            _Phase30ASetBrush("P30A_Surface", dark ? "#FF22252B" : "#FFFAFBFD");
-            _Phase30ASetBrush("P30A_Text", dark ? "#FFF3F4F6" : "#FF202632");
-            _Phase30ASetBrush("P30A_Border", dark ? "#FF454A52" : "#FFD5DCE5");
-            _Phase30ASetBrush("P30A_Separator", dark ? "#FF404040" : "#FFD4D7DC");
-            _Phase30ASetBrush("P30A_Hover", dark ? "#FF393F49" : "#FFE9EDF3");
-            _Phase30ASetBrush("P30A_Icon", dark ? "#FFAAB4C1" : "#FF647182");
-            _Phase30ASetBrush("P30A_Check", dark ? "#FFCCD5E2" : "#FF596575");
-            _Phase30ASetBrush("P30A_InputSurface", dark ? "#FF303641" : "#FFFFFFFF");
-            _Phase30ASetBrush("P30A_InputBorder", dark ? "#FF566271" : "#FFB8C2D0");
-            _phase30aLastDarkTheme = dark;
+            _SetBrush("P30A_Surface", dark ? "#FF22252B" : "#FFFAFBFD");
+            _SetBrush("P30A_Text", dark ? "#FFF3F4F6" : "#FF202632");
+            _SetBrush("P30A_Border", dark ? "#FF454A52" : "#FFD5DCE5");
+            _SetBrush("P30A_Separator", dark ? "#FF404040" : "#FFD4D7DC");
+            _SetBrush("P30A_Hover", dark ? "#FF393F49" : "#FFE9EDF3");
+            _SetBrush("P30A_Icon", dark ? "#FFAAB4C1" : "#FF647182");
+            _SetBrush("P30A_Check", dark ? "#FFCCD5E2" : "#FF596575");
+            _SetBrush("P30A_InputSurface", dark ? "#FF303641" : "#FFFFFFFF");
+            _SetBrush("P30A_InputBorder", dark ? "#FF566271" : "#FFB8C2D0");
+            _lastDarkTheme = dark;
             DiagnosticsLog.Info("Tray theme: applied " + (dark ? "dark" : "light") + " palette");
         }
 
-        private void _Phase30ASetBrush(string key, string hex)
+        private void _SetBrush(string key, string hex)
         {
             var color = (System.Windows.Media.Color)
                 System.Windows.Media.ColorConverter.ConvertFromString(hex);
@@ -234,22 +234,22 @@ namespace Auto_Backlight_for_ThinkPad
             Resources[key] = brush; // DynamicResource references update immediately.
         }
 
-        private void _Phase30AApplyShellAppearance(string reason, bool scheduleRetry)
+        private void _ApplyShellAppearance(string reason, bool scheduleRetry)
         {
-            _Phase30ARefreshTrayTheme();
-            _Phase30A2RefreshTrayIcon();
+            _RefreshTrayTheme();
+            _RefreshTrayIcon();
             DiagnosticsLog.Info("Shell appearance: refreshed; reason=" + reason);
             if (scheduleRetry)
-                _Phase30AScheduleDeferredRefresh(reason);
+                _ScheduleDeferredRefresh(reason);
         }
 
-        private void _Phase30ASubscribeThemeEvents()
+        private void _SubscribeThemeEvents()
         {
-            if (_phase30aThemeEventsSubscribed) return;
+            if (_themeEventsSubscribed) return;
             try
             {
-                SystemEvents.UserPreferenceChanged += _Phase30AUserPreferenceChanged;
-                _phase30aThemeEventsSubscribed = true;
+                SystemEvents.UserPreferenceChanged += _UserPreferenceChanged;
+                _themeEventsSubscribed = true;
                 DiagnosticsLog.Info("Shell appearance: subscribed to UserPreferenceChanged");
             }
             catch (Exception ex)
@@ -258,14 +258,14 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private void _Phase30AUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        private void _UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
             try
             {
                 if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
                 Dispatcher.BeginInvoke(new Action(delegate
                 {
-                    _Phase30AApplyShellAppearance("user-preference-changed", true);
+                    _ApplyShellAppearance("user-preference-changed", true);
                 }));
             }
             catch (Exception ex)
@@ -274,21 +274,21 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private void _Phase30AScheduleDeferredRefresh(string reason)
+        private void _ScheduleDeferredRefresh(string reason)
         {
             try
             {
-                if (_phase30aThemeRetryTimer == null)
+                if (_themeRetryTimer == null)
                 {
-                    _phase30aThemeRetryTimer = new DispatcherTimer
+                    _themeRetryTimer = new DispatcherTimer
                     {
-                        Interval = TimeSpan.FromMilliseconds(Phase30AThemeRetryDelayMs)
+                        Interval = TimeSpan.FromMilliseconds(ThemeRetryDelayMs)
                     };
-                    _phase30aThemeRetryTimer.Tick += _Phase30AThemeRetryTimer_Tick;
+                    _themeRetryTimer.Tick += _Phase30AThemeRetryTimer_Tick;
                 }
-                _phase30aThemeRetryTimer.Stop();
-                _phase30aThemeRetryTimer.Start();
-                DiagnosticsLog.Info("Shell appearance: scheduled deferred refresh; reason=" + reason + "; delayMs=" + Phase30AThemeRetryDelayMs);
+                _themeRetryTimer.Stop();
+                _themeRetryTimer.Start();
+                DiagnosticsLog.Info("Shell appearance: scheduled deferred refresh; reason=" + reason + "; delayMs=" + ThemeRetryDelayMs);
             }
             catch (Exception ex)
             {
@@ -300,9 +300,9 @@ namespace Auto_Backlight_for_ThinkPad
         {
             try
             {
-                if (_phase30aThemeRetryTimer != null) _phase30aThemeRetryTimer.Stop();
-                _Phase30ARefreshTrayTheme();
-                _Phase30A2RefreshTrayIcon();
+                if (_themeRetryTimer != null) _themeRetryTimer.Stop();
+                _RefreshTrayTheme();
+                _RefreshTrayIcon();
                 DiagnosticsLog.Info("Shell appearance: deferred refresh complete");
             }
             catch (Exception ex)
@@ -311,7 +311,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private System.Windows.Media.Imaging.BitmapImage _Phase30A2LoadIcon(string file)
+        private System.Windows.Media.Imaging.BitmapImage _LoadIcon(string file)
         {
             var image = new System.Windows.Media.Imaging.BitmapImage();
             image.BeginInit();
@@ -322,12 +322,12 @@ namespace Auto_Backlight_for_ThinkPad
             return image;
         }
 
-        private void _Phase30A2RefreshTrayIcon()
+        private void _RefreshTrayIcon()
         {
             bool lightSystem = false; // If unavailable, keep the brighter tray icon for dark taskbars.
             try
             {
-                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(Phase30AWindowsThemePath, false))
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(WindowsThemePath, false))
                 {
                     object value = key == null ? null : key.GetValue("SystemUsesLightTheme", null);
                     if (value is int && ((int)value == 0 || (int)value == 1))
@@ -339,7 +339,7 @@ namespace Auto_Backlight_for_ThinkPad
                 DiagnosticsLog.Info("Tray icon: Windows system theme unavailable; " + ex.GetType().Name);
             }
 
-            if (_phase30a2LastSystemLight.HasValue && _phase30a2LastSystemLight.Value == lightSystem)
+            if (_lastSystemLight.HasValue && _lastSystemLight.Value == lightSystem)
                 return;
 
             try
@@ -348,17 +348,17 @@ namespace Auto_Backlight_for_ThinkPad
                 if (tray == null) throw new InvalidOperationException("SysTrayIcon resource missing");
                 if (lightSystem)
                 {
-                    if (_phase30a2ForLightTaskbar == null)
-                        _phase30a2ForLightTaskbar = _Phase30A2LoadIcon("TrayIcon.PngConcept.ForLightTaskbar.ico");
-                    tray.IconSource = _phase30a2ForLightTaskbar;
+                    if (_trayIconForLightTaskbar == null)
+                        _trayIconForLightTaskbar = _LoadIcon("TrayIcon.PngConcept.ForLightTaskbar.ico");
+                    tray.IconSource = _trayIconForLightTaskbar;
                 }
                 else
                 {
-                    if (_phase30a2ForDarkTaskbar == null)
-                        _phase30a2ForDarkTaskbar = _Phase30A2LoadIcon("TrayIcon.PngConcept.ForDarkTaskbar.ico");
-                    tray.IconSource = _phase30a2ForDarkTaskbar;
+                    if (_trayIconForDarkTaskbar == null)
+                        _trayIconForDarkTaskbar = _LoadIcon("TrayIcon.PngConcept.ForDarkTaskbar.ico");
+                    tray.IconSource = _trayIconForDarkTaskbar;
                 }
-                _phase30a2LastSystemLight = lightSystem;
+                _lastSystemLight = lightSystem;
                 DiagnosticsLog.Info("Tray icon: applied PNG concept artwork for " + (lightSystem ? "light" : "dark") + " taskbar");
             }
             catch (Exception ex)
@@ -416,7 +416,7 @@ namespace Auto_Backlight_for_ThinkPad
             // App exits through its ordinary Shutdown()/Exit handlers, not Kill().
             try
             {
-                bool ready = Phase30B7D6M3FCooperativeShutdown.StartForApp(() =>
+                bool ready = CooperativeShutdown.StartForApp(() =>
                 {
                     Dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() =>
                     {
@@ -432,15 +432,15 @@ namespace Auto_Backlight_for_ThinkPad
             }
             // Phase 30B.2: queue metadata-only check after startup; never block driver initialization.
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
-                new Action(_Phase30B2CheckAtStartupAsync));
+                new Action(_CheckAtStartupAsync));
         }
 
         // PHASE30B2_UPDATE_UI: background notification only; MSI execution remains disabled.
-        private async void _Phase30B2CheckAtStartupAsync()
+        private async void _CheckAtStartupAsync()
         {
             try
             {
-                if (!Phase30B2UpdatePreferences.TryReserveStartupCheck()) return;
+                if (!UpdaterPreferences.TryReserveStartupCheck()) return;
                 OnlineUpdater.UpdateCheckResult result;
                 using (var updater = new OnlineUpdater())
                     result = await updater.CheckForUpdatesAsync();
@@ -451,8 +451,8 @@ namespace Auto_Backlight_for_ThinkPad
                 var tray = FindResource("SysTrayIcon") as Hardcodet.Wpf.TaskbarNotification.TaskbarIcon;
                 if (tray == null) return;
                 // Clicking the Windows notification opens About; it never starts MSI.
-                tray.TrayBalloonTipClicked -= _Phase30B2BalloonClicked;
-                tray.TrayBalloonTipClicked += _Phase30B2BalloonClicked;
+                tray.TrayBalloonTipClicked -= _BalloonClicked;
+                tray.TrayBalloonTipClicked += _BalloonClicked;
                 tray.ShowBalloonTip("Auto Backlight for ThinkPad update available",
                     "Version v" + result.LatestVersion.ToString(3) +
                     " is available. Open About to review it. MSI auto-install is not active yet.",
@@ -465,7 +465,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private void _Phase30B2BalloonClicked(object sender, RoutedEventArgs e)
+        private void _BalloonClicked(object sender, RoutedEventArgs e)
         {
             _ShowAbout(sender, e);
             if (_about != null) _about.Activate();
@@ -674,19 +674,19 @@ namespace Auto_Backlight_for_ThinkPad
         private void _Exiting(object sender, ExitEventArgs e)
         {
             // PHASE30B7D6M3F1_COOPERATIVE_ENDPOINT_STOP
-            try { Phase30B7D6M3FCooperativeShutdown.StopForApp(); }
+            try { CooperativeShutdown.StopForApp(); }
             catch (Exception ex) { DiagnosticsLog.Error("Cooperative update exit: cleanup failed", ex); }
-            if (_phase30aThemeRetryTimer != null)
+            if (_themeRetryTimer != null)
             {
-                try { _phase30aThemeRetryTimer.Stop(); }
+                try { _themeRetryTimer.Stop(); }
                 catch (Exception ex) { DiagnosticsLog.Info("Shell appearance: timer cleanup; " + ex.GetType().Name); }
-                _phase30aThemeRetryTimer = null;
+                _themeRetryTimer = null;
             }
-            if (_phase30aThemeEventsSubscribed)
+            if (_themeEventsSubscribed)
             {
-                try { SystemEvents.UserPreferenceChanged -= _Phase30AUserPreferenceChanged; }
+                try { SystemEvents.UserPreferenceChanged -= _UserPreferenceChanged; }
                 catch (Exception ex) { DiagnosticsLog.Info("Shell appearance: event cleanup; " + ex.GetType().Name); }
-                _phase30aThemeEventsSubscribed = false;
+                _themeEventsSubscribed = false;
             }
             try { if (_autoKeyboard != null) _autoKeyboard.Stop(); }
             catch (Exception ex) { DiagnosticsLog.Error("Keyboard shutdown failed", ex); }

@@ -8,7 +8,7 @@ using System.Security.Principal;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D5ProtectedUpdateStaging
+    internal static class ProtectedUpdateStaging
     {
         internal const string Switch = "--update-protected-stage";
         private const string Manifest = "update-manifest-v1.txt";
@@ -120,8 +120,8 @@ namespace Auto_Backlight_for_ThinkPad
         private static void Prepare(string source)
         {
             // Unprivileged staging must be a single GUID folder under our exact LocalAppData root.
-            if (Phase30B7D3SingleExeUpdateAssessment.Run(new string[] {
-                Phase30B7D3SingleExeUpdateAssessment.Switch, source }) != 0)
+            if (SingleExeUpdateAssessment.Run(new string[] {
+                SingleExeUpdateAssessment.Switch, source }) != 0)
                 throw new InvalidDataException("The source bundle did not pass complete assessment.");
 
             string sourceDir = Path.GetFullPath(source);
@@ -139,7 +139,7 @@ namespace Auto_Backlight_for_ThinkPad
             string signatureFile = Path.Combine(sourceDir, Signature);
             byte[] manifest = ReadBounded(manifestFile, 2048);
             byte[] signature = ReadBounded(signatureFile, 512);
-            var verified = Phase30B7BReleaseManifestTrust.Verify(manifest, signature);
+            var verified = ReleaseManifestTrust.Verify(manifest, signature);
             string msiName = "AutoBacklight-" + verified.Version.ToString(3) + ".msi";
 
             string programData = Path.GetFullPath(Environment.GetFolderPath(
@@ -164,7 +164,7 @@ namespace Auto_Backlight_for_ThinkPad
                 CopyBounded(signatureFile, Path.Combine(destination, Signature), 512);
                 CopyBounded(Path.Combine(sourceDir, msiName), Path.Combine(destination, msiName), MaxMsiLength);
                 // The only authoritative assessment is on protected copies with locked ACLs.
-                Phase30B7D3SingleExeUpdateAssessment.VerifySignedContents(destination);
+                SingleExeUpdateAssessment.VerifySignedContents(destination);
                 VerifySecurity(destination, true);
                 VerifySecurity(Path.Combine(destination, Manifest), false);
                 VerifySecurity(Path.Combine(destination, Signature), false);
@@ -205,7 +205,7 @@ namespace Auto_Backlight_for_ThinkPad
             string signatureFile = Path.Combine(stage, Signature);
             byte[] manifest = ReadBounded(manifestFile, 2048);
             byte[] signature = ReadBounded(signatureFile, 512);
-            var verified = Phase30B7BReleaseManifestTrust.Verify(manifest, signature);
+            var verified = ReleaseManifestTrust.Verify(manifest, signature);
             string msiName = "AutoBacklight-" + verified.Version.ToString(3) + ".msi";
             string msiPath = Path.Combine(stage, msiName);
             // Reject unexpected files/dirs (including planted logs and reparse points).
@@ -224,7 +224,7 @@ namespace Auto_Backlight_for_ThinkPad
             VerifySecurity(msiPath, false);
             // This also rechecks publisher RSA signature, hash, version,
             // native MSI identity AND installed MSI registration.
-            Phase30B7D3SingleExeUpdateAssessment.VerifySignedContents(stage);
+            SingleExeUpdateAssessment.VerifySignedContents(stage);
             VerifySecurity(root, true);
             VerifySecurity(stage, true);
             return msiPath;

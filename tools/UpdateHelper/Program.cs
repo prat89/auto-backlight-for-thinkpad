@@ -568,11 +568,11 @@ namespace AutoBacklightUpdateHelper
 
             byte[] manifestBytes = ReadSmallSignedAsset(manifestPath, "update-manifest-v1.txt", 2048);
             byte[] signatureBytes = ReadSmallSignedAsset(signaturePath, "update-manifest-v1.sig", 512);
-            Auto_Backlight_for_ThinkPad.Phase30B7BVerifiedManifest signed =
-                Auto_Backlight_for_ThinkPad.Phase30B7BReleaseManifestTrust.Verify(manifestBytes, signatureBytes);
+            Auto_Backlight_for_ThinkPad.VerifiedManifest signed =
+                Auto_Backlight_for_ThinkPad.ReleaseManifestTrust.Verify(manifestBytes, signatureBytes);
             Console.WriteLine("SIGNED_MANIFEST_VERIFIED=TRUE");
             Console.WriteLine("PINNED_PUBLIC_CERT_SHA256=" +
-                Auto_Backlight_for_ThinkPad.Phase30B7BReleaseManifestTrust.PublicCertificateSha256);
+                Auto_Backlight_for_ThinkPad.ReleaseManifestTrust.PublicCertificateSha256);
             ValidateStagingPath(msiPath, signed.Version);
             InstalledProduct installed = ReadActualInstallation();
             if (installed == null)

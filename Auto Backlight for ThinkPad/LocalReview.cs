@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3BLocalReview
+    internal static class LocalReview
     {
         internal static bool ProductionInstallEnabled { get { return false; } }
 
@@ -47,8 +47,8 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 string stage = StageDirectory(msiPath);
                 if (stage == null) return false;
-                return Phase30B7D3SingleExeUpdateAssessment.Run(new string[] {
-                    Phase30B7D3SingleExeUpdateAssessment.Switch, stage }) == 0;
+                return SingleExeUpdateAssessment.Run(new string[] {
+                    SingleExeUpdateAssessment.Switch, stage }) == 0;
             }
             catch (Exception) { return false; }
         }

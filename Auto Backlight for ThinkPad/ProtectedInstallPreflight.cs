@@ -6,7 +6,7 @@ using System.Security.Principal;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6GProtectedInstallPreflight
+    internal static class ProtectedInstallPreflight
     {
         internal const string Switch = "--update-install-preflight";
 
@@ -40,7 +40,7 @@ namespace Auto_Backlight_for_ThinkPad
         {
             if (!ValidId(id)) throw new InvalidDataException("Invalid bundle id.");
             if (!Elevated()) throw new UnauthorizedAccessException("Administrator required.");
-            string msi = Phase30B7D5ProtectedUpdateStaging.VerifyProtectedReadOnly(id);
+            string msi = ProtectedUpdateStaging.VerifyProtectedReadOnly(id);
             string systemDir = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.System));
             string exe = Path.Combine(systemDir, "msiexec.exe");
             if (!File.Exists(exe) || (File.GetAttributes(exe) & FileAttributes.ReparsePoint) != 0)

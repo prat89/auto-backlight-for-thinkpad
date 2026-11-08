@@ -36,121 +36,121 @@ namespace Auto_Backlight_for_ThinkPad
             // without creating WPF, checking the single-instance GUI lock or elevating.
             if (commandLineArgs != null && commandLineArgs.Length > 0)
             {
-                if (commandLineArgs[0] == Phase30B7D3SingleExeUpdateAssessment.Switch)
+                if (commandLineArgs[0] == SingleExeUpdateAssessment.Switch)
                 {
-                    Environment.ExitCode = Phase30B7D3SingleExeUpdateAssessment.Run(commandLineArgs);
+                    Environment.ExitCode = SingleExeUpdateAssessment.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D5_PROTECTED_STAGE_DISPATCH_V1
-                if (commandLineArgs[0] == Phase30B7D5ProtectedUpdateStaging.Switch)
+                if (commandLineArgs[0] == ProtectedUpdateStaging.Switch)
                 {
-                    Environment.ExitCode = Phase30B7D5ProtectedUpdateStaging.Run(commandLineArgs);
+                    Environment.ExitCode = ProtectedUpdateStaging.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6A_INSTALLED_MSI_AUDIT_DISPATCH_V1
-                if (commandLineArgs[0] == Phase30B7D6AInstalledMsiGuard.AuditSwitch)
+                if (commandLineArgs[0] == InstalledMsiGuard.AuditSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6AInstalledMsiGuard.RunAudit(commandLineArgs);
+                    Environment.ExitCode = InstalledMsiGuard.RunAudit(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6B_UAC_PROBE_DISPATCH_V1
                 // Strictly inert: DO NOT use for production update execution.
-                if (commandLineArgs[0] == Phase30B7D6BUacProbe.ParentSwitch ||
-                    commandLineArgs[0] == Phase30B7D6BUacProbe.ChildSwitch)
+                if (commandLineArgs[0] == UacProbe.ParentSwitch ||
+                    commandLineArgs[0] == UacProbe.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6BUacProbe.Run(commandLineArgs);
+                    Environment.ExitCode = UacProbe.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6C_STAGE_UAC_LAB_DISPATCH_V1
                 // Protected copying ONLY; never executes or installs the MSI.
-                if (commandLineArgs[0] == Phase30B7D6CStageUacHandoff.ParentSwitch ||
-                    commandLineArgs[0] == Phase30B7D6CStageUacHandoff.ChildSwitch)
+                if (commandLineArgs[0] == StageUacHandoff.ParentSwitch ||
+                    commandLineArgs[0] == StageUacHandoff.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6CStageUacHandoff.Run(commandLineArgs);
+                    Environment.ExitCode = StageUacHandoff.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6F_DETACHED_LIFECYCLE_LAB_V1
                 // Strictly synthetic: detached PowerShell monitor, NO MSI or UAC.
-                if (commandLineArgs[0] == Phase30B7D6FDetachedLab.Switch)
+                if (commandLineArgs[0] == DetachedLab.Switch)
                 {
-                    Environment.ExitCode = Phase30B7D6FDetachedLab.Run(commandLineArgs);
+                    Environment.ExitCode = DetachedLab.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6G_PROTECTED_PREFLIGHT_DISPATCH_V1
                 // READ-ONLY. Never starts an installer or another process.
-                if (commandLineArgs[0] == Phase30B7D6GProtectedInstallPreflight.Switch)
+                if (commandLineArgs[0] == ProtectedInstallPreflight.Switch)
                 {
-                    Environment.ExitCode = Phase30B7D6GProtectedInstallPreflight.Run(commandLineArgs);
+                    Environment.ExitCode = ProtectedInstallPreflight.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6H_DETACHED_PROTECTED_TRANSACTION_LAB_V1
                 // Detached monitor validates hashes AFTER launcher exits; never MSI.
-                if (commandLineArgs[0] == Phase30B7D6HProtectedTransactionHandoffLab.Switch)
+                if (commandLineArgs[0] == ProtectedTransactionHandoffLab.Switch)
                 {
-                    Environment.ExitCode = Phase30B7D6HProtectedTransactionHandoffLab.Run(commandLineArgs);
+                    Environment.ExitCode = ProtectedTransactionHandoffLab.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6M2_TRUSTED_INSTALLED_UAC_DISPATCH_V1
                 // No MSI, stage writes, settings changes or automatic elevation.
-                if (commandLineArgs[0] == Phase30B7D6M2TrustedUacBoundary.AuditSwitch ||
-                    commandLineArgs[0] == Phase30B7D6M2TrustedUacBoundary.ParentSwitch ||
-                    commandLineArgs[0] == Phase30B7D6M2TrustedUacBoundary.ChildSwitch)
+                if (commandLineArgs[0] == TrustedUacBoundary.AuditSwitch ||
+                    commandLineArgs[0] == TrustedUacBoundary.ParentSwitch ||
+                    commandLineArgs[0] == TrustedUacBoundary.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6M2TrustedUacBoundary.Run(commandLineArgs);
+                    Environment.ExitCode = TrustedUacBoundary.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6M3C_TRUSTED_PROTECTED_STAGE_DISPATCH_V1
                 // Installed, trusted EXE only; protected COPY; never install MSI.
-                if (commandLineArgs[0] == Phase30B7D6M3CProtectedHandoff.ParentSwitch ||
-                    commandLineArgs[0] == Phase30B7D6M3CProtectedHandoff.ChildSwitch)
+                if (commandLineArgs[0] == ProtectedHandoff.ParentSwitch ||
+                    commandLineArgs[0] == ProtectedHandoff.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6M3CProtectedHandoff.Run(commandLineArgs);
+                    Environment.ExitCode = ProtectedHandoff.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6M3D_TRUSTED_READONLY_PREFLIGHT_DISPATCH_V1
                 // Protected copy must already exist; no MSI, UAC from developer EXE,
                 // or user-settings/task modifications.
-                if (commandLineArgs[0] == Phase30B7D6M3DProtectedPreflightUi.ParentSwitch ||
-                    commandLineArgs[0] == Phase30B7D6M3DProtectedPreflightUi.ChildSwitch)
+                if (commandLineArgs[0] == ProtectedPreflightUi.ParentSwitch ||
+                    commandLineArgs[0] == ProtectedPreflightUi.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6M3DProtectedPreflightUi.Run(commandLineArgs);
+                    Environment.ExitCode = ProtectedPreflightUi.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B_PRODUCTION_APPROVED_CHILD_DISPATCH_RC1
-                if (commandLineArgs[0] == Phase30BProductionInstaller.ChildSwitch)
+                if (commandLineArgs[0] == ProductionUpdateInstaller.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30BProductionInstaller.RunApprovedChild(commandLineArgs);
+                    Environment.ExitCode = ProductionUpdateInstaller.RunApprovedChild(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6M3E_DISABLED_PRODUCTION_INSTALL_DISPATCH_V1
                 // Future production CLI reserved, but ALWAYS refuses MSI in 6M.3E.
-                if (commandLineArgs[0] == Phase30B7D6M3EInstallConsentGate.ParentSwitch ||
-                    commandLineArgs[0] == Phase30B7D6M3EInstallConsentGate.ChildSwitch)
+                if (commandLineArgs[0] == InstallConsentGate.ParentSwitch ||
+                    commandLineArgs[0] == InstallConsentGate.ChildSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6M3EInstallConsentGate.Run(commandLineArgs);
+                    Environment.ExitCode = InstallConsentGate.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6M1_RELEASE_SAFETY_AUDIT_DISPATCH_V1
                 // Read-only audit; returns HOLD until production updater is wired.
-                if (commandLineArgs[0] == Phase30B7D6MReleaseSafetyGate.Switch)
+                if (commandLineArgs[0] == ReleaseSafetyGate.Switch)
                 {
-                    Environment.ExitCode = Phase30B7D6MReleaseSafetyGate.Run(commandLineArgs);
+                    Environment.ExitCode = ReleaseSafetyGate.Run(commandLineArgs);
                     return;
                 }
                 // PHASE30B7D6I_DETACHED_MSI_LAB_DISPATCH_V1
                 // Not wired to UI or automatic updater. Real install needs separate
                 // elevated, explicit lab CLI plus acknowledgement; normal tests dry-run.
-                if (commandLineArgs[0] == Phase30B7D6IProtectedMsiExecutorLab.DrySwitch ||
-                    commandLineArgs[0] == Phase30B7D6IProtectedMsiExecutorLab.ExecuteSwitch)
+                if (commandLineArgs[0] == ProtectedMsiExecutorLab.DrySwitch ||
+                    commandLineArgs[0] == ProtectedMsiExecutorLab.ExecuteSwitch)
                 {
-                    Environment.ExitCode = Phase30B7D6IProtectedMsiExecutorLab.Run(commandLineArgs);
+                    Environment.ExitCode = ProtectedMsiExecutorLab.Run(commandLineArgs);
                     return;
                 }
                 Environment.ExitCode = 10; // refuse unrecognized command-line modes
                 return;
             }
             // PHASE30B_PRODUCTION_RESTART_GATE_RC1: worker holds this mutex through MSI.
-            if (!Phase30BProductionInstaller.StartupAllowed())
+            if (!ProductionUpdateInstaller.StartupAllowed())
             {
                 Environment.ExitCode = 43; // updater in progress / uncertain lock state
                 return;

@@ -10,14 +10,14 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    public sealed class Phase30B7BVerifiedManifest
+    public sealed class VerifiedManifest
     {
         public Version Version { get; private set; }
         public string AssetName { get; private set; }
         public string Sha256 { get; private set; }
         public long SizeBytes { get; private set; }
 
-        internal Phase30B7BVerifiedManifest(Version version, string asset, string sha, long size)
+        internal VerifiedManifest(Version version, string asset, string sha, long size)
         {
             Version = version;
             AssetName = asset;
@@ -26,7 +26,7 @@ namespace Auto_Backlight_for_ThinkPad
         }
     }
 
-    public static class Phase30B7BReleaseManifestTrust
+    public static class ReleaseManifestTrust
     {
         public const string PublicCertificateSha256 = "30916ADE0227A9C1D5156022BFABE0A29440671EC0341055C0AB04763F3EE701";
         private const string Repository = "prat89/auto-backlight-for-thinkpad";
@@ -82,7 +82,7 @@ namespace Auto_Backlight_for_ThinkPad
         /// Verify exact manifest bytes and detached base64 signature with a build-pinned publisher key.
         /// Does not trust release-provided certificate, does not access network and does not install software.
         /// </summary>
-        public static Phase30B7BVerifiedManifest Verify(byte[] manifestBytes, byte[] signatureBase64Bytes)
+        public static VerifiedManifest Verify(byte[] manifestBytes, byte[] signatureBase64Bytes)
         {
             Reject(manifestBytes == null || manifestBytes.Length < 120 ||
                 manifestBytes.Length > MaximumManifestBytes, "Missing or oversized manifest.");
@@ -136,11 +136,11 @@ namespace Auto_Backlight_for_ThinkPad
                 "Manifest MSI size is outside allowed bounds.");
             Reject(RequireLine(lines[6], "upgrade_code") != FamilyUpgradeCode,
                 "Unexpected MSI UpgradeCode.");
-            return new Phase30B7BVerifiedManifest(version, asset, sha, size);
+            return new VerifiedManifest(version, asset, sha, size);
         }
 
         /// <summary>Bind a verified manifest to concrete GitHub release metadata (untrusted until matched).</summary>
-        public static void AssertMatchesMetadata(Phase30B7BVerifiedManifest manifest,
+        public static void AssertMatchesMetadata(VerifiedManifest manifest,
             Version expectedVersion, string assetName, string sha256, long sizeBytes)
         {
             Reject(manifest == null || expectedVersion == null, "Missing manifest or release version.");

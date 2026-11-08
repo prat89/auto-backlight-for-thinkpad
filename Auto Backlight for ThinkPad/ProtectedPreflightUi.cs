@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3DProtectedPreflightUi
+    internal static class ProtectedPreflightUi
     {
         internal const string ParentSwitch = "--update-trusted-preflight-parent";
         internal const string ChildSwitch = "--update-trusted-preflight-child";
@@ -43,16 +43,16 @@ namespace Auto_Backlight_for_ThinkPad
 
         internal static bool CanOfferFromUi(string stagedMsi)
         {
-            if (Phase30B7D6M3CProtectedHandoff.ExtractStageId(stagedMsi) == null)
+            if (ProtectedHandoff.ExtractStageId(stagedMsi) == null)
                 return false;
             if (InstallationEnabled) return false;
-            return Phase30B7D6M2TrustedUacBoundary.AuditSelf() == "PASS";
+            return TrustedUacBoundary.AuditSelf() == "PASS";
         }
 
         internal static int RunFromUi(string stagedMsi)
         {
             if (!CanOfferFromUi(stagedMsi)) return 26;
-            string id = Phase30B7D6M3CProtectedHandoff.ExtractStageId(stagedMsi);
+            string id = ProtectedHandoff.ExtractStageId(stagedMsi);
             if (!ValidId(id)) return 10;
             return Run(new string[] { ParentSwitch, id });
         }
@@ -61,12 +61,12 @@ namespace Auto_Backlight_for_ThinkPad
         {
             if (!Elevated()) return 13;
             if (!String.Equals(Sid(), requestedSid, StringComparison.Ordinal)) return 33;
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS") return 26;
+            if (TrustedUacBoundary.AuditSelf() != "PASS") return 26;
 
             // Revalidate ACL, publisher RSA signature, MSI digest, native MSI identity,
             // AND registered installed-product identity from protected ProgramData.
-            string protectedMsi = Phase30B7D5ProtectedUpdateStaging.VerifyProtectedReadOnly(id);
-            var plan = Phase30B7D6GProtectedInstallPreflight.BuildReadOnlyPlan(id);
+            string protectedMsi = ProtectedUpdateStaging.VerifyProtectedReadOnly(id);
+            var plan = ProtectedInstallPreflight.BuildReadOnlyPlan(id);
             if (plan == null || String.IsNullOrWhiteSpace(plan.Package) ||
                 !String.Equals(plan.Package, protectedMsi, StringComparison.OrdinalIgnoreCase) ||
                 !String.Equals(Path.GetFileName(plan.Msiexec), "msiexec.exe", StringComparison.OrdinalIgnoreCase) ||
@@ -86,12 +86,12 @@ namespace Auto_Backlight_for_ThinkPad
             if (child && !Regex.IsMatch(args[2], @"^S-1-[0-9]+(?:-[0-9]+)+$")) return 10;
             try
             {
-                if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS") return 26;
+                if (TrustedUacBoundary.AuditSelf() != "PASS") return 26;
                 if (child) return ReadOnlyPreflight(args[1], args[2]);
                 string sid = Sid();
                 if (!Regex.IsMatch(sid, @"^S-1-[0-9]+(?:-[0-9]+)+$")) return 33;
                 if (Elevated()) return ReadOnlyPreflight(args[1], sid);
-                string exe = Phase30B7D6M2TrustedUacBoundary.ExpectedInstalledExe();
+                string exe = TrustedUacBoundary.ExpectedInstalledExe();
                 var psi = new ProcessStartInfo {
                     FileName = exe, Arguments = ChildSwitch + " " + args[1] + " " + sid,
                     WorkingDirectory = Path.GetDirectoryName(exe),

@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3F4WorkerPrelaunchContract
+    internal static class WorkerPrelaunchContract
     {
         // The nested audit is the immutable Phase 3F.3 gate, run in a SEPARATE
         // system PowerShell 5.1 process; no user-supplied process name on the
@@ -77,7 +77,7 @@ catch {
 
         internal static string BuildProductionReadOnlyPrelaunchWorker()
         {
-            return WrapReadOnlyGate(Phase30B7D6M3F3DetachedWorkerGate
+            return WrapReadOnlyGate(DetachedWorkerGate
                 .BuildProductionReadOnlyWorkerGate());
         }
 
@@ -85,7 +85,7 @@ catch {
         // command, UI action, or privileged production worker.
         internal static string BuildSyntheticReadOnlyPrelaunchWorker(string testProcessName)
         {
-            return WrapReadOnlyGate(Phase30B7D6M3F3DetachedWorkerGate
+            return WrapReadOnlyGate(DetachedWorkerGate
                 .BuildSyntheticReadOnlyWorkerGate(testProcessName, 3, 100));
         }
 

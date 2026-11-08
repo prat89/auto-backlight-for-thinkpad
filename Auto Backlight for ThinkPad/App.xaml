@@ -297,7 +297,7 @@ limitations under the License.
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
-<ContextMenu x:Key="SysTrayMenu" Style="{StaticResource P161_MenuSurface}" Opened="_Phase30ATrayMenuOpened">
+<ContextMenu x:Key="SysTrayMenu" Style="{StaticResource P161_MenuSurface}" Opened="_TrayMenuOpened">
             <ContextMenu.Resources>
                 <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource P161_AllMenuItems}"/>
                 <Style TargetType="{x:Type Separator}" BasedOn="{StaticResource P161_MenuSeparator}"/>

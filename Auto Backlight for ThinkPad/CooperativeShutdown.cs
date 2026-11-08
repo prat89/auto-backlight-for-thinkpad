@@ -14,7 +14,7 @@ using System.Threading;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3FCooperativeShutdown
+    internal static class CooperativeShutdown
     {
         private static readonly object Sync = new object();
         private static EventWaitHandle _event;
@@ -121,12 +121,12 @@ namespace Auto_Backlight_for_ThinkPad
         internal static string RequestForVerifiedPid(int pid)
         {
             if (pid <= 0) return "REJECT_INVALID_PID";
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS")
+            if (TrustedUacBoundary.AuditSelf() != "PASS")
                 return "REJECT_UNTRUSTED_CALLER";
             try
             {
                 string sid = MySid();
-                string expected = Phase30B7D6M2TrustedUacBoundary.ExpectedInstalledExe();
+                string expected = TrustedUacBoundary.ExpectedInstalledExe();
                 using (var self = Process.GetCurrentProcess())
                 using (var candidate = Process.GetProcessById(pid))
                 {

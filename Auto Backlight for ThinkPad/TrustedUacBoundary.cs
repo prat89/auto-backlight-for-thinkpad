@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M2TrustedUacBoundary
+    internal static class TrustedUacBoundary
     {
         internal const string AuditSwitch = "--update-trusted-path-audit";
         internal const string ParentSwitch = "--update-trusted-uac-probe";
@@ -123,15 +123,15 @@ namespace Auto_Backlight_for_ThinkPad
 
         internal static string AuditSelf()
         {
-            if (Phase30B7D6MReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
+            if (ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
                 return "REJECT_UNSAFE_LAB_BUILD";
             string self = Path.GetFullPath(Assembly.GetExecutingAssembly().Location);
             string status = AuditPath(self);
             if (status != "PASS") return status;
             // Registered product must match the currently running EXE version;
             // a compiled developer EXE cannot impersonate an installed release.
-            return Phase30B7D6AInstalledMsiGuard.RunAudit(new string[] {
-                Phase30B7D6AInstalledMsiGuard.AuditSwitch }) == 0 ? "PASS" :
+            return InstalledMsiGuard.RunAudit(new string[] {
+                InstalledMsiGuard.AuditSwitch }) == 0 ? "PASS" :
                 "REJECT_INSTALLED_MSI_IDENTITY";
         }
 

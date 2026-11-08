@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6MReleaseSafetyGate
+    internal static class ReleaseSafetyGate
     {
         internal const string Switch = "--update-release-audit";
 

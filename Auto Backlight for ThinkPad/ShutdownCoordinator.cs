@@ -10,7 +10,7 @@ using System.Diagnostics;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3F2ShutdownCoordinator
+    internal static class ShutdownCoordinator
     {
         private const string AppProcessName = "Auto Backlight for ThinkPad";
         internal const int DefaultTimeoutMilliseconds = 12000;
@@ -44,7 +44,7 @@ namespace Auto_Backlight_for_ThinkPad
         {
             if (timeoutMilliseconds < 1000 || timeoutMilliseconds > 30000)
                 return "REJECT_INVALID_TIMEOUT";
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS")
+            if (TrustedUacBoundary.AuditSelf() != "PASS")
                 return "REJECT_UNTRUSTED_CALLER";
             Process[] candidates = null;
             try
@@ -61,7 +61,7 @@ namespace Auto_Backlight_for_ThinkPad
                         // canonical installed path and start-time identity.
                         if (candidate.HasExited) continue;
                         long started = candidate.StartTime.ToUniversalTime().Ticks;
-                        string status = Phase30B7D6M3FCooperativeShutdown
+                        string status = CooperativeShutdown
                             .RequestForVerifiedPid(candidate.Id);
                         if (status != "SIGNAL_SENT_WAIT_FOR_EXIT")
                             return "REJECT_SIGNAL_" + status;

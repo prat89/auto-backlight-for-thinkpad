@@ -14,7 +14,7 @@ using System.Text;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6IProtectedMsiExecutorLab
+    internal static class ProtectedMsiExecutorLab
     {
         internal const string DrySwitch = "--update-install-transaction-dryrun";
         internal const string ExecuteSwitch = "--update-install-transaction-lab";
@@ -93,10 +93,10 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
         private static void StartDetachedLab(string id,
-            Phase30B7D6GProtectedInstallPreflight.FixedCommandPlan plan)
+            ProtectedInstallPreflight.FixedCommandPlan plan)
         {
             // PHASE30B7D6M1_DEFENSE_IN_DEPTH_V1
-            if (!Phase30B7D6MReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
+            if (!ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
                 throw new InvalidOperationException("Real MSI laboratory mode is disabled in this build.");
             // Every attempt gets a unique transaction ID. A prior 6H report
             // for this same signed stage cannot block a new authorized attempt.
@@ -122,9 +122,9 @@ namespace Auto_Backlight_for_ThinkPad
                 hSignature = HashFile(signature);
             // Signature, MSI identity, installed product and ACL are assessed a
             // SECOND TIME immediately before materializing execution intent.
-            Phase30B7D6GProtectedInstallPreflight.BuildReadOnlyPlan(id);
+            ProtectedInstallPreflight.BuildReadOnlyPlan(id);
             // Only after all checks succeed, create the one-time transaction.
-            string folder = Phase30B7D6HProtectedTransactionHandoffLab.CreateTransaction(txnId);
+            string folder = ProtectedTransactionHandoffLab.CreateTransaction(txnId);
             if (!Directory.Exists(folder) || IsReparse(folder) ||
                 !String.Equals(folder, futureFolder, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Protected transaction directory invalid.");
@@ -180,13 +180,13 @@ namespace Auto_Backlight_for_ThinkPad
                 (args.Length != 3 || args[2] != ExplicitConsent)) return 10;
             // PHASE30B7D6M1_REAL_MSI_LAB_COMPILE_TIME_GATE_V1
             if (args[0] == ExecuteSwitch &&
-                !Phase30B7D6MReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
+                !ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
                 return 15; // lab execution forbidden in normal Release/Debug builds
             if (!Elevated()) return 13;
             try
             {
                 // Both modes perform the exact same trusted, read-only checks.
-                var plan = Phase30B7D6GProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
+                var plan = ProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
                 if (String.IsNullOrEmpty(plan.Package) || String.IsNullOrEmpty(plan.Msiexec) ||
                     String.IsNullOrEmpty(plan.LogFile)) return 14;
                 if (args[0] == DrySwitch) return 0;  // Never starts any process.

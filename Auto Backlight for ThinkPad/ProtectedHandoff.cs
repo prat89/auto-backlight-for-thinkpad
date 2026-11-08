@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D6M3CProtectedHandoff
+    internal static class ProtectedHandoff
     {
         internal const string ParentSwitch = "--update-trusted-stage-parent";
         internal const string ChildSwitch = "--update-trusted-stage-child";
@@ -73,7 +73,7 @@ namespace Auto_Backlight_for_ThinkPad
             string id = ExtractStageId(msiPath);
             if (id == null) return false;
             // Neither a user-writable developer EXE nor an unsafe LAB build may elevate.
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS") return false;
+            if (TrustedUacBoundary.AuditSelf() != "PASS") return false;
             // The About dialog has already performed its explicit async review.
             // Repeat the full assessment in RunFromUi on a worker thread.
             return !ProductionMsiInstallationEnabled;
@@ -83,7 +83,7 @@ namespace Auto_Backlight_for_ThinkPad
         {
             string id = ExtractStageId(msiPath);
             if (id == null || !CanOfferFromUi(msiPath) ||
-                !Phase30B7D6M3BLocalReview.ReviewReadOnly(msiPath)) return 26;
+                !LocalReview.ReviewReadOnly(msiPath)) return 26;
             return Run(new string[] { ParentSwitch, id });
         }
 
@@ -91,16 +91,16 @@ namespace Auto_Backlight_for_ThinkPad
         {
             if (!Elevated()) return 13;
             if (!String.Equals(CurrentSid(), sid, StringComparison.Ordinal)) return 33;
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS") return 26;
+            if (TrustedUacBoundary.AuditSelf() != "PASS") return 26;
             string source = SourceDirectory(id);
             // Recheck after UAC; the user-controlled source may have changed.
-            if (Phase30B7D3SingleExeUpdateAssessment.Run(new string[] {
-                    Phase30B7D3SingleExeUpdateAssessment.Switch, source }) != 0) return 34;
-            int staged = Phase30B7D5ProtectedUpdateStaging.Run(new string[] {
-                Phase30B7D5ProtectedUpdateStaging.Switch, source });
+            if (SingleExeUpdateAssessment.Run(new string[] {
+                    SingleExeUpdateAssessment.Switch, source }) != 0) return 34;
+            int staged = ProtectedUpdateStaging.Run(new string[] {
+                ProtectedUpdateStaging.Switch, source });
             if (staged != 0) return 35;
             // The only authoritative completion is a fresh verification of protected copies.
-            Phase30B7D5ProtectedUpdateStaging.VerifyProtectedReadOnly(id);
+            ProtectedUpdateStaging.VerifyProtectedReadOnly(id);
             return 0; // Protected COPY succeeded. This is NOT MSI installation success.
         }
 
@@ -115,20 +115,20 @@ namespace Auto_Backlight_for_ThinkPad
             if (child && !Regex.IsMatch(args[2], @"^S-1-[0-9]+(?:-[0-9]+)+$")) return 10;
             try
             {
-                if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS") return 26;
+                if (TrustedUacBoundary.AuditSelf() != "PASS") return 26;
                 if (child) return PrepareProtected(args[1], args[2]);
                 string sid = CurrentSid();
                 if (!Regex.IsMatch(sid, @"^S-1-[0-9]+(?:-[0-9]+)+$")) return 33;
                 string source = SourceDirectory(args[1]);
                 // Parent checks before a UAC request; child checks it again independently.
-                if (Phase30B7D3SingleExeUpdateAssessment.Run(new string[] {
-                        Phase30B7D3SingleExeUpdateAssessment.Switch, source }) != 0) return 34;
+                if (SingleExeUpdateAssessment.Run(new string[] {
+                        SingleExeUpdateAssessment.Switch, source }) != 0) return 34;
                 if (Elevated())
                 {
                     // highestAvailable may already run elevated; UI click is still explicit.
                     return PrepareProtected(args[1], sid);
                 }
-                string installedExe = Phase30B7D6M2TrustedUacBoundary.ExpectedInstalledExe();
+                string installedExe = TrustedUacBoundary.ExpectedInstalledExe();
                 var psi = new ProcessStartInfo {
                     FileName = installedExe,
                     Arguments = ChildSwitch + " " + args[1] + " " + sid,

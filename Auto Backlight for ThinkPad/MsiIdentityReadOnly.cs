@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30B7D4MsiIdentity
+    internal static class MsiIdentity
     {
         private const uint Success = 0;
         private const uint MoreData = 234;
@@ -118,7 +118,7 @@ namespace Auto_Backlight_for_ThinkPad
                     throw new InvalidDataException("Major upgrade reused the v1.3.8 ProductCode.");
                 // PHASE30B7D6A_INSTALLED_GUARD_WIRED_V1
                 // Compare with actual Windows Installer registration, not a hardcoded baseline.
-                Phase30B7D6AInstalledMsiGuard.Verify(productCode, expectedVersion);
+                InstalledMsiGuard.Verify(productCode, expectedVersion);
             }
             finally
             {

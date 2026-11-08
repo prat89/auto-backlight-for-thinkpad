@@ -19,7 +19,7 @@ using System.Threading;
 
 namespace Auto_Backlight_for_ThinkPad
 {
-    internal static class Phase30BProductionInstaller
+    internal static class ProductionUpdateInstaller
     {
         internal const string ChildSwitch = "--update-production-approved-child";
         internal const int Refused = 42;
@@ -93,9 +93,9 @@ namespace Auto_Backlight_for_ThinkPad
 
         internal static bool CanOfferFromUi(string stagedMsi)
         {
-            if (Phase30B7D6MReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled) return false;
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS") return false;
-            return Id(Phase30B7D6M3CProtectedHandoff.ExtractStageId(stagedMsi));
+            if (ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled) return false;
+            if (TrustedUacBoundary.AuditSelf() != "PASS") return false;
+            return Id(ProtectedHandoff.ExtractStageId(stagedMsi));
         }
 
         private static PipeSecurity UiPipeSecurity()
@@ -114,11 +114,11 @@ namespace Auto_Backlight_for_ThinkPad
         internal static int LaunchFromUi(string stagedMsi)
         {
             if (!CanOfferFromUi(stagedMsi)) return 26;
-            string id = Phase30B7D6M3CProtectedHandoff.ExtractStageId(stagedMsi);
-            if (!Id(id) || !Phase30B7D6M3BLocalReview.ReviewReadOnly(stagedMsi)) return 34;
+            string id = ProtectedHandoff.ExtractStageId(stagedMsi);
+            if (!Id(id) || !LocalReview.ReviewReadOnly(stagedMsi)) return 34;
             try
             {
-                string exe = Phase30B7D6M2TrustedUacBoundary.ExpectedInstalledExe();
+                string exe = TrustedUacBoundary.ExpectedInstalledExe();
                 string sid = Sid();
                 string pipeName = "ABTP_Approve_" + Guid.NewGuid().ToString("N");
                 using (var self = Process.GetCurrentProcess())
@@ -176,7 +176,7 @@ namespace Auto_Backlight_for_ThinkPad
                     if (gui.HasExited || gui.SessionId != self.SessionId ||
                         gui.StartTime.ToUniversalTime().Ticks != guiStart ||
                         !String.Equals(Path.GetFullPath(gui.MainModule.FileName),
-                            Phase30B7D6M2TrustedUacBoundary.ExpectedInstalledExe(),
+                            TrustedUacBoundary.ExpectedInstalledExe(),
                             StringComparison.OrdinalIgnoreCase)) return false;
                     using (var client = new NamedPipeClientStream(".", pipeName, PipeDirection.In))
                     {
@@ -205,15 +205,15 @@ namespace Auto_Backlight_for_ThinkPad
             int parentPid; long parentTicks;
             if (!Int32.TryParse(args[3], out parentPid) ||
                 !Int64.TryParse(args[4], out parentTicks)) return 10;
-            if (Phase30B7D6M2TrustedUacBoundary.AuditSelf() != "PASS" || !Elevated())
+            if (TrustedUacBoundary.AuditSelf() != "PASS" || !Elevated())
                 return 26;
             if (!ReceiveUiApproval(args[1], args[2], parentPid, parentTicks, args[5]))
                 return Refused;
             try
             {
                 // Independently validate the already-protected MSI after UAC.
-                Phase30B7D6GProtectedInstallPreflight.FixedCommandPlan plan =
-                    Phase30B7D6GProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
+                ProtectedInstallPreflight.FixedCommandPlan plan =
+                    ProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
                 if (String.IsNullOrEmpty(plan.Package) || String.IsNullOrEmpty(plan.Msiexec))
                     return 34;
                 LaunchWorker(args[1], parentPid, parentTicks, plan);
@@ -268,10 +268,10 @@ namespace Auto_Backlight_for_ThinkPad
         }
 
         private static void LaunchWorker(string id, int parentPid, long parentTicks,
-            Phase30B7D6GProtectedInstallPreflight.FixedCommandPlan plan)
+            ProtectedInstallPreflight.FixedCommandPlan plan)
         {
             string transactionId = Guid.NewGuid().ToString("N");
-            string folder = Phase30B7D6HProtectedTransactionHandoffLab
+            string folder = ProtectedTransactionHandoffLab
                 .CreateTransaction(transactionId);
             string stage = Path.GetDirectoryName(plan.Package);
             string manifest = Path.Combine(stage, "update-manifest-v1.txt");
@@ -287,7 +287,7 @@ namespace Auto_Backlight_for_ThinkPad
                 if (p.IndexOfAny(new [] { '\"', '\r', '\n' }) >= 0)
                     throw new InvalidDataException("Unsafe command-line path.");
 
-            string gate = Phase30B7D6M3F4WorkerPrelaunchContract
+            string gate = WorkerPrelaunchContract
                 .BuildProductionReadOnlyPrelaunchWorker();
             string template = WorkerTemplate
                 .Replace("__MUTEX__", MutexName(Sid()))
@@ -336,7 +336,7 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 string root = Path.Combine(Environment.GetFolderPath(
                     Environment.SpecialFolder.CommonApplicationData),
-                    Phase30B7D6HProtectedTransactionHandoffLab.TransactionRootName);
+                    ProtectedTransactionHandoffLab.TransactionRootName);
                 if (!Directory.Exists(root) || IsReparse(root)) return null;
                 string latest = null; DateTime best = DateTime.MinValue;
                 foreach (var folder in Directory.GetDirectories(root))
