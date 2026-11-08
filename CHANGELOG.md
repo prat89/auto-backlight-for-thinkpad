@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.3.9 — 7 November 2026
+## v1.3.9 — 8 November 2026
 
 ### Secure GitHub MSI updater
 - Added stable-release discovery in About, explicit signed MSI download, local review, protected staging, and an installation approval flow.

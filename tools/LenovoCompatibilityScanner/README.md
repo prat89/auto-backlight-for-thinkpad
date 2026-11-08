@@ -1,4 +1,4 @@
-# Lenovo Keyboard Backlight Compatibility Scanner — Phase 29C.1
+# Lenovo Keyboard Backlight Compatibility Scanner
 
 **Experimental, metadata-only scanner. Not a hardware compatibility test.**
 
@@ -73,4 +73,4 @@ Multiple JSON paths can be supplied in the same invocation. The analyzer perform
 
 ## Project status
 
-Phase 29C.1 is a **prototype for volunteer testing**. A scan on ThinkPad X1 Extreme Gen 2 is the initial baseline; it does not validate the candidate Legion/Gamezone interfaces on other laptops. This scanner is **not** included in the v1.3.8 MSI. Production application source files and release tags remain unchanged.
+This is an **experimental, read-only volunteer-research tool**, included in the v1.3.9 source repository under `tools/LenovoCompatibilityScanner/`. It is **not bundled in the v1.3.9 MSI installer**, and it does not establish additional Lenovo model compatibility. The initial ThinkPad X1 Extreme Gen 2 scan is a research baseline only; Legion/Gamezone interfaces have not been validated on other laptops. The phase-labelled output directory shown above is the existing scanner script's output path, not a release or hardware-compatibility claim.

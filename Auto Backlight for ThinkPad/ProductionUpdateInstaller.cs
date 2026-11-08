@@ -1,5 +1,5 @@
 
-// PHASE30B_PRODUCTION_INSTALLER_RC1
+// Production MSI update worker with independent package and process checks.
 // Installed-only, UI-consent-bound production MSI transaction.
 // LAB switches remain separately compile-time disabled. No arbitrary URLs/paths
 // or unsigned installers can reach this worker. Runtime Windows tests required.
@@ -368,7 +368,7 @@ namespace Auto_Backlight_for_ThinkPad
         // Worker is a protected, immutable, elevated script. It outlives the EXE
         // and records MSI result independently. Every variable is derived from
         // trusted system paths or canonical GUID IDs, not from user text.
-        private const string WorkerTemplate = @"# PHASE30B_PRODUCTION_WORKER_RC1
+        private const string WorkerTemplate = @"# Protected MSI update worker
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
 $txn=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__TXN__'))

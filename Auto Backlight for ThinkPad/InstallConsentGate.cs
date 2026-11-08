@@ -1,9 +1,6 @@
-// PHASE30B7D6M3E_INSTALL_CONSENT_GATE_V1
-// The UI and CLI are intentionally FAIL-CLOSED. This is a typed future
-// production-install boundary, NOT a functional MSI executor. No COM, UAC,
-// process launches, filesystem writes or scheduled-task changes here.
-// DO NOT flip this to true until a separately validated production worker
-// replaces the 1.3.8-specific LAB worker and implements durable reporting.
+// Production install consent policy. A normal Release build delegates to
+// ProductionUpdateInstaller only after explicit UI consent and trusted
+// package checks. Direct CLI calls are refused. Unsafe lab builds stay blocked.
 using System;
 using System.Text.RegularExpressions;
 
@@ -15,7 +12,7 @@ namespace Auto_Backlight_for_ThinkPad
         internal const string ChildSwitch = "--update-production-install-child";
         internal const int RefusedProductionNotWired = 42;
 
-        // PHASE30B7D6M3E_HARD_STOP_V1: two independent runtime refusal paths.
+        // Unsafe MSI lab builds cannot enable the production installer.
         internal static bool ProductionExecutorEnabled { get { return !ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled; } }
 
         private static bool CanonicalId(string id)
@@ -29,14 +26,14 @@ namespace Auto_Backlight_for_ThinkPad
 
         internal static bool CanOfferFromUi(string stagedMsi)
         {
-            // This policy NEVER enables Install on an installed or dev EXE in 6M.3E.
+            // The production installer independently checks the installed EXE and MSI.
             if (!ProductionExecutorEnabled) return false;
             return ProductionUpdateInstaller.CanOfferFromUi(stagedMsi);
         }
 
         internal static int RunFromUi(string stagedMsi)
         {
-            // Double-check the disabled gate regardless of button Visibility.
+            // Recheck the safety gate irrespective of button visibility.
             if (!ProductionExecutorEnabled) return RefusedProductionNotWired;
             if (!CanOfferFromUi(stagedMsi)) return 26;
             return ProductionUpdateInstaller.LaunchFromUi(stagedMsi);
@@ -53,7 +50,7 @@ namespace Auto_Backlight_for_ThinkPad
                 return 10;
             // Direct CLI invocation cannot bypass the UI or turn into a LAB install.
             if (!ProductionExecutorEnabled) return RefusedProductionNotWired;
-            return RefusedProductionNotWired; // Worker not implemented; fail closed.
+            return RefusedProductionNotWired; // Standalone CLI install is not authorized.
         }
     }
 }

@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns a compatible Lenovo laptop keyboard backlight on when you use the computer, and off after an adjustable period of inactivity.
 
-**Current locally validated release source: v1.3.9 (7 November 2026).** This version introduces an explicitly approved, publisher-signed GitHub MSI update workflow (RSA signature and SHA-256 validation, protected staging, trusted UAC installation worker). The maintainer verified a v1.3.8 → v1.3.9 RC MSI upgrade with settings and Scheduled Task preserved. **End-to-end installation from About to a newer published release is still pending validation.** See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for **published** installers.
+**Current locally validated release source: v1.3.9 (8 November 2026).** This version introduces an explicitly approved, publisher-signed GitHub MSI update workflow (RSA signature and SHA-256 validation, protected staging, trusted UAC installation worker). The maintainer verified a v1.3.8 → v1.3.9 RC MSI upgrade with settings and Scheduled Task preserved. **End-to-end installation from About to a newer published release is still pending validation.** See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for **published** installers.
 
 ## Features
 

@@ -36,19 +36,19 @@ namespace Auto_Backlight_for_ThinkPad
     /// </summary>
     public partial class About : Window
     {
-        // PHASE30B2_UPDATE_UI: no MSI download or installation in this phase.
+        // Update window state; all update operations require explicit user action.
         private bool _aboutClosed;
-        // PHASE30B7D6M3A_UI_STATE_V1
+        // Signed release candidate and download lifecycle.
         private OnlineUpdater.Downloadable _updateCandidate;
         private bool _updateOperationBusy;
         private System.Threading.CancellationTokenSource _updateCancellation;
-        // PHASE30B7D6M3B_LOCAL_REVIEW_STATE_V1
+        // Path to a locally staged, verified MSI.
         private string _stagedMsi;
-        // PHASE30B7D6M3C_EXPLICIT_PROTECTED_PREPARE_STATE_V1
+        // Path permitted for explicit protected staging.
         private string _reviewedMsi;
-        // PHASE30B7D6M3D_PREVIEW_STATE_V1
+        // Path prepared for protected, read-only installation preflight.
         private string _protectedMsi;
-        // PHASE30B7D6M3E_CONSENT_CANDIDATE_V1
+        // One-shot MSI candidate authorized by a successful preflight.
         private string _approvedMsiCandidate;
 
         private async Task CheckForUpdatesInAboutAsync()
@@ -111,7 +111,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D6M3A_EXPLICIT_SIGNED_STAGE_UI_V1
+        // Download and verify the signed update without installing it.
         private async Task PrepareSignedMsiAsync()
         {
             if (_aboutClosed || _updateOperationBusy ||
@@ -175,7 +175,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D6M3B_LOCAL_READ_ONLY_REVIEW_UI_V1
+        // Repeat signature, hash and MSI identity verification.
         private async Task ReviewSignedMsiAsync()
         {
             if (_aboutClosed || _updateOperationBusy ||
@@ -203,7 +203,7 @@ namespace Auto_Backlight_for_ThinkPad
                         _reviewedMsi = path;
                         PrepareProtectedMsiButton.Visibility = Visibility.Visible;
                         UpdateStatusText.Text = "Publisher signature and MSI verified. " +
-                            "Protected copy available by explicit click; MSI installation disabled.";
+                            "Protected copy available by explicit click; installation requires separate approval.";
                     }
                     else
                     {
@@ -246,7 +246,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D6M3C_EXPLICIT_PROTECTED_STAGE_UI_V1
+        // Prepare protected staging after explicit user consent.
         private async Task PrepareProtectedMsiAsync()
         {
             if (_aboutClosed || _updateOperationBusy ||
@@ -285,7 +285,7 @@ namespace Auto_Backlight_for_ThinkPad
                     _protectedMsi = path;
                     ReviewProtectedMsiButton.Visibility = Visibility.Visible;
                     UpdateStatusText.Text = "Signed MSI copied into protected storage. " +
-                        "You may review the installation plan (read-only); installation disabled.";
+                        "You may review the installation plan (read-only); installation requires separate approval.";
                 }
                 else if (code == 0)
                     UpdateStatusText.Text = "Protected copy completed, but trusted preflight UI unavailable.";
@@ -311,7 +311,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D6M3D_EXPLICIT_READONLY_INSTALL_PREFLIGHT_UI_V1
+        // Perform protected preflight before offering installation.
         private async Task ReviewProtectedMsiAsync()
         {
             if (_aboutClosed || _updateOperationBusy ||
@@ -345,7 +345,7 @@ namespace Auto_Backlight_for_ThinkPad
                 ReviewProtectedMsiButton.Visibility = Visibility.Collapsed;
                 if (code == 0)
                 {
-                    // PHASE30B7D6M3E_NO_PRODUCTION_INSTALL_YET_V1
+                    // Offer install only when the current trusted package passes the production gate.
                     if (InstallConsentGate.CanOfferFromUi(path))
                     {
                         _approvedMsiCandidate = path;
@@ -382,7 +382,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D6M3E_USER_INSTALL_CONSENT_UI_DISABLED_V1
+        // Require another explicit confirmation before launching the update worker.
         private async Task InstallVerifiedUpdateAsync()
         {
             if (_aboutClosed || _updateOperationBusy ||
@@ -436,7 +436,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B2A_ABOUT_CAPTION_THEME: use Windows APP theme for the native caption and icon.
+        // Match the native window caption and icon to the Windows application theme.
         // This intentionally does not modify About body styling or updater behavior.
         private const string ThemePath =
             @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
