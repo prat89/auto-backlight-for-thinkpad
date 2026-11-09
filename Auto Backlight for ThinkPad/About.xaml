@@ -109,7 +109,7 @@ limitations under the License.
                 <ColumnDefinition/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Content="Auto-install preference (not active)"
+            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Visibility="Collapsed" Content="Auto-install preference (not active)"
                       HorizontalAlignment="Left" VerticalAlignment="Center"
                       ToolTip="Saves preference for a future release. In 1.3.10, installation requires explicit confirmation."/>
             <Button Grid.Column="1" Name="CheckUpdatesButton" Template="{StaticResource button}"
@@ -119,7 +119,13 @@ limitations under the License.
         </Grid>
         <TextBlock Name="UpdateStatusText" Margin="1,4,0,0" FontSize="11"
                    Foreground="#FFC7CDD8" TextWrapping="Wrap"
-                   Text="Updater: download and verify a signed MSI, then approve installation explicitly. Background auto-install is not enabled."/>
+                   Text="Updater: check for updates and select Update now to approve a publisher-signed MSI. Automatic background installation is disabled."/>
+        <!-- Phase 1311: the ONLY visible install entry. This button itself is explicit consent. -->
+        <Button Name="UpdateNowButton" Template="{StaticResource button}"
+                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Content="Update now" Height="25" Width="140"
+                Visibility="Collapsed" IsEnabled="False"
+                ToolTip="Download, verify and install the signed update with one explicit action and Windows administrator consent."/>
         <!-- Download and verify a publisher-signed MSI; never installs on this click. -->
         <Button Name="PrepareSignedMsiButton" Template="{StaticResource button}"
                 Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"

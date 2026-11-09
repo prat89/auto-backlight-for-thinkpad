@@ -178,6 +178,7 @@
     <Compile Include="DetachedWorkerGate.cs" />
     <Compile Include="WorkerPrelaunchContract.cs" />
     <Compile Include="ProductionUpdateInstaller.cs" />
+    <Compile Include="PostUpdateRelaunch.cs" />
     <Compile Include="PowerManagement\NativeMethods.cs" />
     <Compile Include="PowerManagement\PowerManagement.cs" />
     <Compile Include="Program.cs" />

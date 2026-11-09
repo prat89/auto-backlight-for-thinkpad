@@ -116,6 +116,12 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = ProtectedPreflightUi.Run(commandLineArgs);
                     return;
                 }
+                // Phase 1311: authenticated unified elevated child. No GUI route yet.
+                if (commandLineArgs[0] == ProductionUpdateInstaller.UnifiedChildSwitch)
+                {
+                    Environment.ExitCode = ProductionUpdateInstaller.RunUnifiedApprovedChild(commandLineArgs);
+                    return;
+                }
                 // PHASE30B_PRODUCTION_APPROVED_CHILD_DISPATCH_RC1
                 if (commandLineArgs[0] == ProductionUpdateInstaller.ChildSwitch)
                 {

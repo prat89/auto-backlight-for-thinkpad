@@ -22,6 +22,8 @@ namespace Auto_Backlight_for_ThinkPad
     internal static class ProductionUpdateInstaller
     {
         internal const string ChildSwitch = "--update-production-approved-child";
+        // Phase 1311 unified backend: inaccessible from About until separately approved.
+        internal const string UnifiedChildSwitch = "--update-production-unified-approved-child";
         internal const int Refused = 42;
         private const string AppProcessName = "Auto Backlight for ThinkPad";
         private const string MutexPrefix = @"Local\ABTP.UpdateInstall.v1.";
@@ -113,6 +115,19 @@ namespace Auto_Backlight_for_ThinkPad
         // ParentSwitch intentionally remains disabled for standalone CLI calls.
         internal static int LaunchFromUi(string stagedMsi)
         {
+            return LaunchFromUiInternal(stagedMsi, ChildSwitch);
+        }
+
+        // Same live-UI pipe authorization as the original production installer.
+        // No UI handler calls this yet; this backend is deliberately inert.
+        internal static int LaunchUnifiedFromUi(string stagedMsi)
+        {
+            return LaunchFromUiInternal(stagedMsi, UnifiedChildSwitch);
+        }
+
+        private static int LaunchFromUiInternal(string stagedMsi, string childSwitch)
+        {
+            if (childSwitch != ChildSwitch && childSwitch != UnifiedChildSwitch) return Refused;
             if (!CanOfferFromUi(stagedMsi)) return 26;
             string id = ProtectedHandoff.ExtractStageId(stagedMsi);
             if (!Id(id) || !LocalReview.ReviewReadOnly(stagedMsi)) return 34;
@@ -126,7 +141,7 @@ namespace Auto_Backlight_for_ThinkPad
                     PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 512,
                     UiPipeSecurity()))
                 {
-                    string cli = ChildSwitch + " " + id + " " + sid + " " + self.Id + " " +
+                    string cli = childSwitch + " " + id + " " + sid + " " + self.Id + " " +
                         self.StartTime.ToUniversalTime().Ticks + " " + pipeName;
                     var psi = new ProcessStartInfo {
                         FileName = exe, Arguments = cli, UseShellExecute = true,
@@ -218,6 +233,51 @@ namespace Auto_Backlight_for_ThinkPad
                     return 34;
                 LaunchWorker(args[1], parentPid, parentTicks, plan);
                 return 0;  // Worker armed; NOT an MSI success report.
+            }
+            catch (Exception) { return 36; }
+        }
+
+        // Phase 1311: ONE elevated approval performs the three previously separated
+        // privileged stages. Existing live GUI pipe, user SID, process lifetime and
+        // installed EXE/ACL checks are mandatory. No direct CLI authorization.
+        // This route is not connected to the UI until explicit follow-up review.
+        internal static int RunUnifiedApprovedChild(string[] args)
+        {
+            if (args == null || args.Length != 6 || args[0] != UnifiedChildSwitch ||
+                !Id(args[1]) || !Regex.IsMatch(args[2], @"^S-1-[0-9]+(?:-[0-9]+)+$") ||
+                !Regex.IsMatch(args[3], @"^[0-9]{1,10}$") ||
+                !Regex.IsMatch(args[4], @"^[0-9]{15,20}$")) return 10;
+            int parentPid; long parentTicks;
+            if (!Int32.TryParse(args[3], out parentPid) ||
+                !Int64.TryParse(args[4], out parentTicks)) return 10;
+            if (TrustedUacBoundary.AuditSelf() != "PASS" || !Elevated()) return 26;
+            if (!ReceiveUiApproval(args[1], args[2], parentPid, parentTicks, args[5]))
+                return Refused;
+            try
+            {
+                string localRoot = Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData);
+                if (String.IsNullOrWhiteSpace(localRoot) || !Path.IsPathRooted(localRoot))
+                    return 34;
+                string source = Path.Combine(localRoot, "Auto Backlight for ThinkPad",
+                    "UpdateStaging", args[1]);
+                // Re-assess source AFTER elevation, using the publisher-pinned manifest,
+                // MSI digest, native identity and registered installed-product guard.
+                if (SingleExeUpdateAssessment.Run(new string[] {
+                        SingleExeUpdateAssessment.Switch, source }) != 0) return 34;
+                // This creates a new protected copy; any collision fails closed.
+                if (ProtectedUpdateStaging.Run(new string[] {
+                        ProtectedUpdateStaging.Switch, source }) != 0) return 35;
+                string protectedMsi = ProtectedUpdateStaging.VerifyProtectedReadOnly(args[1]);
+                ProtectedInstallPreflight.FixedCommandPlan plan =
+                    ProtectedInstallPreflight.BuildReadOnlyPlan(args[1]);
+                if (plan == null || String.IsNullOrWhiteSpace(plan.Package) ||
+                    String.IsNullOrWhiteSpace(plan.Msiexec) ||
+                    !String.Equals(plan.Package, protectedMsi,
+                        StringComparison.OrdinalIgnoreCase)) return 34;
+                // Still delegates final hashes/process absence to detached worker.
+                LaunchWorker(args[1], parentPid, parentTicks, plan);
+                return 0; // Worker ARMED only. Never report MSI success here.
             }
             catch (Exception) { return 36; }
         }
@@ -359,6 +419,15 @@ namespace Auto_Backlight_for_ThinkPad
                 var status = Regex.Match(latest, @"(?m)^STATUS=([A-Z0-9_]+)$");
                 var code = Regex.Match(latest, @"(?m)^MSI_EXIT_CODE=(-?[0-9]+)$");
                 if (!status.Success || !code.Success) return null;
+                if (status.Groups[1].Value == "FAILED_BEFORE_MSI")
+                {
+                    var step = Regex.Match(latest, @"(?m)^FAILURE_STAGE=([A-Z0-9_]+)$");
+                    var marker = Regex.Match(latest, @"(?m)^PREMSI_GATE_MARKER=(READY|BLOCKED|ERROR|UNEXPECTED|NOT_RUN)$");
+                    string detail = step.Success ? step.Groups[1].Value : "UNKNOWN";
+                    string gate = marker.Success ? marker.Groups[1].Value : "UNKNOWN";
+                    return "Last update failed before MSI (step " + detail +
+                        ", PreMSI gate " + gate + "). No installation completed.";
+                }
                 return "Last MSI update: " + status.Groups[1].Value +
                     " (installer exit code " + code.Groups[1].Value + ").";
             }
@@ -385,6 +454,7 @@ $lockName='__MUTEX__'
 $started=$false; $exitCode=-1; $status='FAILED_BEFORE_MSI'; $reboot=$false
 $armed=$false; $parentGone=$false; $hashes=$false; $gateReady=$false
 $lock=$null;$locked=$false
+$failureStage='ACQUIRE_MUTEX';$gateExitCode=-1;$gateMarker='NOT_RUN';$gateStderrLength=-1
 try {
     $lock=New-Object System.Threading.Mutex($false,$lockName)
     try { $locked=$lock.WaitOne(0) } catch [Threading.AbandonedMutexException] {
@@ -393,6 +463,7 @@ try {
     if (-not $locked) { throw 'Another update transaction holds restart lock' }
     [IO.File]::WriteAllText((Join-Path $txn 'armed.txt'), 'ARMED', [Text.Encoding]::ASCII)
     $armed=$true
+    $failureStage='WAIT_PARENT_EXIT'
     $deadline=[DateTime]::UtcNow.AddSeconds(50)
     while ([DateTime]::UtcNow -lt $deadline) {
         $p=Get-Process -Id $parentPid -ErrorAction SilentlyContinue
@@ -401,12 +472,14 @@ try {
         Start-Sleep -Milliseconds 160
     }
     if (-not $parentGone) { throw 'GUI did not exit within 50 seconds' }
+    $failureStage='VERIFY_HASHES'
     if ((Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash -cne $shaMsi -or
         (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash -cne $shaManifest -or
         (Get-FileHash -LiteralPath $signature -Algorithm SHA256).Hash -cne $shaSignature) {
         throw 'Publisher-verified package changed after parent exit'
     }
     $hashes=$true
+    $failureStage='VERIFY_SYSTEM_POWERSHELL'
     $sys=[Environment]::GetFolderPath([Environment+SpecialFolder]::System)
     $ps=Join-Path $sys 'WindowsPowerShell\v1.0\powershell.exe'
     if (-not [IO.File]::Exists($ps) -or
@@ -419,16 +492,24 @@ try {
     $psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
     $psi.WorkingDirectory=$sys
     $psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+    $failureStage='PREMSI_GATE'
     $gate=[Diagnostics.Process]::Start($psi)
     if ($null -eq $gate) { throw 'PreMSI worker did not start' }
     try {
         if (-not $gate.WaitForExit(25000)) { throw 'PreMSI gate timed out' }
         $gout=([string]$gate.StandardOutput.ReadToEnd()).Trim()
         $gerr=([string]$gate.StandardError.ReadToEnd()).Trim()
-        if ([int]$gate.ExitCode -ne 0 -or $gout -cne 'PREMSI_GATE=READY' -or
+        $gateExitCode=[int]$gate.ExitCode
+        $gateStderrLength=$gerr.Length
+        if ($gout -ceq 'PREMSI_GATE=READY') { $gateMarker='READY' }
+        elseif ($gout -ceq 'PREMSI_GATE=BLOCKED') { $gateMarker='BLOCKED' }
+        elseif ($gout -ceq 'PREMSI_GATE=ERROR') { $gateMarker='ERROR' }
+        else { $gateMarker='UNEXPECTED' }
+        if ($gateExitCode -ne 0 -or $gout -cne 'PREMSI_GATE=READY' -or
             $gerr.Length -ne 0) { throw 'PreMSI gate did not return exact READY' }
     } finally { $gate.Dispose() }
     $gateReady=$true
+    $failureStage='START_MSI'
     # The cross-process lock is held from before process audit through MSI.
     # Every normal GUI startup checks this same lock and exits if unavailable.
     $psi=New-Object Diagnostics.ProcessStartInfo
@@ -439,8 +520,10 @@ try {
     $install=[Diagnostics.Process]::Start($psi)
     if ($null -eq $install) { throw 'Windows Installer could not start' }
     $started=$true
+    $failureStage='WAIT_MSI'
     try { $install.WaitForExit(); $exitCode=[int]$install.ExitCode }
     finally { $install.Dispose() }
+    $failureStage='NONE'
     switch ($exitCode) {
       0 { $status='MSI_RETURNED_SUCCESS' }
       3010 { $status='MSI_RETURNED_REBOOT_REQUIRED';$reboot=$true }
@@ -460,6 +543,10 @@ try {
           'GUI_EXITED='+[string]$parentGone+""`n""+
           'PACKAGE_HASHES_VERIFIED='+[string]$hashes+""`n""+
           'PREMSI_GATE_READY='+[string]$gateReady+""`n""+
+          'FAILURE_STAGE='+$failureStage+""`n""+
+          'PREMSI_GATE_EXIT_CODE='+[string]$gateExitCode+""`n""+
+          'PREMSI_GATE_MARKER='+$gateMarker+""`n""+
+          'PREMSI_GATE_STDERR_LENGTH='+[string]$gateStderrLength+""`n""+
           'MSI_STARTED='+[string]$started+""`n""+
           'MSI_EXIT_CODE='+[string]$exitCode+""`n""+
           'STATUS='+$status+""`n""+

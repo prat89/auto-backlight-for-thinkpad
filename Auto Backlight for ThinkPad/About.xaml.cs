@@ -41,6 +41,11 @@ namespace Auto_Backlight_for_ThinkPad
         // Signed release candidate and download lifecycle.
         private OnlineUpdater.Downloadable _updateCandidate;
         private bool _updateOperationBusy;
+        // Prevent the About window from disappearing while its live GUI approval
+        // pipe is authorizing the elevated helper. The rest of the app is not
+        // granted silent install permission by this flag.
+        private bool _updateAuthorizationActive;
+        private bool _updateWorkerArmed;
         private System.Threading.CancellationTokenSource _updateCancellation;
         // Path to a locally staged, verified MSI.
         private string _stagedMsi;
@@ -55,6 +60,8 @@ namespace Auto_Backlight_for_ThinkPad
         {
             if (_aboutClosed || _updateOperationBusy) return;
             _updateCandidate = null;
+            UpdateNowButton.IsEnabled = false;
+            UpdateNowButton.Visibility = Visibility.Collapsed;
             _stagedMsi = null;
             _reviewedMsi = null;
             _protectedMsi = null;
@@ -79,10 +86,11 @@ namespace Auto_Backlight_for_ThinkPad
                         if (SignedDownloadUiPolicy.CanOfferSignedDownload(result))
                         {
                             _updateCandidate = result.Update;
-                            PrepareSignedMsiButton.Visibility = Visibility.Visible;
+                            UpdateNowButton.Visibility = Visibility.Visible;
+                            UpdateNowButton.IsEnabled = true;
                             UpdateStatusText.Text = "Version v" + result.LatestVersion.ToString(3) +
-                                " available. You may download and verify its signed MSI. " +
-                                "Installation requires a separate explicit confirmation.";
+                                " available. Click Update now to download, verify and install " +
+                                "the publisher-signed MSI. Windows may request administrator consent.";
                         }
                         else
                             UpdateStatusText.Text = "New release metadata is insufficient for a signed download.";
@@ -108,6 +116,110 @@ namespace Auto_Backlight_for_ThinkPad
             finally
             {
                 if (!_aboutClosed) CheckUpdatesButton.IsEnabled = true;
+            }
+        }
+
+        // Phase 1311: one explicit GUI consent replaces the old multi-click workflow.
+        // The elevated child still independently repeats the signed bundle checks,
+        // protected staging, read-only preflight and the existing detached gate.
+        private async Task UpdateNowAsync()
+        {
+            if (_aboutClosed || _updateOperationBusy || _updateCandidate == null)
+                return;
+            OnlineUpdater.Downloadable candidate = _updateCandidate;
+            _updateCandidate = null; // one-shot consent; a retry requires a fresh update check
+            UpdateNowButton.IsEnabled = false;
+            UpdateNowButton.Visibility = Visibility.Collapsed;
+            CheckUpdatesButton.IsEnabled = false;
+            _updateOperationBusy = true;
+            _updateWorkerArmed = false;
+            var cancel = new System.Threading.CancellationTokenSource();
+            _updateCancellation = cancel;
+            try
+            {
+                // Fail early for a developer EXE or an untrusted/incorrect install.
+                // Installed identity is rechecked inside the elevated child as well.
+                if (!await Task.Run(() =>
+                    TrustedUacBoundary.AuditSelf() == "PASS"))
+                {
+                    if (!_aboutClosed) UpdateStatusText.Text =
+                        "Update now requires a trusted installed release, not a developer build.";
+                    return;
+                }
+                if (_aboutClosed) return;
+                UpdateStatusText.Text = "Downloading and verifying publisher-signed update...";
+                OnlineUpdater.StageResult staged;
+                using (var updater = new OnlineUpdater())
+                    staged = await updater.StageSignedMsiAsync(candidate, cancel.Token);
+                if (_aboutClosed) return;
+                if (!LocalReview.CanOfferReview(staged))
+                {
+                    UpdateStatusText.Text = "Signed update download or validation failed. " +
+                        "No installation was attempted. Check again to retry.";
+                    return;
+                }
+                string path = staged.Path;
+                UpdateStatusText.Text = "Rechecking signed MSI and installer identity...";
+                bool locallyValid = await Task.Run(() => LocalReview.ReviewReadOnly(path));
+                if (_aboutClosed) return;
+                if (!locallyValid || !InstallConsentGate.CanOfferFromUi(path))
+                {
+                    UpdateStatusText.Text = "Package or installed-application trust check failed. " +
+                        "No MSI installation was attempted.";
+                    return;
+                }
+                // From this point the GUI pipe must stay alive until approval
+                // completes. The UI itself cannot be closed during the UAC handoff.
+                _updateAuthorizationActive = true;
+                CloseButton.IsEnabled = false;
+                UpdateStatusText.Text = "Preparing protected MSI and authorizing install (Windows UAC)...";
+                int status = await Task.Run(() =>
+                    ProductionUpdateInstaller.LaunchUnifiedFromUi(path));
+                if (status == 0)
+                {
+                    // Success here means ARMED, not that msiexec returned 0.
+                    // Spawn a separate monitor in this GUI's interactive session;
+                    // it must wait for the protected result AND mutex release.
+                    bool relaunchArmed = PostUpdateRelaunch.Arm(path, candidate.Version);
+                    if (!relaunchArmed)
+                        DiagnosticsLog.Info("Phase1311: update worker armed; automatic relaunch unavailable. Manual start may be required.");
+                    _updateWorkerArmed = true;
+                    _updateAuthorizationActive = false;
+                    if (!_aboutClosed)
+                        UpdateStatusText.Text = relaunchArmed
+                            ? "Verified update worker armed. Closing app for MSI upgrade; restart observer running..."
+                            : "Verified worker armed. Closing app for MSI upgrade; reopen the app manually when installation finishes.";
+                    Application.Current.Shutdown();
+                    return;
+                }
+                if (!_aboutClosed)
+                    UpdateStatusText.Text = status == 23
+                        ? "Administrator permission was declined. No MSI started."
+                        : "Update could not be authorized (code " + status +
+                            "). No MSI started; check application.log and retry.";
+            }
+            catch (OperationCanceledException)
+            {
+                if (!_aboutClosed) UpdateStatusText.Text = "Update cancelled. No MSI started.";
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("Phase1311: unified Update now failed", ex);
+                if (!_aboutClosed)
+                    UpdateStatusText.Text = "Update failed. No MSI was authorized by this window.";
+            }
+            finally
+            {
+                _updateAuthorizationActive = false;
+                if (Object.ReferenceEquals(_updateCancellation, cancel))
+                    _updateCancellation = null;
+                cancel.Dispose();
+                _updateOperationBusy = false;
+                if (!_aboutClosed && !_updateWorkerArmed)
+                {
+                    CheckUpdatesButton.IsEnabled = true;
+                    CloseButton.IsEnabled = true;
+                }
             }
         }
 
@@ -655,11 +767,19 @@ namespace Auto_Backlight_for_ThinkPad
                 }
             };
             CheckUpdatesButton.Click += async (sender, e) => await CheckForUpdatesInAboutAsync();
+            UpdateNowButton.Click += async (sender, e) => await UpdateNowAsync();
+            // Legacy multi-stage controls remain permanently hidden; no new
+            // update-check route makes them visible.
             PrepareSignedMsiButton.Click += async (sender, e) => await PrepareSignedMsiAsync();
             ReviewSignedMsiButton.Click += async (sender, e) => await ReviewSignedMsiAsync();
             PrepareProtectedMsiButton.Click += async (sender, e) => await PrepareProtectedMsiAsync();
             ReviewProtectedMsiButton.Click += async (sender, e) => await ReviewProtectedMsiAsync();
             InstallVerifiedUpdateButton.Click += async (sender, e) => await InstallVerifiedUpdateAsync();
+            Closing += (sender, e) =>
+            {
+                if (_updateAuthorizationActive && !_updateWorkerArmed)
+                    e.Cancel = true; // preserve live GUI identity through the pipe handoff
+            };
             Closed += (sender, e) =>
             {
                 _aboutClosed = true;
