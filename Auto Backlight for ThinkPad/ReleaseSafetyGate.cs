@@ -33,8 +33,8 @@ namespace Auto_Backlight_for_ThinkPad
                 return "BLOCK_UNSAFE_MSI_LAB_COMPILED";
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             if (version == null || version.Major != 1 || version.Minor != 3 ||
-                version.Build != 12 || version.Revision != 0)
-                return "HOLD_ASSEMBLY_VERSION_NOT_1_3_12";
+                version.Build != 13 || version.Revision != 0)
+                return "HOLD_ASSEMBLY_VERSION_NOT_1_3_13";
             return "HOLD_ABOUT_SIGNED_UPDATE_END_TO_END_NOT_VALIDATED";
         }
 
@@ -44,7 +44,7 @@ namespace Auto_Backlight_for_ThinkPad
                 return 10;
             string status = AuditStatus();
             if (status == "BLOCK_UNSAFE_MSI_LAB_COMPILED") return 23;
-            if (status == "HOLD_ASSEMBLY_VERSION_NOT_1_3_12") return 21;
+            if (status == "HOLD_ASSEMBLY_VERSION_NOT_1_3_13") return 21;
             return 22; // End-to-end update unverified; never report a false PASS.
         }
     }

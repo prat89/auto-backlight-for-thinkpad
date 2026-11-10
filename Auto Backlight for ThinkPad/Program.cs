@@ -164,12 +164,28 @@ namespace Auto_Backlight_for_ThinkPad
             DiagnosticsLog.Info("Process start. OS=" + Environment.OSVersion + "; CLR=" + Environment.Version);
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
                 DiagnosticsLog.Error("Unhandled exception", args.ExceptionObject as Exception);
-            // Allow only a single instance of this application to run at once
-            string proc = Process.GetCurrentProcess().ProcessName;
-            if (Process.GetProcessesByName(proc).Length > 1)
+            // Atomic per-user/per-session GUI mutex, held for the entire WPF lifetime.
+            // Never show modal errors for duplicate launches (MSI, task or observer race).
+            System.Threading.Mutex guiMutex = null;
+            bool ownsGuiMutex = false;
+            try
             {
-                MessageBox.Show(Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product + " is already running, only 1 instance allowed.", "Already running", MessageBoxButton.OK, MessageBoxImage.Error);
-                Environment.Exit(0);
+                guiMutex = new System.Threading.Mutex(false,
+                    @"Local\ABTP.GuiInstance.v1." + ProductionUpdateInstaller.Sid());
+                try { ownsGuiMutex = guiMutex.WaitOne(0); }
+                catch (System.Threading.AbandonedMutexException) { ownsGuiMutex = true; }
+                if (!ownsGuiMutex)
+                {
+                    DiagnosticsLog.Info("Duplicate GUI launch suppressed (already running).");
+                    guiMutex.Dispose();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                DiagnosticsLog.Error("GUI single-instance lock unavailable", ex);
+                if (guiMutex != null) guiMutex.Dispose();
+                return; // fail closed rather than risk concurrent GUI starts
             }
 
             // Redirect loading of certain assemblies to internal embedded resources
@@ -198,6 +214,15 @@ namespace Auto_Backlight_for_ThinkPad
                 MessageBox.Show("The application could not start. See log:\n" +
                     DiagnosticsLog.FilePath + "\n\n" + ex.Message,
                     "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (ownsGuiMutex)
+                {
+                    try { guiMutex.ReleaseMutex(); }
+                    catch (ApplicationException) { }
+                }
+                if (guiMutex != null) guiMutex.Dispose();
             }
         }
     }

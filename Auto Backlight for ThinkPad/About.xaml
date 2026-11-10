@@ -103,29 +103,24 @@ limitations under the License.
                 <FlowDocument Name="License" FontSize="10" FontFamily="Arial" Foreground="White" Background="#FF212121"/>
             </FlowDocumentScrollViewer.Document>
         </FlowDocumentScrollViewer>
-        <!-- Update discovery and stored future auto-install preference; installation still requires explicit approval. -->
+        <!-- Single row: concise status on the left, one stateful action on the right. -->
         <Grid Margin="0,10,0,0" HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Visibility="Collapsed" Content="Auto-install preference (not active)"
-                      HorizontalAlignment="Left" VerticalAlignment="Center"
-                      ToolTip="Saves preference for a future release. In 1.3.10, installation requires explicit confirmation."/>
+            <!-- Preserve the stored future preference without exposing an inactive control. -->
+            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Visibility="Collapsed" Content="Auto-install preference (not active)"/>
+            <TextBlock Grid.Column="0" Name="UpdateStatusText" FontSize="11"
+                       Margin="1,0,10,0" VerticalAlignment="Center"
+                       Foreground="#FFC7CDD8" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                       Text="Ready to check"/>
             <Button Grid.Column="1" Name="CheckUpdatesButton" Template="{StaticResource button}"
                     HorizontalAlignment="Right" VerticalAlignment="Center" Content="Check for updates"
-                    ToolTip="Check GitHub Releases for a newer stable MSI (metadata only)"
+                    ToolTip="Check for the latest stable release"
                     Height="25" Width="140"/>
         </Grid>
-        <TextBlock Name="UpdateStatusText" Margin="1,4,0,0" FontSize="11"
-                   Foreground="#FFC7CDD8" TextWrapping="Wrap"
-                   Text="Updater: check for updates and select Update now to approve a publisher-signed MSI. Automatic background installation is disabled."/>
-        <!-- Phase 1311: the ONLY visible install entry. This button itself is explicit consent. -->
-        <Button Name="UpdateNowButton" Template="{StaticResource button}"
-                Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
-                Content="Update now" Height="25" Width="140"
-                Visibility="Collapsed" IsEnabled="False"
-                ToolTip="Download, verify and install the signed update with one explicit action and Windows administrator consent."/>
         <!-- Download and verify a publisher-signed MSI; never installs on this click. -->
         <Button Name="PrepareSignedMsiButton" Template="{StaticResource button}"
                 Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"

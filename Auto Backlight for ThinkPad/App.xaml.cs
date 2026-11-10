@@ -435,40 +435,36 @@ namespace Auto_Backlight_for_ThinkPad
                 new Action(_CheckAtStartupAsync));
         }
 
-        // PHASE30B2_UPDATE_UI: background notification only; MSI execution remains disabled.
+        // Check on every genuine interactive GUI start. Do not silently install.
+        // The old 24-hour throttling made a quick restart appear to do nothing.
         private async void _CheckAtStartupAsync()
         {
             try
             {
-                if (!UpdaterPreferences.TryReserveStartupCheck()) return;
                 OnlineUpdater.UpdateCheckResult result;
                 using (var updater = new OnlineUpdater())
                     result = await updater.CheckForUpdatesAsync();
-
                 if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
-                if (result.Status != OnlineUpdater.CheckStatus.UpdateAvailable) return;
+                if (result.Status != OnlineUpdater.CheckStatus.UpdateAvailable ||
+                    !SignedDownloadUiPolicy.CanOfferSignedDownload(result)) return;
 
-                var tray = FindResource("SysTrayIcon") as Hardcodet.Wpf.TaskbarNotification.TaskbarIcon;
-                if (tray == null) return;
-                // Clicking the Windows notification opens About; it never starts MSI.
-                tray.TrayBalloonTipClicked -= _BalloonClicked;
-                tray.TrayBalloonTipClicked += _BalloonClicked;
-                tray.ShowBalloonTip("Auto Backlight for ThinkPad update available",
-                    "Version v" + result.LatestVersion.ToString(3) +
-                    " is available. Open About to review it. MSI auto-install is not active yet.",
-                    Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
-                DiagnosticsLog.Info("Phase30B2: update available; version=" + result.LatestVersion.ToString(3));
+                string version = result.LatestVersion.ToString(3);
+                MessageBoxResult answer = MessageBox.Show(
+                    "Version v" + version + " is available. Install now?",
+                    "Auto Backlight for ThinkPad update",
+                    MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (answer != MessageBoxResult.Yes ||
+                    Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+                // Yes is explicit consent; the About pipeline still checks the
+                // signed package and Windows may require administrator approval.
+                _ShowAbout(null, null);
+                if (_about != null)
+                    await _about.StartStartupUpdateAsync(result.Update);
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B2: background update check failed", ex);
+                DiagnosticsLog.Error("Updater: startup update check failed", ex);
             }
-        }
-
-        private void _BalloonClicked(object sender, RoutedEventArgs e)
-        {
-            _ShowAbout(sender, e);
-            if (_about != null) _about.Activate();
         }
 
         // The Lenovo OSD switch is global to the current Windows user.

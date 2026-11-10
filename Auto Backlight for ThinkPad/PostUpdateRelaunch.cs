@@ -89,9 +89,20 @@ try {
         if ($found.Count -eq 1) {
             if (-not (MutexFree)) { Start-Sleep -Milliseconds 400; continue }
             if (-not [IO.File]::Exists($exe) -or (Reparse $exe)) { exit 40 }
-            $running=@(Get-Process -Name 'Auto Backlight for ThinkPad' -ErrorAction SilentlyContinue)
-            if ($running.Count -eq 0) {
-                Start-Process -FilePath $exe -WorkingDirectory ([IO.Path]::GetDirectoryName($exe)) -ErrorAction Stop
+            # Another launcher (e.g. a scheduled task) may race with relaunch.
+            # The GUI now uses an atomic singleton; wait for a surviving process.
+            $session=[Diagnostics.Process]::GetCurrentProcess().SessionId
+            $alive=$false
+            for ($attempt=0; $attempt -lt 3; $attempt++) {
+                $running=@(Get-Process -Name 'Auto Backlight for ThinkPad' -ErrorAction SilentlyContinue |
+                    Where-Object { $_.SessionId -eq $session -and -not $_.HasExited })
+                if ($running.Count -eq 0) {
+                    Start-Process -FilePath $exe -WorkingDirectory ([IO.Path]::GetDirectoryName($exe)) -ErrorAction Stop
+                }
+                Start-Sleep -Milliseconds 1200
+                $survivors=@(Get-Process -Name 'Auto Backlight for ThinkPad' -ErrorAction SilentlyContinue |
+                    Where-Object { $_.SessionId -eq $session -and -not $_.HasExited })
+                if ($survivors.Count -gt 0) { $alive=$true; break }
             }
             $r=$found[0]
             $actualVersion='UNCONFIRMED'
@@ -99,8 +110,10 @@ try {
                 $v=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
                 $actualVersion=([string]$v.FileMajorPart)+'.'+([string]$v.FileMinorPart)+'.'+([string]$v.FileBuildPart)
             } catch {}
-            if ($r.Status -ceq 'MSI_RETURNED_SUCCESS' -and $r.Code -ceq '0' -and $actualVersion -ceq $target) {
-                Notice ('Windows Installer completed and the EXE version is '+$actualVersion+'. Check About for the installed MSI identity.')
+            if (-not $alive) {
+                Notice ('Update finished, but the app did not restart. Please start it manually.')
+            } elseif ($r.Status -ceq 'MSI_RETURNED_SUCCESS' -and $r.Code -ceq '0' -and $actualVersion -ceq $target) {
+                Notice ('Updated to v'+$actualVersion+'.')
             } elseif ($r.Status -ceq 'MSI_RETURNED_REBOOT_REQUIRED') {
                 Notice ('Windows Installer requested a restart (3010). Current EXE version: '+$actualVersion+'. Please restart Windows.')
             } else {
