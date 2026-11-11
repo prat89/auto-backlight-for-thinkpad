@@ -26,8 +26,8 @@ limitations under the License.
         <local:Settings x:Key="Settings"/>
         <local:TimeFormatter x:Key="TimeFormatter"/>
         <local:BrightnessLevelFormatter x:Key="BrightnessLevelFormatter"/>
-                <!-- PHASE16_SAFE_TRAY_MENU: native MenuItem interaction retained intentionally. -->
-        <Style x:Key="P16_ContextMenu" TargetType="{x:Type ContextMenu}">
+                <!-- Preserve native MenuItem interaction. -->
+        <Style x:Key="TrayContextMenuBaseStyle" TargetType="{x:Type ContextMenu}">
             <Setter Property="Background" Value="#FFF9FAFC"/>
             <Setter Property="Foreground" Value="#FF202938"/>
             <Setter Property="BorderBrush" Value="#FFD9E0E8"/>
@@ -53,7 +53,7 @@ limitations under the License.
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="P16_Separator" TargetType="{x:Type Separator}">
+        <Style x:Key="TraySeparatorBaseStyle" TargetType="{x:Type Separator}">
             <Setter Property="Margin" Value="20,5,7,5"/>
             <Setter Property="Height" Value="1"/>
             <Setter Property="Background" Value="#FFDDE3EB"/>
@@ -66,22 +66,22 @@ limitations under the License.
             </Setter>
         </Style>
 
-        <!-- PHASE30A_TRAY_THEME: menu-only palette, updated from Windows app theme. -->
-        <SolidColorBrush x:Key="P30A_Surface" Color="#FFFAFBFD"/>
-        <SolidColorBrush x:Key="P30A_Text" Color="#FF202632"/>
-        <SolidColorBrush x:Key="P30A_Border" Color="#FFD5DCE5"/>
-        <SolidColorBrush x:Key="P30A_Separator" Color="#FFD4D7DC"/>
-        <SolidColorBrush x:Key="P30A_Hover" Color="#FFE9EDF3"/>
-        <SolidColorBrush x:Key="P30A_Icon" Color="#FF647182"/>
-        <SolidColorBrush x:Key="P30A_Check" Color="#FF596575"/>
-        <SolidColorBrush x:Key="P30A_InputSurface" Color="#FFFFFFFF"/>
-        <SolidColorBrush x:Key="P30A_InputBorder" Color="#FFB8C2D0"/>
+        <!-- Tray menu palette follows the Windows app theme. -->
+        <SolidColorBrush x:Key="TraySurfaceBrush" Color="#FFFAFBFD"/>
+        <SolidColorBrush x:Key="TrayTextBrush" Color="#FF202632"/>
+        <SolidColorBrush x:Key="TrayBorderBrush" Color="#FFD5DCE5"/>
+        <SolidColorBrush x:Key="TraySeparatorBrush" Color="#FFD4D7DC"/>
+        <SolidColorBrush x:Key="TrayHoverBrush" Color="#FFE9EDF3"/>
+        <SolidColorBrush x:Key="TrayIconBrush" Color="#FF647182"/>
+        <SolidColorBrush x:Key="TrayCheckBrush" Color="#FF596575"/>
+        <SolidColorBrush x:Key="TrayInputSurfaceBrush" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="TrayInputBorderBrush" Color="#FFB8C2D0"/>
 
-        <!-- PHASE16_2_REFINEMENT; PHASE16_1_MODERN_ITEMS: complete compact menu templates; WPF owns MenuItem interactions. -->
-        <Style x:Key="P161_MenuSurface" TargetType="{x:Type ContextMenu}">
-            <Setter Property="Background" Value="{DynamicResource P30A_Surface}"/>
-            <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource P30A_Border}"/>
+        <!-- Complete compact menu templates; WPF owns MenuItem interactions. -->
+        <Style x:Key="TrayMenuSurfaceStyle" TargetType="{x:Type ContextMenu}">
+            <Setter Property="Background" Value="{DynamicResource TraySurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TrayTextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource TrayBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="2,4"/>
             <Setter Property="Template">
@@ -102,10 +102,10 @@ limitations under the License.
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="P161_MenuSeparator" TargetType="{x:Type Separator}">
+        <Style x:Key="TrayMenuSeparatorStyle" TargetType="{x:Type Separator}">
             <Setter Property="Margin" Value="3,3,3,3"/>
             <Setter Property="Height" Value="1"/>
-            <Setter Property="Background" Value="{DynamicResource P30A_Separator}"/>
+            <Setter Property="Background" Value="{DynamicResource TraySeparatorBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Separator}">
@@ -114,10 +114,10 @@ limitations under the License.
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Phase 30A.1j: shift whole ComboBoxes visually +4px without changing menu measure. -->
-        <TranslateTransform x:Key="P30A1J_ComboShift" X="4"/>
+        <!-- Shift ComboBoxes visually +4px without changing menu measure. -->
+        <TranslateTransform x:Key="TrayComboVisualOffset" X="4"/>
         <!-- All leaf positions: regular, checkable, and composite Grid/ComboBox headers. -->
-        <ControlTemplate x:Key="P161_LeafTemplate" TargetType="{x:Type MenuItem}">
+        <ControlTemplate x:Key="TrayMenuItemTemplate" TargetType="{x:Type MenuItem}">
             <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,0" MinHeight="28">
                 <Grid SnapsToDevicePixels="True">
                     <Grid.ColumnDefinitions>
@@ -125,7 +125,7 @@ limitations under the License.
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Path x:Name="CheckGlyph" Grid.Column="0" Visibility="Collapsed"
-                          Data="M 4,9 L 8,13 L 16,5" Stroke="{DynamicResource P30A_Check}" StrokeThickness="1.55"
+                          Data="M 4,9 L 8,13 L 16,5" Stroke="{DynamicResource TrayCheckBrush}" StrokeThickness="1.55"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Width="12" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <ContentPresenter x:Name="IconSlot" Grid.Column="0" ContentSource="Icon" Width="15" Height="15"
@@ -140,7 +140,7 @@ limitations under the License.
                     <Setter TargetName="IconSlot" Property="Visibility" Value="Collapsed"/>
                 </Trigger>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource TrayHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.47"/>
@@ -148,7 +148,7 @@ limitations under the License.
             </ControlTemplate.Triggers>
         </ControlTemplate>
         <!-- Submenu-owning Settings item. PART_Popup and ItemsPresenter are essential. -->
-        <ControlTemplate x:Key="P161_SubmenuTemplate" TargetType="{x:Type MenuItem}">
+        <ControlTemplate x:Key="TraySubmenuTemplate" TargetType="{x:Type MenuItem}">
             <Grid>
                 <Border x:Name="ItemBounds" Background="Transparent" CornerRadius="5" Margin="2,0" MinHeight="28">
                     <Grid>
@@ -162,14 +162,14 @@ limitations under the License.
                         <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
                                           Margin="2,1,9,1" VerticalAlignment="Center"/>
                         <Path Grid.Column="2" Width="7" Height="11" Data="M 1,1 L 6,5.5 L 1,10"
-                              Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.5" StrokeStartLineCap="Round"
+                              Stroke="{DynamicResource TrayIconBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Grid>
                 </Border>
                 <Popup x:Name="PART_Popup" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
                        Placement="Right" HorizontalOffset="-2" VerticalOffset="-5" AllowsTransparency="True"
                        Focusable="False" PopupAnimation="Fade">
-                    <Border Background="{DynamicResource P30A_Surface}" BorderBrush="{DynamicResource P30A_Border}" BorderThickness="1"
+                    <Border Background="{DynamicResource TraySurfaceBrush}" BorderBrush="{DynamicResource TrayBorderBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="2,4" SnapsToDevicePixels="True">
                         <Border.Effect>
                             <DropShadowEffect Color="#FF000000" Opacity="0.17" BlurRadius="12" ShadowDepth="3"/>
@@ -183,51 +183,51 @@ limitations under the License.
             </Grid>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource TrayHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsSubmenuOpen" Value="True">
-                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                    <Setter TargetName="ItemBounds" Property="Background" Value="{DynamicResource TrayHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.47"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
-        <Style x:Key="P161_AllMenuItems" TargetType="{x:Type MenuItem}">
-            <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
-            <Setter Property="Template" Value="{StaticResource P161_LeafTemplate}"/>
+        <Style x:Key="TrayMenuItemStyle" TargetType="{x:Type MenuItem}">
+            <Setter Property="Foreground" Value="{DynamicResource TrayTextBrush}"/>
+            <Setter Property="Template" Value="{StaticResource TrayMenuItemTemplate}"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Style.Triggers>
                 <Trigger Property="Role" Value="TopLevelHeader">
-                    <Setter Property="Template" Value="{StaticResource P161_SubmenuTemplate}"/>
+                    <Setter Property="Template" Value="{StaticResource TraySubmenuTemplate}"/>
                 </Trigger>
                 <Trigger Property="Role" Value="SubmenuHeader">
-                    <Setter Property="Template" Value="{StaticResource P161_SubmenuTemplate}"/>
+                    <Setter Property="Template" Value="{StaticResource TraySubmenuTemplate}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <!-- PHASE30A1_COMBOBOX: scoped to the tray ContextMenu; keeps editable/non-editable support. -->
-        <ControlTemplate x:Key="P30A1_EditorTextTemplate" TargetType="{x:Type TextBox}">
+        <!-- ComboBox styling is scoped to tray ContextMenu and supports editable fields. -->
+        <ControlTemplate x:Key="TrayComboEditorTemplate" TargetType="{x:Type TextBox}">
             <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
                           HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
         </ControlTemplate>
-        <ControlTemplate x:Key="P30A1_ComboToggleTemplate" TargetType="{x:Type ToggleButton}">
+        <ControlTemplate x:Key="TrayComboToggleTemplate" TargetType="{x:Type ToggleButton}">
             <Grid Background="Transparent" SnapsToDevicePixels="True">
                 <Border x:Name="ArrowBackground" Width="21" Background="Transparent"
                         HorizontalAlignment="Right" CornerRadius="0,3,3,0">
                     <Path Data="M 5,8 L 9,12 L 13,8" Width="10" Height="8"
-                          Stroke="{DynamicResource P30A_Text}" StrokeThickness="1.5"
+                          Stroke="{DynamicResource TrayTextBrush}" StrokeThickness="1.5"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                           HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"/>
                 </Border>
             </Grid>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="ArrowBackground" Property="Background" Value="{DynamicResource P30A_InputBorder}"/>
+                    <Setter TargetName="ArrowBackground" Property="Background" Value="{DynamicResource TrayInputBorderBrush}"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
-        <ControlTemplate x:Key="P30A1_ComboItemTemplate" TargetType="{x:Type ComboBoxItem}">
+        <ControlTemplate x:Key="TrayComboItemTemplate" TargetType="{x:Type ComboBoxItem}">
             <Border x:Name="ItemSurface" Background="{TemplateBinding Background}"
                     Padding="{TemplateBinding Padding}" CornerRadius="3" SnapsToDevicePixels="True">
                 <ContentPresenter ContentSource="Content" RecognizesAccessKey="True"
@@ -236,24 +236,24 @@ limitations under the License.
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource TrayHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource P30A_Hover}"/>
+                    <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource TrayHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter TargetName="ItemSurface" Property="Opacity" Value="0.6"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
-        <ControlTemplate x:Key="P30A1_ComboBoxTemplate" TargetType="{x:Type ComboBox}">
+        <ControlTemplate x:Key="TrayComboBoxTemplate" TargetType="{x:Type ComboBox}">
             <Grid x:Name="ComboRoot" SnapsToDevicePixels="True">
                 <Border x:Name="ComboBorder" Background="{TemplateBinding Background}"
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3"/>
                 <!-- Full-width toggle preserves mouse opening on non-editable combos. -->
                 <ToggleButton x:Name="DropDownToggle" Focusable="False" ClickMode="Press"
-                              Template="{StaticResource P30A1_ComboToggleTemplate}"
+                              Template="{StaticResource TrayComboToggleTemplate}"
                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
                 <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False"
                                   Content="{TemplateBinding SelectionBoxItem}"
@@ -262,8 +262,8 @@ limitations under the License.
                                   TextElement.Foreground="{TemplateBinding Foreground}"
                                   Margin="6,0,24,0" VerticalAlignment="Center"/>
                 <TextBox x:Name="PART_EditableTextBox" Style="{x:Null}"
-                         Template="{StaticResource P30A1_EditorTextTemplate}"
-                         Foreground="{TemplateBinding Foreground}" CaretBrush="{DynamicResource P30A_Text}"
+                         Template="{StaticResource TrayComboEditorTemplate}"
+                         Foreground="{TemplateBinding Foreground}" CaretBrush="{DynamicResource TrayTextBrush}"
                          Background="Transparent" BorderThickness="0" IsReadOnly="{TemplateBinding IsReadOnly}"
                          Focusable="True" Visibility="Hidden" Margin="6,1,24,1"
                          HorizontalContentAlignment="Left" VerticalContentAlignment="Center"/>
@@ -272,8 +272,8 @@ limitations under the License.
                        IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
                     <Grid x:Name="DropDown" MinWidth="{TemplateBinding ActualWidth}"
                           MaxHeight="{TemplateBinding MaxDropDownHeight}" SnapsToDevicePixels="True">
-                        <Border Background="{DynamicResource P30A_InputSurface}"
-                                BorderBrush="{DynamicResource P30A_InputBorder}"
+                        <Border Background="{DynamicResource TrayInputSurfaceBrush}"
+                                BorderBrush="{DynamicResource TrayInputBorderBrush}"
                                 BorderThickness="1" CornerRadius="4" Padding="3">
                             <ScrollViewer x:Name="DropDownScrollViewer" CanContentScroll="True"
                                           VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -290,46 +290,46 @@ limitations under the License.
                     <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden"/>
                 </Trigger>
                 <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                    <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource P30A_Text}"/>
+                    <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource TrayTextBrush}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter TargetName="ComboRoot" Property="Opacity" Value="0.8"/>
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
-<ContextMenu x:Key="SysTrayMenu" Style="{StaticResource P161_MenuSurface}" Opened="_TrayMenuOpened">
+<ContextMenu x:Key="SysTrayMenu" Style="{StaticResource TrayMenuSurfaceStyle}" Opened="_TrayMenuOpened">
             <ContextMenu.Resources>
-                <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource P161_AllMenuItems}"/>
-                <Style TargetType="{x:Type Separator}" BasedOn="{StaticResource P161_MenuSeparator}"/>
-                <!-- Phase 30A: adapt nested editor controls without replacing their native templates. -->
+                <Style TargetType="{x:Type MenuItem}" BasedOn="{StaticResource TrayMenuItemStyle}"/>
+                <Style TargetType="{x:Type Separator}" BasedOn="{StaticResource TrayMenuSeparatorStyle}"/>
+                <!-- Adapt nested editor controls without replacing native templates. -->
                 <Style TargetType="{x:Type Label}">
-                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TrayTextBrush}"/>
                 </Style>
-                <!-- Phase 30A.1: render the closed field, editable text and popup using one palette. -->
+                <!-- Render closed field, editable text and popup with one palette. -->
                 <Style TargetType="{x:Type ComboBox}">
-                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
-                    <Setter Property="Background" Value="{DynamicResource P30A_InputSurface}"/>
-                    <Setter Property="BorderBrush" Value="{DynamicResource P30A_InputBorder}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TrayTextBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource TrayInputSurfaceBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource TrayInputBorderBrush}"/>
                     <Setter Property="BorderThickness" Value="1"/>
-                    <Setter Property="Template" Value="{StaticResource P30A1_ComboBoxTemplate}"/>
+                    <Setter Property="Template" Value="{StaticResource TrayComboBoxTemplate}"/>
                     <Setter Property="SnapsToDevicePixels" Value="True"/>
                 </Style>
                 <Style TargetType="{x:Type ComboBoxItem}">
-                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TrayTextBrush}"/>
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Padding" Value="6,3"/>
-                    <Setter Property="Template" Value="{StaticResource P30A1_ComboItemTemplate}"/>
+                    <Setter Property="Template" Value="{StaticResource TrayComboItemTemplate}"/>
                 </Style>
                 <Style TargetType="{x:Type TextBox}">
-                    <Setter Property="Foreground" Value="{DynamicResource P30A_Text}"/>
-                    <Setter Property="Background" Value="{DynamicResource P30A_InputSurface}"/>
-                    <Setter Property="BorderBrush" Value="{DynamicResource P30A_InputBorder}"/>
-                    <Setter Property="CaretBrush" Value="{DynamicResource P30A_Text}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TrayTextBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource TrayInputSurfaceBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource TrayInputBorderBrush}"/>
+                    <Setter Property="CaretBrush" Value="{DynamicResource TrayTextBrush}"/>
                 </Style>
             </ContextMenu.Resources>
             <MenuItem Header="Settings">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TrayIconBrush}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,2 L 12,2 L 13,5 L 15,6 L 18,5 L 20,8 L 18,10 L 18,13 L 20,15 L 18,18 L 15,17 L 13,18 L 12,21 L 9,21 L 8,18 L 6,17 L 3,18 L 1,15 L 3,13 L 3,10 L 1,8 L 3,5 L 6,6 L 8,5 Z"/>
                 </MenuItem.Icon>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Keyboard_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="KeyboardMenu_Init"
@@ -341,7 +341,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto keyboard backlight"/>
-                            <ComboBox Grid.Column="1" Margin="0,0,-6,0" HorizontalAlignment="Right" RenderTransform="{StaticResource P30A1J_ComboShift}" IsEditable="True" Height="23" Width="100" Text="{Binding Keyboard_InactivityTimeout, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}" MouseEnter="KeyboardCombo_Enter" MouseLeave="KeyboardCombo_Leave"
+                            <ComboBox Grid.Column="1" Margin="0,0,-6,0" HorizontalAlignment="Right" RenderTransform="{StaticResource TrayComboVisualOffset}" IsEditable="True" Height="23" Width="100" Text="{Binding Keyboard_InactivityTimeout, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}" MouseEnter="KeyboardCombo_Enter" MouseLeave="KeyboardCombo_Leave"
                                   ToolTip="{Binding Path=Meta.Keyboard_InactivityTimeout.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="1 sec"/>
                                 <ComboBoxItem Content="5 sec"/>
@@ -365,7 +365,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Choose brightness level"/>
-                            <ComboBox Grid.Column="1" Margin="0,0,-6,0" HorizontalAlignment="Right" RenderTransform="{StaticResource P30A1J_ComboShift}" Height="23" Width="100" SelectedIndex="{Binding Keyboard_OnLevel, Mode=TwoWay, Source={StaticResource Settings}}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
+                            <ComboBox Grid.Column="1" Margin="0,0,-6,0" HorizontalAlignment="Right" RenderTransform="{StaticResource TrayComboVisualOffset}" Height="23" Width="100" SelectedIndex="{Binding Keyboard_OnLevel, Mode=TwoWay, Source={StaticResource Settings}}" IsEnabled="{Binding Keyboard_Enabled, Source={StaticResource Settings}}"
                                   ToolTip="{Binding Path=Meta.Keyboard_OnLevel.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="Off"/>
                                 <ComboBoxItem Content="Low"/>
@@ -391,7 +391,7 @@ limitations under the License.
                         <Label VerticalAlignment="Center" Padding="3,1,3,1" HorizontalAlignment="Left" Content="Disable on-screen display"/>
                     </MenuItem.Header>
                 </MenuItem>
-                <Separator Style="{StaticResource P161_MenuSeparator}"/>
+                <Separator Style="{StaticResource TrayMenuSeparatorStyle}"/>
                 <MenuItem StaysOpenOnClick="True" IsCheckable="True" IsChecked="{Binding Screen_Enabled, Mode=TwoWay, Source={StaticResource Settings}}" Initialized="ScreenMenu_Init"
                           ToolTip="{Binding Path=Meta.Screen_Enabled.Help, Source={StaticResource Settings}}">
                     <MenuItem.Header>
@@ -401,7 +401,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Enable auto screen brightness"/>
-                            <ComboBox Grid.Column="1" Margin="0,0,-6,0" HorizontalAlignment="Right" RenderTransform="{StaticResource P30A1J_ComboShift}" IsEditable="True" Height="23" Width="100" Text="{Binding Screen_PollPeriod, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}" MouseEnter="ScreenCombo_Enter" MouseLeave="ScreenCombo_Leave"
+                            <ComboBox Grid.Column="1" Margin="0,0,-6,0" HorizontalAlignment="Right" RenderTransform="{StaticResource TrayComboVisualOffset}" IsEditable="True" Height="23" Width="100" Text="{Binding Screen_PollPeriod, Converter={StaticResource TimeFormatter}, Mode=TwoWay, Source={StaticResource Settings}, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding Screen_Enabled, Source={StaticResource Settings}}" MouseEnter="ScreenCombo_Enter" MouseLeave="ScreenCombo_Leave"
                                   ToolTip="{Binding Path=Meta.Screen_PollPeriod.Help, Source={StaticResource Settings}}">
                                 <ComboBoxItem Content="1 sec"/>
                                 <ComboBoxItem Content="5 sec"/>
@@ -425,7 +425,7 @@ limitations under the License.
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
                             <Label VerticalAlignment="Center" Padding="3,1,3,1" Grid.Column="0" HorizontalAlignment="Left" Content="Enable hotkey for screen refresh"/>
-                            <TextBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransform="{StaticResource P30A1J_ComboShift}" IsEnabled="{Binding Screen_HotKeyEnabled, Source={StaticResource Settings}}" IsUndoEnabled="False" Height="23" Width="100" IsReadOnly="False" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewKeyDown="_HotKeyBox_KeyDown" Initialized="_HotKeyBox_Init" GotKeyboardFocus="_HotKeyBox_GotKeyboardFocus" LostKeyboardFocus="_HotKeyBox_LostKeyboardFocus" MouseEnter="HotkeyBox_Enter" MouseLeave="HotkeyBox_Leave"
+                            <TextBox Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransform="{StaticResource TrayComboVisualOffset}" IsEnabled="{Binding Screen_HotKeyEnabled, Source={StaticResource Settings}}" IsUndoEnabled="False" Height="23" Width="100" IsReadOnly="False" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewKeyDown="_HotKeyBox_KeyDown" Initialized="_HotKeyBox_Init" GotKeyboardFocus="_HotKeyBox_GotKeyboardFocus" LostKeyboardFocus="_HotKeyBox_LostKeyboardFocus" MouseEnter="HotkeyBox_Enter" MouseLeave="HotkeyBox_Leave"
                                  ToolTip="{Binding Path=Meta.Screen_HotKey.Help, Source={StaticResource Settings}}"/>
                         </Grid>
                     </MenuItem.Header>
@@ -437,31 +437,31 @@ limitations under the License.
                     </MenuItem.Header>
                 </MenuItem>
             </MenuItem>
-            <Separator Style="{StaticResource P161_MenuSeparator}"/>
+            <Separator Style="{StaticResource TrayMenuSeparatorStyle}"/>
             <MenuItem Header="Diagnostics..." Click="_ExportDiagnosticReport">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TrayIconBrush}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 2,12 L 6,12 L 9,5 L 13,19 L 16,12 L 22,12"/>
                 </MenuItem.Icon></MenuItem>
-            <!-- PHASE18_EXPORT_APPLICATION_LOG: export a read-only copy of application.log -->
+            <!-- Export a read-only copy of application.log. -->
             <MenuItem Header="Export log..." Click="_ExportApplicationLog">
                 <MenuItem.Icon>
-                    <Path Data="M 6,3 L 15,3 L 19,7 L 19,21 L 6,21 Z M 15,3 L 15,7 L 19,7 M 9,12 L 16,12 M 13,9 L 16,12 L 13,15" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6" Fill="Transparent" Width="15" Height="15" Stretch="Uniform"/>
+                    <Path Data="M 6,3 L 15,3 L 19,7 L 19,21 L 6,21 Z M 15,3 L 15,7 L 19,7 M 9,12 L 16,12 M 13,9 L 16,12 L 13,15" Stroke="{DynamicResource TrayIconBrush}" StrokeThickness="1.6" Fill="Transparent" Width="15" Height="15" Stretch="Uniform"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="About" Click="_ShowAbout">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TrayIconBrush}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 12,3 A 9,9 0 1 1 11.99,3 Z M 12,10 L 12,16 M 12,7 L 12,7"/>
                 </MenuItem.Icon></MenuItem>
             <MenuItem Header="Exit" Click="_ExitApplication">
                 <MenuItem.Icon>
-                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource P30A_Icon}" StrokeThickness="1.6"
+                    <Path Width="15" Height="15" Stretch="Uniform" Stroke="{DynamicResource TrayIconBrush}" StrokeThickness="1.6"
                           StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,3 L 4,3 L 4,21 L 10,21 M 13,7 L 18,12 L 13,17 M 9,12 L 18,12"/>
                 </MenuItem.Icon></MenuItem>
         </ContextMenu>
 
-        <!-- PHASE30A2C_PNG_ADAPTIVE_TRAY_ICON: runtime switches source based on SystemUsesLightTheme. -->
+        <!-- Select tray icon source based on SystemUsesLightTheme. -->
         <tb:TaskbarIcon x:Key="SysTrayIcon"
                     IconSource="/Resources/TrayIcons/TrayIcon.PngConcept.ForDarkTaskbar.ico"
                     ToolTipText="Auto Backlight for ThinkPad"

@@ -1,4 +1,4 @@
-// Phase30B7B_SIGNED_MANIFEST_TRUST_V1
+// Verify trusted publisher signatures on release manifests.
 // Detached publisher-signed update manifest verification only. No installer execution.
 // Public RSA-3072 trust anchor is pinned here; NEVER embed private key material.
 using System;
@@ -144,7 +144,7 @@ namespace Auto_Backlight_for_ThinkPad
             Version expectedVersion, string assetName, string sha256, long sizeBytes)
         {
             Reject(manifest == null || expectedVersion == null, "Missing manifest or release version.");
-            // PHASE30B7C_MSI_THREE_PART_VERSION_COMPARISON_V1
+            // Compare MSI versions using three numeric components.
             // GitHub metadata uses 1.4.0.0 while the signed MSI manifest uses 1.4.0.
             // Compare Windows Installer's three parts, but reject nonzero revision.
             Reject(manifest.Version.Major != expectedVersion.Major ||

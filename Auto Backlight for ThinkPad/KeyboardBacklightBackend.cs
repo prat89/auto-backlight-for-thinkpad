@@ -38,7 +38,7 @@ namespace Auto_Backlight_for_ThinkPad
         public static IKeyboardBacklightBackend Create()
         {
             // Diagnostic probe: Windows service state only; no IOCTL or write.
-            var phase221Clock = System.Diagnostics.Stopwatch.StartNew();
+            var startupStepClock = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 foreach (string line in BackendDetection.GetReportLines())
@@ -46,12 +46,12 @@ namespace Auto_Backlight_for_ThinkPad
             }
             finally
             {
-                DiagnosticsLog.Info("Phase25C startup: SCM service discovery elapsed=" +
-                    phase221Clock.ElapsedMilliseconds + "ms");
+                DiagnosticsLog.Info("Driver detection: SCM service discovery elapsed=" +
+                    startupStepClock.ElapsedMilliseconds + "ms");
             }
             DiagnosticsLog.Info("Backlight backend selection: trying IBMPmDrv");
             // IBMPmDrv construction retains the proven ThinkPad GET-only probe.
-            phase221Clock.Restart();
+            startupStepClock.Restart();
             IKeyboardBacklightBackend backend;
             try
             {
@@ -79,8 +79,8 @@ namespace Auto_Backlight_for_ThinkPad
             }
             finally
             {
-                DiagnosticsLog.Info("Phase22.1 startup: IBMPmDrv backend construction elapsed=" +
-                    phase221Clock.ElapsedMilliseconds + "ms");
+                DiagnosticsLog.Info("Startup timing: IBMPmDrv backend construction elapsed=" +
+                    startupStepClock.ElapsedMilliseconds + "ms");
             }
             DiagnosticsLog.Info("Backlight backend selected: " + ActiveBackendName + "; max level=" + backend.Limit);
             _selectedBackend = backend;

@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.4.0 — 11 November 2026 (release source prepared; acceptance pending)
+
+### Changes
+- Fix checksum normalization for persisted binary settings when assembly version strings change length (for example, `1.3.9.0` to `1.3.14.0`). Retains the original `Settings` registry bytes, checksum validation and existing settings schema; the recovery test is pending.
+- Add a genuine **Install updates automatically** option in About, disabled by default and requiring a fresh opt-in. It runs the existing signed and verified MSI pipeline at application startup; Windows UAC is not bypassed.
+- Remove redundant success popups after **Export log...** and **Diagnostics...**. Export failures still produce an error message.
+- Replace internal historical milestone-style C# identifiers, source comments, private WPF resource keys and human-readable application log prefixes with descriptive names. Preserve worker protocol markers and compile-time MSI safety guards.
+- Update assembly/MSI version to v1.4.0 and maintain the existing MSI UpgradeCode for major upgrades.
+
+### Validation and known limitations
+- Source changes and .NET Framework 4.8 Release Rebuild were checked during development. Final MSI install, settings recovery/persistence and automatic-install behavior require device-level tests before publication.
+- The signed manual updater and application relaunch previously worked in the observed v1.3.13 → v1.3.14 upgrade. This is not a validation of unattended v1.4.0 auto-install.
+- Intermittent missing tray icon after Windows logon is not fixed in this release because it could not be reliably reproduced.
+
 ## v1.3.10 — 8 November 2026 (candidate; not yet released)
 
 ### Updater end-to-end validation release

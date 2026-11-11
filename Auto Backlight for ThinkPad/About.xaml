@@ -110,7 +110,6 @@ limitations under the License.
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <!-- Preserve the stored future preference without exposing an inactive control. -->
-            <CheckBox Grid.Column="0" Name="AutoInstallUpdatesBox" Visibility="Collapsed" Content="Auto-install preference (not active)"/>
             <TextBlock Grid.Column="0" Name="UpdateStatusText" FontSize="11"
                        Margin="1,0,10,0" VerticalAlignment="Center"
                        Foreground="#FFC7CDD8" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
@@ -121,6 +120,12 @@ limitations under the License.
                     ToolTip="Check for the latest stable release"
                     Height="25" Width="140"/>
         </Grid>
+        <!-- Explicit opt-in; never infer consent from pre-1.4.0 inactive preference. -->
+        <CheckBox Name="AutoInstallUpdatesBox" Margin="1,7,0,0"
+                  HorizontalAlignment="Left" VerticalAlignment="Center"
+                  Foreground="White" FontSize="11"
+                  Content="Install updates automatically"
+                  ToolTip="When enabled, check on application startup and install a verified update without another app prompt. Windows UAC may still request approval."/>
         <!-- Download and verify a publisher-signed MSI; never installs on this click. -->
         <Button Name="PrepareSignedMsiButton" Template="{StaticResource button}"
                 Margin="0,6,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"

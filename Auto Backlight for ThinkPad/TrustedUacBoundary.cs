@@ -1,4 +1,4 @@
-// PHASE30B7D6M2_TRUSTED_INSTALLED_UAC_BOUNDARY_V1
+// Trusted installed-application elevation boundary.
 // Production foundation: fail-closed canonical Program Files path and ACL audit.
 // This stage does NOT authorize MSI, update staging, modification, or UI wiring.
 // It offers an INERT UAC probe ONLY when the running EXE is itself trusted.

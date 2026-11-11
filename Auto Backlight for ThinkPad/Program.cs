@@ -31,7 +31,7 @@ namespace Auto_Backlight_for_ThinkPad
         [STAThread]
         public static void Main(string[] commandLineArgs)
         {
-            // PHASE30B7D3_SINGLE_EXE_DISPATCH_V1
+            // Standalone EXE assessment command routing.
             // Allows a second process of the SAME installed EXE to verify a bundle
             // without creating WPF, checking the single-instance GUI lock or elevating.
             if (commandLineArgs != null && commandLineArgs.Length > 0)
@@ -41,19 +41,19 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = SingleExeUpdateAssessment.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D5_PROTECTED_STAGE_DISPATCH_V1
+                // Protected staging command routing.
                 if (commandLineArgs[0] == ProtectedUpdateStaging.Switch)
                 {
                     Environment.ExitCode = ProtectedUpdateStaging.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6A_INSTALLED_MSI_AUDIT_DISPATCH_V1
+                // Installed MSI product audit command routing.
                 if (commandLineArgs[0] == InstalledMsiGuard.AuditSwitch)
                 {
                     Environment.ExitCode = InstalledMsiGuard.RunAudit(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6B_UAC_PROBE_DISPATCH_V1
+                // Read-only UAC probe command routing.
                 // Strictly inert: DO NOT use for production update execution.
                 if (commandLineArgs[0] == UacProbe.ParentSwitch ||
                     commandLineArgs[0] == UacProbe.ChildSwitch)
@@ -61,7 +61,7 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = UacProbe.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6C_STAGE_UAC_LAB_DISPATCH_V1
+                // Experimental staging UAC command routing.
                 // Protected copying ONLY; never executes or installs the MSI.
                 if (commandLineArgs[0] == StageUacHandoff.ParentSwitch ||
                     commandLineArgs[0] == StageUacHandoff.ChildSwitch)
@@ -69,28 +69,28 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = StageUacHandoff.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6F_DETACHED_LIFECYCLE_LAB_V1
+                // Experimental detached worker lifecycle command routing.
                 // Strictly synthetic: detached PowerShell monitor, NO MSI or UAC.
                 if (commandLineArgs[0] == DetachedLab.Switch)
                 {
                     Environment.ExitCode = DetachedLab.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6G_PROTECTED_PREFLIGHT_DISPATCH_V1
+                // Protected installation preflight command routing.
                 // READ-ONLY. Never starts an installer or another process.
                 if (commandLineArgs[0] == ProtectedInstallPreflight.Switch)
                 {
                     Environment.ExitCode = ProtectedInstallPreflight.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6H_DETACHED_PROTECTED_TRANSACTION_LAB_V1
+                // Experimental detached protected transaction command routing.
                 // Detached monitor validates hashes AFTER launcher exits; never MSI.
                 if (commandLineArgs[0] == ProtectedTransactionHandoffLab.Switch)
                 {
                     Environment.ExitCode = ProtectedTransactionHandoffLab.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6M2_TRUSTED_INSTALLED_UAC_DISPATCH_V1
+                // Trusted installed-application UAC command routing.
                 // No MSI, stage writes, settings changes or automatic elevation.
                 if (commandLineArgs[0] == TrustedUacBoundary.AuditSwitch ||
                     commandLineArgs[0] == TrustedUacBoundary.ParentSwitch ||
@@ -99,7 +99,7 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = TrustedUacBoundary.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6M3C_TRUSTED_PROTECTED_STAGE_DISPATCH_V1
+                // Trusted protected staging command routing.
                 // Installed, trusted EXE only; protected COPY; never install MSI.
                 if (commandLineArgs[0] == ProtectedHandoff.ParentSwitch ||
                     commandLineArgs[0] == ProtectedHandoff.ChildSwitch)
@@ -107,7 +107,7 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = ProtectedHandoff.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6M3D_TRUSTED_READONLY_PREFLIGHT_DISPATCH_V1
+                // Trusted read-only preflight command routing.
                 // Protected copy must already exist; no MSI, UAC from developer EXE,
                 // or user-settings/task modifications.
                 if (commandLineArgs[0] == ProtectedPreflightUi.ParentSwitch ||
@@ -116,19 +116,19 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = ProtectedPreflightUi.Run(commandLineArgs);
                     return;
                 }
-                // Phase 1311: authenticated unified elevated child. No GUI route yet.
+                // Authenticated unified elevated child for the trusted updater workflow.
                 if (commandLineArgs[0] == ProductionUpdateInstaller.UnifiedChildSwitch)
                 {
                     Environment.ExitCode = ProductionUpdateInstaller.RunUnifiedApprovedChild(commandLineArgs);
                     return;
                 }
-                // PHASE30B_PRODUCTION_APPROVED_CHILD_DISPATCH_RC1
+                // Production approved worker command routing.
                 if (commandLineArgs[0] == ProductionUpdateInstaller.ChildSwitch)
                 {
                     Environment.ExitCode = ProductionUpdateInstaller.RunApprovedChild(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6M3E_DISABLED_PRODUCTION_INSTALL_DISPATCH_V1
+                // Guarded production installation command routing.
                 // Future production CLI reserved, but ALWAYS refuses MSI in 6M.3E.
                 if (commandLineArgs[0] == InstallConsentGate.ParentSwitch ||
                     commandLineArgs[0] == InstallConsentGate.ChildSwitch)
@@ -136,14 +136,14 @@ namespace Auto_Backlight_for_ThinkPad
                     Environment.ExitCode = InstallConsentGate.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6M1_RELEASE_SAFETY_AUDIT_DISPATCH_V1
+                // Release safety audit command routing.
                 // Read-only audit; returns HOLD until production updater is wired.
                 if (commandLineArgs[0] == ReleaseSafetyGate.Switch)
                 {
                     Environment.ExitCode = ReleaseSafetyGate.Run(commandLineArgs);
                     return;
                 }
-                // PHASE30B7D6I_DETACHED_MSI_LAB_DISPATCH_V1
+                // Experimental detached MSI executor command routing.
                 // Not wired to UI or automatic updater. Real install needs separate
                 // elevated, explicit lab CLI plus acknowledgement; normal tests dry-run.
                 if (commandLineArgs[0] == ProtectedMsiExecutorLab.DrySwitch ||
@@ -155,7 +155,7 @@ namespace Auto_Backlight_for_ThinkPad
                 Environment.ExitCode = 10; // refuse unrecognized command-line modes
                 return;
             }
-            // PHASE30B_PRODUCTION_RESTART_GATE_RC1: worker holds this mutex through MSI.
+            // Production restart gate: the worker holds this mutex through MSI.
             if (!ProductionUpdateInstaller.StartupAllowed())
             {
                 Environment.ExitCode = 43; // updater in progress / uncertain lock state

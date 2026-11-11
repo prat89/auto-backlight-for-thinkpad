@@ -1,4 +1,4 @@
-// PHASE30B7D6M3B_LOCAL_SIGNED_REVIEW_V1
+// Read-only local verification of a signed update.
 // Independent, explicit local read-only review of user-writable staging.
 // A PASS is NEVER authorization to install: privileged code must recheck
 // source, copy to a protected directory, and re-verify the signed bundle.

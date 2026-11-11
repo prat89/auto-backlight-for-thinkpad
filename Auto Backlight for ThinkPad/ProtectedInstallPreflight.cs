@@ -1,4 +1,4 @@
-// PHASE30B7D6G_PROTECTED_INSTALL_PREFLIGHT_ONLY_V1
+// Read-only protected installation preflight.
 // Safe read-only installation plan. No process creation, UAC or MSI execution.
 using System;
 using System.IO;
@@ -45,7 +45,7 @@ namespace Auto_Backlight_for_ThinkPad
             string exe = Path.Combine(systemDir, "msiexec.exe");
             if (!File.Exists(exe) || (File.GetAttributes(exe) & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidDataException("Windows Installer executable missing.");
-            // PHASE30B7D6H_TRANSACTION_LOG_SEPARATION_V1
+            // Keep transaction logs separate from signed package assets.
             // Signed bundle stays exactly three files. All future logs live in
             // a separate protected transaction directory (created by executor).
             string programData = Path.GetFullPath(Environment.GetFolderPath(

@@ -107,7 +107,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B2: manual update check failed", ex);
+                DiagnosticsLog.Error("Updater: manual update check failed", ex);
                 if (!_aboutClosed)
                     UpdateStatusText.Text = "Update check failed";
             }
@@ -129,7 +129,7 @@ namespace Auto_Backlight_for_ThinkPad
             await UpdateNowAsync();
         }
 
-        // Phase 1311: one explicit GUI consent replaces the old multi-click workflow.
+        // One explicit GUI consent replaces the old multi-click update workflow.
         // The elevated child still independently repeats the signed bundle checks,
         // protected staging, read-only preflight and the existing detached gate.
         private async Task UpdateNowAsync()
@@ -189,7 +189,7 @@ namespace Auto_Backlight_for_ThinkPad
                     // it must wait for the protected result AND mutex release.
                     bool relaunchArmed = PostUpdateRelaunch.Arm(path, candidate.Version);
                     if (!relaunchArmed)
-                        DiagnosticsLog.Info("Phase1311: update worker armed; automatic relaunch unavailable. Manual start may be required.");
+                        DiagnosticsLog.Info("Updater: update worker armed; automatic relaunch unavailable. Manual start may be required.");
                     _updateWorkerArmed = true;
                     _updateAuthorizationActive = false;
                     if (!_aboutClosed)
@@ -210,7 +210,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase1311: unified Update now failed", ex);
+                DiagnosticsLog.Error("Updater: unified Update now failed", ex);
                 if (!_aboutClosed)
                     UpdateStatusText.Text = "Update failed; see application.log";
             }
@@ -277,7 +277,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B7D6M3A: signed download failed", ex);
+                DiagnosticsLog.Error("Updater: signed download failed", ex);
                 if (!_aboutClosed)
                     UpdateStatusText.Text = "Signed MSI preparation failed. See application.log.";
             }
@@ -345,7 +345,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B7D6M3B: read-only local review failed", ex);
+                DiagnosticsLog.Error("Updater: read-only local review failed", ex);
                 if (!_aboutClosed)
                 {
                     _stagedMsi = null;
@@ -415,7 +415,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B7D6M3C: protected copy failed", ex);
+                DiagnosticsLog.Error("Updater: protected copy failed", ex);
                 if (!_aboutClosed)
                     UpdateStatusText.Text = "Protected preparation failed. No MSI installation attempted.";
             }
@@ -481,7 +481,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B7D6M3D: protected preflight failed", ex);
+                DiagnosticsLog.Error("Updater: protected preflight failed", ex);
                 if (!_aboutClosed)
                 {
                     _protectedMsi = null;
@@ -541,7 +541,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase30B7D6M3E: install authorization refused", ex);
+                DiagnosticsLog.Error("Updater: install authorization refused", ex);
                 if (!_aboutClosed) UpdateStatusText.Text = "Installation blocked; no MSI started.";
             }
             finally
@@ -756,23 +756,24 @@ namespace Auto_Backlight_for_ThinkPad
                 }
                 StartAutoBox.IsChecked = 0 == Installer.DoCmd(Environment.GetEnvironmentVariable("ComSpec"), string.Format("/c schtasks /Query /TN {0} | findstr /C:Running /C:Ready", "\"" + "\\" + Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product + "\""));
             };
-            // Stored separately from legacy BinaryFormatter settings; OFF for new users.
-            AutoInstallUpdatesBox.IsChecked = UpdaterPreferences.ReadAutoInstallUpdates();
+            // New v1.4.0 opt-in: separate from the old INACTIVE preference.
+            // A previously saved old setting must NEVER grant automatic install consent.
+            AutoInstallUpdatesBox.IsChecked = UpdaterPreferences.ReadAutomaticInstallOptIn();
             AutoInstallUpdatesBox.Click += (sender, e) =>
             {
                 bool requested = AutoInstallUpdatesBox.IsChecked == true;
                 try
                 {
-                    UpdaterPreferences.SaveAutoInstallUpdates(requested);
+                    UpdaterPreferences.SaveAutomaticInstallOptIn(requested);
                     UpdateStatusText.Text = requested
-                        ? "Preference saved. Automatic MSI installation is NOT active in this version."
-                        : "Notify-only preference saved. Automatic MSI installation is not active yet.";
+                        ? "Auto-update enabled (UAC may be required)"
+                        : "Update notifications enabled";
                 }
                 catch (Exception ex)
                 {
-                    DiagnosticsLog.Error("Phase30B2: could not save update preference", ex);
-                    AutoInstallUpdatesBox.IsChecked = UpdaterPreferences.ReadAutoInstallUpdates();
-                    UpdateStatusText.Text = "Could not save update preference; check application.log.";
+                    DiagnosticsLog.Error("Updater: could not save active auto-install preference", ex);
+                    AutoInstallUpdatesBox.IsChecked = UpdaterPreferences.ReadAutomaticInstallOptIn();
+                    UpdateStatusText.Text = "Could not save update preference";
                 }
             };
             CheckUpdatesButton.Click += async (sender, e) =>

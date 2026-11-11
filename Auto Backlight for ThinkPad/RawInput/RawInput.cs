@@ -284,10 +284,10 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
                     yield return dc;
             }
         }
-        // Phase 25E.3: synchronous startup enumeration only.
-        private bool _phase25E3StartupEnumeration;
+        // Synchronous Raw Input device enumeration during startup only.
+        private bool _isProfilingStartupEnumeration;
 
-        private static string _Phase25E3Ms(long ticks)
+        private static string FormatStartupElapsedMilliseconds(long ticks)
         {
             return (ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency)
                 .ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
@@ -299,11 +299,11 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
         /// <returns>List of available devices, same as <see cref="EnumeratedDevices"/></returns>
         public IEnumerable<Device> EnumerateDevices()
         {
-            bool phase25E3 = _phase25E3StartupEnumeration;
-            long phase25E3Start = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-            long phase25E3ListCountTicks = 0, phase25E3ListDataTicks = 0;
-            long phase25E3AddTicks = 0, phase25E3AddMaxTicks = 0;
-            int phase25E3Reported = 0, phase25E3Attempted = 0, phase25E3Failures = 0;
+            bool profileStartupEnumeration = _isProfilingStartupEnumeration;
+            long startupEnumerationStartTicks = profileStartupEnumeration ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            long deviceListCountTicks = 0, deviceListDataTicks = 0;
+            long deviceAddTotalTicks = 0, deviceAddMaxTicks = 0;
+            int reportedDeviceCount = 0, attemptedDeviceCount = 0, failedDeviceCount = 0;
             try
             {
             // Remove devices
@@ -313,39 +313,39 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
 
             // Populate list of current devices
             uint numDevices = 0;
-            long phase25E3Call = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            long enumerationStepStartTicks = profileStartupEnumeration ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             if (0 > GetRawInputDeviceList(null, ref numDevices, (uint)(Marshal.SizeOf(typeof(RAWINPUTDEVICELIST)))))
                 throw new Exception("Bad return value from Win32 function");
-            if (phase25E3) phase25E3ListCountTicks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3Call;
-            if (phase25E3) phase25E3Reported = (int)numDevices;
+            if (profileStartupEnumeration) deviceListCountTicks = System.Diagnostics.Stopwatch.GetTimestamp() - enumerationStepStartTicks;
+            if (profileStartupEnumeration) reportedDeviceCount = (int)numDevices;
             if (numDevices <= 0) return EnumeratedDevices;
             var ridList = new RAWINPUTDEVICELIST[numDevices];
-            phase25E3Call = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            enumerationStepStartTicks = profileStartupEnumeration ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             if (0 >= GetRawInputDeviceList(ridList, ref numDevices, (uint)(Marshal.SizeOf(typeof(RAWINPUTDEVICELIST)))))
                 throw new Exception("Bad return value from Win32 function");
-            if (phase25E3) phase25E3ListDataTicks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3Call;
+            if (profileStartupEnumeration) deviceListDataTicks = System.Diagnostics.Stopwatch.GetTimestamp() - enumerationStepStartTicks;
 
             // Add devices, looping through each struct in the array
             foreach (RAWINPUTDEVICELIST rid in ridList)
             {
                 if (rid.dwType >= 0 && rid.dwType <= RIM_TYPEMAX && rid.hDevice != null)
                 {
-                    long phase25E3AddStart = phase25E3 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-                    if (phase25E3) phase25E3Attempted++;
+                    long deviceAddStartTicks = profileStartupEnumeration ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    if (profileStartupEnumeration) attemptedDeviceCount++;
                     try { _EnumerateAdd(rid.hDevice); }
                     catch (Exception ex)
                     {
-                        if (phase25E3) phase25E3Failures++;
+                        if (profileStartupEnumeration) failedDeviceCount++;
                         Auto_Backlight_for_ThinkPad.DiagnosticsLog.Error(
                             "Raw Input enumeration skipped device=" + rid.hDevice, ex);
                     }
                     finally
                     {
-                        if (phase25E3)
+                        if (profileStartupEnumeration)
                         {
-                            long ticks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3AddStart;
-                            phase25E3AddTicks += ticks;
-                            if (ticks > phase25E3AddMaxTicks) phase25E3AddMaxTicks = ticks;
+                            long ticks = System.Diagnostics.Stopwatch.GetTimestamp() - deviceAddStartTicks;
+                            deviceAddTotalTicks += ticks;
+                            if (ticks > deviceAddMaxTicks) deviceAddMaxTicks = ticks;
                         }
                     }
                 }
@@ -354,18 +354,18 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             }
             finally
             {
-                if (phase25E3)
+                if (profileStartupEnumeration)
                 {
-                    long totalTicks = System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3Start;
+                    long totalTicks = System.Diagnostics.Stopwatch.GetTimestamp() - startupEnumerationStartTicks;
                     Auto_Backlight_for_ThinkPad.DiagnosticsLog.Info(
-                        "Phase25E.3 startup: RawInput enumeration elapsed=" + _Phase25E3Ms(totalTicks) +
-                        "ms; listCount=" + _Phase25E3Ms(phase25E3ListCountTicks) +
-                        "ms; listData=" + _Phase25E3Ms(phase25E3ListDataTicks) +
-                        "ms; devicesReported=" + phase25E3Reported +
-                        "; devicesAttempted=" + phase25E3Attempted +
-                        "; enumerateAddTotal=" + _Phase25E3Ms(phase25E3AddTicks) +
-                        "ms; enumerateAddMax=" + _Phase25E3Ms(phase25E3AddMaxTicks) +
-                        "ms; enumerateAddFailures=" + phase25E3Failures);
+                        "Phase25E.3 startup: RawInput enumeration elapsed=" + FormatStartupElapsedMilliseconds(totalTicks) +
+                        "ms; listCount=" + FormatStartupElapsedMilliseconds(deviceListCountTicks) +
+                        "ms; listData=" + FormatStartupElapsedMilliseconds(deviceListDataTicks) +
+                        "ms; devicesReported=" + reportedDeviceCount +
+                        "; devicesAttempted=" + attemptedDeviceCount +
+                        "; enumerateAddTotal=" + FormatStartupElapsedMilliseconds(deviceAddTotalTicks) +
+                        "ms; enumerateAddMax=" + FormatStartupElapsedMilliseconds(deviceAddMaxTicks) +
+                        "ms; enumerateAddFailures=" + failedDeviceCount);
                 }
             }
         }
@@ -374,13 +374,13 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
         /// </summary>
         public RawInput() : base()
         {
-            long phase25E3ConstructorStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            long rawInputConstructorStartTicks = System.Diagnostics.Stopwatch.GetTimestamp();
             _nullDevices[Device.DeviceType.Mouse] = new Device(Device.DeviceType.Mouse, "", null);
             _nullDevices[Device.DeviceType.Keyboard] = new Device(Device.DeviceType.Keyboard, "", null);
             _nullDevices[Device.DeviceType.Hid] = new Device(Device.DeviceType.Hid, "", null);
-            _phase25E3StartupEnumeration = true;
+            _isProfilingStartupEnumeration = true;
             try { EnumerateDevices(); }
-            finally { _phase25E3StartupEnumeration = false; }
+            finally { _isProfilingStartupEnumeration = false; }
 
             Initialized += (sender, e) =>
             {
@@ -389,7 +389,7 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             };
             Auto_Backlight_for_ThinkPad.DiagnosticsLog.Info(
                 "Phase25E.3 startup: RawInput constructor elapsed=" +
-                _Phase25E3Ms(System.Diagnostics.Stopwatch.GetTimestamp() - phase25E3ConstructorStart) + "ms");
+                FormatStartupElapsedMilliseconds(System.Diagnostics.Stopwatch.GetTimestamp() - rawInputConstructorStartTicks) + "ms");
         }
 
         // WndProc special message handling
@@ -408,12 +408,12 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             }
             return lResult;
         }
-        // Phase 22.1: genuine Windows device-change message counts, distinct from
+        // Count genuine Windows device-change messages, distinct from
         // DeviceAdded/DeviceRemoved callbacks raised by EnumerateDevices().
-        private int _phase221Arrivals, _phase221Removals, _phase221Failures;
-        public int Phase221ArrivalNotifications => System.Threading.Volatile.Read(ref _phase221Arrivals);
-        public int Phase221RemovalNotifications => System.Threading.Volatile.Read(ref _phase221Removals);
-        public int Phase221NotificationFailures => System.Threading.Volatile.Read(ref _phase221Failures);
+        private int _deviceArrivalCount, _deviceRemovalCount, _deviceNotificationFailureCount;
+        public int DeviceArrivalNotifications => System.Threading.Volatile.Read(ref _deviceArrivalCount);
+        public int DeviceRemovalNotifications => System.Threading.Volatile.Read(ref _deviceRemovalCount);
+        public int DeviceNotificationFailures => System.Threading.Volatile.Read(ref _deviceNotificationFailureCount);
         // Device change message
         private void _ProcessDeviceChange(ref IntPtr lResult, IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam)
         {
@@ -425,18 +425,18 @@ namespace Auto_Backlight_for_ThinkPad.RawInput
             {
                 if ((uint)wParam == GIDC_ARRIVAL)
                 {
-                    System.Threading.Interlocked.Increment(ref _phase221Arrivals);
+                    System.Threading.Interlocked.Increment(ref _deviceArrivalCount);
                     _EnumerateAdd(lParam);
                 }
                 if ((uint)wParam == GIDC_REMOVAL)
                 {
-                    System.Threading.Interlocked.Increment(ref _phase221Removals);
+                    System.Threading.Interlocked.Increment(ref _deviceRemovalCount);
                     _EnumerateRemove(lParam);
                 }
             }
             catch (Exception ex)
             {
-                System.Threading.Interlocked.Increment(ref _phase221Failures);
+                System.Threading.Interlocked.Increment(ref _deviceNotificationFailureCount);
                 Auto_Backlight_for_ThinkPad.DiagnosticsLog.Error(
                     "Raw Input device notification failed; handle=" + lParam + "; action=" + wParam, ex);
             }

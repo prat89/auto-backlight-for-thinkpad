@@ -266,7 +266,7 @@ namespace Auto_Backlight_for_ThinkPad
                 return false;
             }
         }
-        // Phase 4 hardware diagnostic: suppress repeated identical operation failures for 30 seconds.
+        // Suppress repeated identical hardware operation failures for 30 seconds.
         // Keeps the existing read/write success and failure semantics unchanged.
         private static readonly object DriverLogSync = new object();
         private static readonly System.Collections.Generic.Dictionary<string, DateTime> DriverLogTimes =
@@ -288,7 +288,7 @@ namespace Auto_Backlight_for_ThinkPad
                 DiagnosticsLog.Error("IBMPmDrv operation failed: " + operation + " (subsequent failures throttled for 30s)", ex);
         }
 
-        // PHASE20A_READ_ONLY_DRIVER_PROBE: use the same GET operation as Read(), never SET.
+        // Read-only driver probe: use the same GET operation as Read(), never SET.
         // Raw bits aid compatibility research; they are not proof that LEDs illuminated.
         internal static string ReadOnlyDriverProbe()
         {
@@ -310,7 +310,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase 20A read-only driver probe failed", ex);
+                DiagnosticsLog.Error("Read-only driver probe failed", ex);
                 return "GET operation: failed (" + ex.GetType().Name + ")" + Environment.NewLine +
                     "SET verification: not performed (read-only mode)";
             }

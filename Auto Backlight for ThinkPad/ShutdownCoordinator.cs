@@ -1,4 +1,4 @@
-// PHASE30B7D6M3F2_BOUNDED_SHUTDOWN_COORDINATOR_V1
+// Bounded shutdown coordination for the update worker.
 // Future production launcher may call RequestAllVerifiedAndWait BEFORE
 // spawning a detached MSI worker. No CLI/UI/MSI/UAC integration in 3F.2.
 // A successful signal is NOT proof of termination: hold a Process handle,

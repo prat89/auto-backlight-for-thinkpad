@@ -1,4 +1,4 @@
-// PHASE30B7D3_SINGLE_EXE_ASSESS_V1
+// Standalone EXE update assessment.
 // Standalone read-only invocation mode of the EXISTING application EXE.
 // NEVER elevates, stages protected files, invokes msiexec, or changes installation.
 using System;
@@ -113,7 +113,7 @@ namespace Auto_Backlight_for_ThinkPad
                 if (!String.Equals(digest, verified.Sha256, StringComparison.Ordinal))
                     throw new InvalidDataException("MSI digest mismatch.");
             }
-            // PHASE30B7D4_NATIVE_MSI_IDENTITY_V1
+            // Verify native MSI package identity.
             MsiIdentity.Verify(msiPath, verified.Version);
             // Read-only identity validation is done AFTER signature, size and hash checks.
             // Later elevated installation MUST repeat checks on a protected, immutable copy.

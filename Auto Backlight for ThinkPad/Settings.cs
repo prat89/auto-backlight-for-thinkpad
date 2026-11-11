@@ -681,11 +681,10 @@ namespace Auto_Backlight_for_ThinkPad
                     return enc.raw;
                 }
             }
-            // IMPORTANT: BinaryFormatter includes the assembly identity in Raw's bytes.
-            // Canonicalizing only this project's assembly version makes the existing
-            // v1.2 checksum reusable on v1.3+ without disabling integrity checking.
-            // This deliberately supports the 1.2.0.0 -> 1.3.0.0 upgrade, not arbitrary
-            // schema or serialization changes.
+            // Preserve the original v1.2 Raw checksum across application versions.
+            // BinaryFormatter prefixes assembly names with their UTF-8 byte length.
+            // Version strings may grow (e.g. 1.3.9.0 -> 1.3.10.0), so the prefix
+            // and buffer length must be normalized together. Schema stays unchanged.
             private static int hash(Raw raw) => HashSerializedRaw(raw, true);
             private static int hashLegacyCurrent(Raw raw) => HashSerializedRaw(raw, false);
 
@@ -699,35 +698,58 @@ namespace Auto_Backlight_for_ThinkPad
                     arr = ms.ToArray();
                 }
                 if (canonicalize)
-                {
-                    string assemblyName = typeof(Raw).Assembly.GetName().Name;
-                    string current = typeof(Raw).Assembly.FullName;
-                    string canonical = assemblyName + ", Version=1.2.0.0, Culture=neutral, PublicKeyToken=null";
-                    // For this unsigned application, the only intended difference is
-                    // the version field. Require equal byte lengths for safe substitution.
-                    byte[] from = System.Text.Encoding.UTF8.GetBytes(current);
-                    byte[] to = System.Text.Encoding.UTF8.GetBytes(canonical);
-                    if (from.Length != to.Length)
-                        throw new FormatException("Settings checksum: unexpected assembly identity length");
-                    int matches = 0;
-                    for (int i = 0; i <= arr.Length - from.Length; i++)
-                    {
-                        bool equal = true;
-                        for (int j = 0; j < from.Length; j++)
-                            if (arr[i + j] != from[j]) { equal = false; break; }
-                        if (!equal) continue;
-                        Buffer.BlockCopy(to, 0, arr, i, to.Length);
-                        i += from.Length - 1;
-                        matches++;
-                    }
-                    if (matches != 1)
-                        throw new FormatException("Settings checksum: expected one Raw assembly identity, found " + matches);
-                }
+                    arr = NormalizeRawAssemblyIdentity(arr);
                 int result = 0x1234abcd;
                 for (int i = 0; i < arr.Length / 4; i++)
                     result ^= BitConverter.ToInt32(arr, i * 4);
                 return result;
             }
+            private static byte[] NormalizeRawAssemblyIdentity(byte[] serialized)
+            {
+                string assemblyName = typeof(Raw).Assembly.GetName().Name;
+                string current = typeof(Raw).Assembly.FullName;
+                string canonical = assemblyName + ", Version=1.2.0.0, Culture=neutral, PublicKeyToken=null";
+                byte[] from = System.Text.Encoding.UTF8.GetBytes(current);
+                byte[] to = System.Text.Encoding.UTF8.GetBytes(canonical);
+
+                // The existing unsigned assembly uses a one-byte BinaryFormatter
+                // UTF-8 string-length prefix (both identities must be < 128 bytes).
+                // Reject an unexpected format rather than weakening the checksum.
+                if (from.Length >= 128 || to.Length >= 128)
+                    throw new FormatException("Settings checksum: unsupported assembly identity length");
+
+                int position = -1;
+                int matches = 0;
+                for (int i = 0; i <= serialized.Length - from.Length; i++)
+                {
+                    bool equal = true;
+                    for (int j = 0; j < from.Length; j++)
+                    {
+                        if (serialized[i + j] != from[j]) { equal = false; break; }
+                    }
+                    if (!equal) continue;
+                    position = i;
+                    matches++;
+                    i += from.Length - 1;
+                }
+                if (matches != 1)
+                    throw new FormatException("Settings checksum: expected one Raw assembly identity, found " + matches);
+                if (position == 0 || serialized[position - 1] != (byte)from.Length)
+                    throw new FormatException("Settings checksum: unexpected assembly identity length prefix");
+
+                // Reconstruct precisely the bytes that would have been produced
+                // with the v1.2.0.0 identity. For equal-length versions, the
+                // checksum is identical to the previous implementation.
+                byte[] normalized = new byte[serialized.Length - from.Length + to.Length];
+                Buffer.BlockCopy(serialized, 0, normalized, 0, position - 1);
+                normalized[position - 1] = (byte)to.Length;
+                Buffer.BlockCopy(to, 0, normalized, position, to.Length);
+                Buffer.BlockCopy(serialized, position + from.Length,
+                    normalized, position + to.Length,
+                    serialized.Length - position - from.Length);
+                return normalized;
+            }
+
             private int header;
             private Raw raw;
             private int footer;

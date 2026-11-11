@@ -1,4 +1,4 @@
-// PHASE30B7D6I_PROTECTED_MSI_EXECUTOR_LAB_V1
+// Experimental protected MSI executor (not the production path).
 // Experimental, EXPLICITLY REQUESTED MSI installation path; not wired to UI.
 // The privileged app EXITS before Windows Installer begins removing old EXE.
 // Independent Windows PowerShell (system binary) persists the result.
@@ -95,7 +95,7 @@ namespace Auto_Backlight_for_ThinkPad
         private static void StartDetachedLab(string id,
             ProtectedInstallPreflight.FixedCommandPlan plan)
         {
-            // PHASE30B7D6M1_DEFENSE_IN_DEPTH_V1
+            // Defense-in-depth checks for MSI execution.
             if (!ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
                 throw new InvalidOperationException("Real MSI laboratory mode is disabled in this build.");
             // Every attempt gets a unique transaction ID. A prior 6H report
@@ -178,7 +178,7 @@ namespace Auto_Backlight_for_ThinkPad
             if (args[0] == DrySwitch && args.Length != 2) return 10;
             if (args[0] == ExecuteSwitch &&
                 (args.Length != 3 || args[2] != ExplicitConsent)) return 10;
-            // PHASE30B7D6M1_REAL_MSI_LAB_COMPILE_TIME_GATE_V1
+            // Compile-time gate for unsafe experimental MSI execution.
             if (args[0] == ExecuteSwitch &&
                 !ReleaseSafetyGate.UnsafeRealMsiLabBuildEnabled)
                 return 15; // lab execution forbidden in normal Release/Debug builds

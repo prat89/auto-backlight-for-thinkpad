@@ -1,4 +1,4 @@
-// PHASE30B7D5_PROTECTED_STAGING_V1
+// Administrator-protected signed update staging.
 // Explicit elevated command-line mode. It prepares ONLY a locked-down copy of a
 // publisher-signed MSI bundle and re-verifies it. No installer/UAC launch here.
 using System;
@@ -169,7 +169,7 @@ namespace Auto_Backlight_for_ThinkPad
                 VerifySecurity(Path.Combine(destination, Manifest), false);
                 VerifySecurity(Path.Combine(destination, Signature), false);
                 VerifySecurity(Path.Combine(destination, msiName), false);
-                // Deliberately do not execute MSI. A later phase will consume this protected bundle.
+                // Deliberately do not execute MSI. Only the approved installer may consume this bundle.
             }
             catch
             {
@@ -179,7 +179,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D6G_PROTECTED_READONLY_AUDIT_V1
+        // Read-only audit of protected staging contents.
         // Read-only, fail-closed revalidation of a previously protected bundle.
         // Takes only a canonical GUID; no user-chosen filename or directory.
         internal static string VerifyProtectedReadOnly(string id)

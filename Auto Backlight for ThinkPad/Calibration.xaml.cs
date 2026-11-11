@@ -100,7 +100,7 @@ namespace Auto_Backlight_for_ThinkPad
     /// </summary>
     public partial class Calibration : Window
     {
-        // PHASE30C_CALIBRATION_THEME: use Windows APP theme, not taskbar theme.
+        // Use the Windows application theme, not the taskbar theme.
         // Win11 native title bar is controlled via DWM; no custom chrome/title buttons.
         private const string ThemePath =
             @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -123,7 +123,7 @@ namespace Auto_Backlight_for_ThinkPad
             return brush;
         }
 
-        // PHASE30C1_CALIBRATION_WINDOW_ICON: match caption contrast without changing EXE/tray branding.
+        // Match calibration caption contrast without changing EXE or tray branding.
         // Reuse the same embedded ICO resources as the adaptive tray icon.
         private System.Windows.Media.ImageSource _iconForLightCaption;
         private System.Windows.Media.ImageSource _iconForDarkCaption;
@@ -202,11 +202,11 @@ namespace Auto_Backlight_for_ThinkPad
 
             if (changed)
             {
-                Resources["P30C_Surface"] = CreateThemeBrush(dark ? "#FF22252B" : "#FFFAFBFD");
-                Resources["P30C_Text"] = CreateThemeBrush(dark ? "#FFF3F4F6" : "#FF202632");
-                Resources["P30C_ButtonSurface"] = CreateThemeBrush(dark ? "#FF303641" : "#FFFFFFFF");
-                Resources["P30C_ButtonBorder"] = CreateThemeBrush(dark ? "#FF8793A3" : "#FFB8C2D0");
-                Resources["P30C_DisabledText"] = CreateThemeBrush(dark ? "#FF828A96" : "#FF9DA5B0");
+                Resources["CalibrationSurfaceBrush"] = CreateThemeBrush(dark ? "#FF22252B" : "#FFFAFBFD");
+                Resources["CalibrationTextBrush"] = CreateThemeBrush(dark ? "#FFF3F4F6" : "#FF202632");
+                Resources["CalibrationButtonSurfaceBrush"] = CreateThemeBrush(dark ? "#FF303641" : "#FFFFFFFF");
+                Resources["CalibrationButtonBorderBrush"] = CreateThemeBrush(dark ? "#FF8793A3" : "#FFB8C2D0");
+                Resources["CalibrationDisabledTextBrush"] = CreateThemeBrush(dark ? "#FF828A96" : "#FF9DA5B0");
 
                 // Plot area stays dark (#212121); labels outside it must contrast
                 // with the themed PlotView surface, which used to render white.
@@ -378,7 +378,7 @@ namespace Auto_Backlight_for_ThinkPad
         /// </summary>
         /// <param name="newPoints">Optional new data-points to replace old</param>
 
-        // Phase 28C.3: Native OxyPlot 2.2.0 model; no Contrib WPF wrappers.
+        // Native OxyPlot 2.2.0 model; no Contrib WPF wrappers.
         private OxyPlot.PlotModel _plotModel;
         private OxyPlot.Axes.LinearAxis _xAxis;
         private OxyPlot.Axes.LinearAxis _yAxis;
@@ -604,7 +604,7 @@ namespace Auto_Backlight_for_ThinkPad
             CancelButton.Click += (sender, e) => Close();
             OkButton.Click += (sender, e) => { Apply?.Invoke(this, EventArgs.Empty); Close(); };
 
-            // Phase 28C.3: handle edits with WPF pointer events (not obsolete
+            // Handle edits with WPF pointer events (not obsolete
             // OxyPlot element events, which were attached to Contrib wrappers).
             int dragIdx = -1;
             Action queryCursor = () =>

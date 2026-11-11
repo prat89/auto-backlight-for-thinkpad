@@ -1,4 +1,4 @@
-// PHASE30B7D6M3C_TRUSTED_PROTECTED_HANDOFF_V1
+// Trusted elevated handoff for protected update staging.
 // Production staging preparation ONLY. Never execute MSI, modify Task Scheduler,
 // change user settings, or authorize installation from mutable user staging.
 // Only the currently installed, ACL-audited EXE may cross the UAC boundary.

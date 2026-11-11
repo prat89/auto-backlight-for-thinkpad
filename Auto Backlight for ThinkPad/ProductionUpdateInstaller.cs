@@ -22,7 +22,7 @@ namespace Auto_Backlight_for_ThinkPad
     internal static class ProductionUpdateInstaller
     {
         internal const string ChildSwitch = "--update-production-approved-child";
-        // Phase 1311 unified backend: inaccessible from About until separately approved.
+        // Unified elevated update backend; access requires explicit UI authorization.
         internal const string UnifiedChildSwitch = "--update-production-unified-approved-child";
         internal const int Refused = 42;
         private const string AppProcessName = "Auto Backlight for ThinkPad";
@@ -237,7 +237,7 @@ namespace Auto_Backlight_for_ThinkPad
             catch (Exception) { return 36; }
         }
 
-        // Phase 1311: ONE elevated approval performs the three previously separated
+        // One elevated approval performs the three previously separated
         // privileged stages. Existing live GUI pipe, user SID, process lifetime and
         // installed EXE/ACL checks are mandatory. No direct CLI authorization.
         // This route is not connected to the UI until explicit follow-up review.

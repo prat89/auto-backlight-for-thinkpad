@@ -1,4 +1,4 @@
-// PHASE30B7D6B_UAC_PROBE_ONLY_V1
+// Read-only UAC boundary probe.
 // A deliberately inert experiment that proves a second process of the SAME
 // EXE can start with UAC and report success without starting WPF or an MSI.
 // IMPORTANT: this is NOT the production updater; no file, registry or task edits.

@@ -1,4 +1,4 @@
-// PHASE30B7D6F_DETACHED_LIFECYCLE_LAB_ONLY_V1
+// Experimental detached worker lifecycle (no installation).
 // Intentionally synthetic. The spawned PowerShell program is not elevated,
 // does not touch staging, does not launch an installer and cannot modify Git.
 // This is NOT the production updater or an authorization mechanism.

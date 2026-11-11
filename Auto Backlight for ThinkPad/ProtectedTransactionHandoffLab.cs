@@ -1,4 +1,4 @@
-// PHASE30B7D6H_PROTECTED_TRANSACTION_HANDOFF_LAB_V1
+// Experimental protected transaction handoff (does not execute MSI).
 // Integration lab. Elevated parent verifies the signed/ACL-locked package,
 // starts an elevated SYSTEM POWERSHELL process which outlives the parent,
 // and rechecks SHA256 after the parent exits. NO msiexec or MSI execution.
@@ -93,7 +93,7 @@ namespace Auto_Backlight_for_ThinkPad
                 throw new InvalidDataException("Invalid ProgramData path.");
             return dir;
         }
-        // PHASE30B7D6I_REUSABLE_PROTECTED_TRANSACTION_FACTORY_V1
+        // Reusable protected installation transaction directory factory.
         // Generates an independent, one-time transaction id for each install attempt.
         internal static string CreateTransaction(string id)
         {

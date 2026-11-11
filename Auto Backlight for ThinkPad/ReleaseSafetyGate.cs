@@ -23,19 +23,19 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // Release builds include a production update flow and passed a direct
-        // 1.3.8-to-1.3.9-RC manual MSI upgrade with settings and task preserved.
-        // Keep HOLD until an About-driven upgrade to a newer signed public
-        // GitHub release has passed end-to-end validation.
+        // The signed MSI updater and automatic relaunch were validated on
+        // v1.3.13 -> v1.3.14. The new v1.4.0 settings-recovery and opt-in
+        // auto-install behavior require their own runtime acceptance tests.
+        // HOLD is intentionally retained until those tests have passed.
         internal static string AuditStatus()
         {
             if (UnsafeRealMsiLabBuildEnabled)
                 return "BLOCK_UNSAFE_MSI_LAB_COMPILED";
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
-            if (version == null || version.Major != 1 || version.Minor != 3 ||
-                version.Build != 14 || version.Revision != 0)
-                return "HOLD_ASSEMBLY_VERSION_NOT_1_3_14";
-            return "HOLD_ABOUT_SIGNED_UPDATE_END_TO_END_NOT_VALIDATED";
+            if (version == null || version.Major != 1 || version.Minor != 4 ||
+                version.Build != 0 || version.Revision != 0)
+                return "HOLD_ASSEMBLY_VERSION_NOT_1_4_0";
+            return "HOLD_V140_RUNTIME_VALIDATION_PENDING";
         }
 
         internal static int Run(string[] args)
@@ -44,8 +44,8 @@ namespace Auto_Backlight_for_ThinkPad
                 return 10;
             string status = AuditStatus();
             if (status == "BLOCK_UNSAFE_MSI_LAB_COMPILED") return 23;
-            if (status == "HOLD_ASSEMBLY_VERSION_NOT_1_3_14") return 21;
-            return 22; // End-to-end update unverified; never report a false PASS.
+            if (status == "HOLD_ASSEMBLY_VERSION_NOT_1_4_0") return 21;
+            return 22; // v1.4.0 runtime acceptance pending; never report a false PASS.
         }
     }
 }

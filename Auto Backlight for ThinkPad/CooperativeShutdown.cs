@@ -1,4 +1,4 @@
-// PHASE30B7D6M3F1_COOPERATIVE_SHUTDOWN_CONTRACT_V1
+// Cooperative shutdown protocol for application update handoff.
 // Future installed application can voluntarily exit on a same-account request.
 // NO installer launch, command-line route, UAC, task mutation, or forced kill.
 // The future privileged worker must verify the target product, process path,

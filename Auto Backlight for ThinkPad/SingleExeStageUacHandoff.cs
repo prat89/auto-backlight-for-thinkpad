@@ -1,4 +1,4 @@
-// PHASE30B7D6C_STAGE_UAC_LAB_ONLY_V1
+// Experimental staged package UAC handoff (no installation).
 // Two processes of ONE EXE: parent asks for UAC, elevated child copies a
 // signed test bundle to protected staging.  NO msiexec, MSI API writes,
 // registry/task changes, UI integration, or application shutdown.

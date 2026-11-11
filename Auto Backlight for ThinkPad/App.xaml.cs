@@ -42,35 +42,35 @@ namespace Auto_Backlight_for_ThinkPad
         /// <summary>
         /// Main application
         /// </summary>
-        private readonly System.Diagnostics.Stopwatch _phase22Clock = System.Diagnostics.Stopwatch.StartNew();
-        private readonly System.Collections.Generic.List<string> _phase22Timings =
+        private readonly System.Diagnostics.Stopwatch _startupTimingClock = System.Diagnostics.Stopwatch.StartNew();
+        private readonly System.Collections.Generic.List<string> _startupTimingEntries =
             new System.Collections.Generic.List<string>();
-        private long _phase22LastMs;
-        private void _Phase22Checkpoint(string name)
+        private long _lastStartupCheckpointMs;
+        private void RecordStartupCheckpoint(string name)
         {
-            long elapsed = _phase22Clock.ElapsedMilliseconds;
-            long delta = elapsed - _phase22LastMs;
-            _phase22LastMs = elapsed;
+            long elapsed = _startupTimingClock.ElapsedMilliseconds;
+            long delta = elapsed - _lastStartupCheckpointMs;
+            _lastStartupCheckpointMs = elapsed;
             string line = name + ": elapsed=" + elapsed + "ms; since previous=" + delta + "ms";
-            _phase22Timings.Add(line);
+            _startupTimingEntries.Add(line);
             DiagnosticsLog.Info("Startup timing: " + line);
         }
-        private string _Phase22Report()
+        private string GetStartupTimingReport()
         {
-            return string.Join(Environment.NewLine, _phase22Timings.ToArray());
+            return string.Join(Environment.NewLine, _startupTimingEntries.ToArray());
         }
         public App()
         {
             DiagnosticsLog.Info("App constructor started; PID=" + System.Diagnostics.Process.GetCurrentProcess().Id);
             // v5.5 startup checkpoint: expose where initialization stops.
-            // Phase30B2 schedules a metadata-only update check after startup initialization.
+            // Schedule a metadata-only update check after startup initialization.
             DiagnosticsLog.Info("Startup checkpoint: InitializeComponent begin");
             try
             {
                 InitializeComponent();
                 _RefreshTrayTheme(); // Initial palette before tray resources are created.
                 DiagnosticsLog.Info("Startup checkpoint: InitializeComponent complete");
-            _Phase22Checkpoint("InitializeComponent");
+            RecordStartupCheckpoint("InitializeComponent");
             }
             catch (Exception ex)
             {
@@ -87,30 +87,30 @@ namespace Auto_Backlight_for_ThinkPad
             DiagnosticsLog.Info("Startup checkpoint: resolve Settings begin");
             _settings = (Settings)FindResource("Settings");
             DiagnosticsLog.Info("Startup checkpoint: resolve Settings complete");
-            _Phase22Checkpoint("Settings resource");
+            RecordStartupCheckpoint("Settings resource");
             DiagnosticsLog.Info("Startup checkpoint: resolve HiddenWindow begin");
             var c = (Panel)((Window)FindResource("HiddenWindow")).Content;
             DiagnosticsLog.Info("Startup checkpoint: resolve HiddenWindow complete");
-            _Phase22Checkpoint("Hidden window resource");
+            RecordStartupCheckpoint("Hidden window resource");
             var pm = c.Children.OfType<PowerManagement.PowerManagement>().First();
             var ri = c.Children.OfType<RawInput.RawInput>().First();
             var gh = c.Children.OfType<GlobalHotKey>().First();
             DiagnosticsLog.Info("Startup checkpoint: input and power components resolved");
-            _Phase22Checkpoint("Input and power resources");
+            RecordStartupCheckpoint("Input and power resources");
             try
             {
-                var phase221Clock = System.Diagnostics.Stopwatch.StartNew();
+                var startupStepClock = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
                     _autoKeyboard = new AutoKeyboardBacklightController(pm, ri);
                 }
                 finally
                 {
-                    DiagnosticsLog.Info("Phase22.1 startup: Keyboard controller constructor elapsed=" +
-                        phase221Clock.ElapsedMilliseconds + "ms");
+                    DiagnosticsLog.Info("Startup timing: Keyboard controller constructor elapsed=" +
+                        startupStepClock.ElapsedMilliseconds + "ms");
                 }
                 DiagnosticsLog.Info("Keyboard controller initialized");
-            _Phase22Checkpoint("Keyboard controller");
+            RecordStartupCheckpoint("Keyboard controller");
             }
             catch (Exception ex)
             {
@@ -121,7 +121,7 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 _autoScreen = new AutoScreenBrightnessController(gh);
                 DiagnosticsLog.Info("Screen controller initialized");
-            _Phase22Checkpoint("Screen controller");
+            RecordStartupCheckpoint("Screen controller");
             }
             catch (Exception ex)
             {
@@ -158,14 +158,14 @@ namespace Auto_Backlight_for_ThinkPad
             _ApplyShellAppearance("tray-resources", false);
             _SubscribeThemeEvents();
             DiagnosticsLog.Info("Tray icon initialized");
-            _Phase22Checkpoint("Tray resources");
+            RecordStartupCheckpoint("Tray resources");
             DiagnosticsLog.Info("Startup checkpoint: hardware report begin");
             DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
                 _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null,
                 _autoKeyboard != null ? _autoKeyboard.RawInputDiagnostics : null,
-                _Phase22Report());
+                GetStartupTimingReport());
             DiagnosticsLog.Info("Startup checkpoint: App constructor complete");
-            _Phase22Checkpoint("App constructor complete");
+            RecordStartupCheckpoint("App constructor complete");
         }
 
         private Settings _settings;
@@ -173,7 +173,7 @@ namespace Auto_Backlight_for_ThinkPad
         private AutoScreenBrightnessController _autoScreen;
         private object _lastPoint;
 
-        // PHASE30A_TRAY_THEME: visual-only; no settings serialization or driver operations.
+        // Tray theme changes are visual only; do not alter settings or drivers.
         private bool? _lastDarkTheme;
         private bool _themeEventsSubscribed;
         private DispatcherTimer _themeRetryTimer;
@@ -181,7 +181,7 @@ namespace Auto_Backlight_for_ThinkPad
         private const string WindowsThemePath =
             @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
 
-        // PHASE30A2C_PNG_ADAPTIVE_TRAY_ICON: only the tray glyph changes; EXE/MSI branding stays unchanged.
+        // Only the tray glyph changes; EXE/MSI branding remains unchanged.
         private bool? _lastSystemLight;
         private System.Windows.Media.Imaging.BitmapImage _trayIconForLightTaskbar;
         private System.Windows.Media.Imaging.BitmapImage _trayIconForDarkTaskbar;
@@ -212,15 +212,15 @@ namespace Auto_Backlight_for_ThinkPad
                 return;
 
             // Only menu resources are changed; no WPF control templates or handlers replaced.
-            _SetBrush("P30A_Surface", dark ? "#FF22252B" : "#FFFAFBFD");
-            _SetBrush("P30A_Text", dark ? "#FFF3F4F6" : "#FF202632");
-            _SetBrush("P30A_Border", dark ? "#FF454A52" : "#FFD5DCE5");
-            _SetBrush("P30A_Separator", dark ? "#FF404040" : "#FFD4D7DC");
-            _SetBrush("P30A_Hover", dark ? "#FF393F49" : "#FFE9EDF3");
-            _SetBrush("P30A_Icon", dark ? "#FFAAB4C1" : "#FF647182");
-            _SetBrush("P30A_Check", dark ? "#FFCCD5E2" : "#FF596575");
-            _SetBrush("P30A_InputSurface", dark ? "#FF303641" : "#FFFFFFFF");
-            _SetBrush("P30A_InputBorder", dark ? "#FF566271" : "#FFB8C2D0");
+            _SetBrush("TraySurfaceBrush", dark ? "#FF22252B" : "#FFFAFBFD");
+            _SetBrush("TrayTextBrush", dark ? "#FFF3F4F6" : "#FF202632");
+            _SetBrush("TrayBorderBrush", dark ? "#FF454A52" : "#FFD5DCE5");
+            _SetBrush("TraySeparatorBrush", dark ? "#FF404040" : "#FFD4D7DC");
+            _SetBrush("TrayHoverBrush", dark ? "#FF393F49" : "#FFE9EDF3");
+            _SetBrush("TrayIconBrush", dark ? "#FFAAB4C1" : "#FF647182");
+            _SetBrush("TrayCheckBrush", dark ? "#FFCCD5E2" : "#FF596575");
+            _SetBrush("TrayInputSurfaceBrush", dark ? "#FF303641" : "#FFFFFFFF");
+            _SetBrush("TrayInputBorderBrush", dark ? "#FF566271" : "#FFB8C2D0");
             _lastDarkTheme = dark;
             DiagnosticsLog.Info("Tray theme: applied " + (dark ? "dark" : "light") + " palette");
         }
@@ -284,7 +284,7 @@ namespace Auto_Backlight_for_ThinkPad
                     {
                         Interval = TimeSpan.FromMilliseconds(ThemeRetryDelayMs)
                     };
-                    _themeRetryTimer.Tick += _Phase30AThemeRetryTimer_Tick;
+                    _themeRetryTimer.Tick += OnThemeRetryTimerTick;
                 }
                 _themeRetryTimer.Stop();
                 _themeRetryTimer.Start();
@@ -296,7 +296,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        private void _Phase30AThemeRetryTimer_Tick(object sender, EventArgs e)
+        private void OnThemeRetryTimerTick(object sender, EventArgs e)
         {
             try
             {
@@ -412,7 +412,7 @@ namespace Auto_Backlight_for_ThinkPad
             _settings.PropertyChanged += _Settings_PropertyChanged;
             _settings.Update();
             DiagnosticsLog.Info("Startup event: settings applied");
-            // PHASE30B7D6M3F1_COOPERATIVE_ENDPOINT_START
+            // Cooperative shutdown endpoint initialization.
             // App exits through its ordinary Shutdown()/Exit handlers, not Kill().
             try
             {
@@ -430,13 +430,14 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 DiagnosticsLog.Error("Cooperative update exit: registration failed", ex);
             }
-            // Phase 30B.2: queue metadata-only check after startup; never block driver initialization.
+            // Queue a metadata-only check after startup; never block driver initialization.
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
                 new Action(_CheckAtStartupAsync));
         }
 
-        // Check on every genuine interactive GUI start. Do not silently install.
-        // The old 24-hour throttling made a quick restart appear to do nothing.
+        // Check on every genuine interactive GUI start. Only a NEW, explicit
+        // v1.4.0 opt-in permits installation without a second application prompt.
+        // Windows UAC and every existing signed MSI safeguard remain mandatory.
         private async void _CheckAtStartupAsync()
         {
             try
@@ -449,14 +450,23 @@ namespace Auto_Backlight_for_ThinkPad
                     !SignedDownloadUiPolicy.CanOfferSignedDownload(result)) return;
 
                 string version = result.LatestVersion.ToString(3);
-                MessageBoxResult answer = MessageBox.Show(
-                    "Version v" + version + " is available. Install now?",
-                    "Auto Backlight for ThinkPad update",
-                    MessageBoxButton.YesNo, MessageBoxImage.Information);
-                if (answer != MessageBoxResult.Yes ||
-                    Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
-                // Yes is explicit consent; the About pipeline still checks the
-                // signed package and Windows may require administrator approval.
+                bool automatic = UpdaterPreferences.ReadAutomaticInstallOptIn();
+                if (!automatic)
+                {
+                    MessageBoxResult answer = MessageBox.Show(
+                        "Version v" + version + " is available. Install now?",
+                        "Auto Backlight for ThinkPad update",
+                        MessageBoxButton.YesNo, MessageBoxImage.Information);
+                    if (answer != MessageBoxResult.Yes) return;
+                }
+                if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+                // If the opt-in was revoked during the async check, do not install.
+                if (automatic && !UpdaterPreferences.ReadAutomaticInstallOptIn()) return;
+                // Both modes reuse exactly the same guarded signed MSI pipeline.
+                // The previously checked auto-install preference never grants consent.
+                DiagnosticsLog.Info(automatic
+                    ? "Updater: approved automatic startup installation for v" + version
+                    : "Updater: user accepted startup installation for v" + version);
                 _ShowAbout(null, null);
                 if (_about != null)
                     await _about.StartStartupUpdateAsync(result.Update);
@@ -490,7 +500,7 @@ namespace Auto_Backlight_for_ThinkPad
                 using (RegistryKey lenovo = Registry.CurrentUser.OpenSubKey(LenovoOsdRegistryPath, false))
                 {
                     object actual = lenovo == null ? null : lenovo.GetValue("Enable", null);
-                    // PHASE19_OSD_LOGGING: distinguish absent/unsupported registry configuration.
+                    // Distinguish absent and unsupported OSD registry configuration.
                     if (lenovo == null)
                         DiagnosticsLog.Info("Lenovo OSD: unavailable; Lenovo registry key missing");
                     else if (Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0)
@@ -499,7 +509,7 @@ namespace Auto_Backlight_for_ThinkPad
                         DiagnosticsLog.Info("Lenovo OSD: unexpected Enable type (legacy validation retained)=" + lenovo.GetValueKind("Enable"));
                     else if (!(actual is int) || ((int)actual != 0 && (int)actual != 1))
                         DiagnosticsLog.Info("Lenovo OSD: unavailable; Enable value unsupported=" + (actual == null ? "null" : actual.ToString()));
-                    // PHASE21_MISSING_OSD_ENABLE: missing value is supported, but never created on startup.
+                    // Missing OSD value is supported but never created at startup.
                     // A missing Lenovo key or malformed existing value remains unsupported.
                     bool missingEnable = lenovo != null &&
                         Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0;
@@ -574,7 +584,7 @@ namespace Auto_Backlight_for_ThinkPad
                 {
                     if (lenovo == null) throw new InvalidOperationException("Lenovo OSD key disappeared");
                     object current = lenovo.GetValue("Enable", null);
-                    // PHASE21_MISSING_OSD_ENABLE: create only the absent DWORD after user action.
+                    // Create the missing OSD DWORD only after an explicit user action.
                     bool missingEnable = Array.IndexOf(lenovo.GetValueNames(), "Enable") < 0;
                     if (!missingEnable && (lenovo.GetValueKind("Enable") != RegistryValueKind.DWord ||
                         !(current is int) || ((int)current != 0 && (int)current != 1)))
@@ -669,7 +679,7 @@ namespace Auto_Backlight_for_ThinkPad
         // Stop and cleanup on app exit
         private void _Exiting(object sender, ExitEventArgs e)
         {
-            // PHASE30B7D6M3F1_COOPERATIVE_ENDPOINT_STOP
+            // Cooperative shutdown endpoint cleanup.
             try { CooperativeShutdown.StopForApp(); }
             catch (Exception ex) { DiagnosticsLog.Error("Cooperative update exit: cleanup failed", ex); }
             if (_themeRetryTimer != null)
@@ -769,7 +779,7 @@ namespace Auto_Backlight_for_ThinkPad
         }
         // The tray context menu captures/deactivates focus while closing.
         // A short one-shot delay lets the menu release focus before showing the dialog.
-        // PHASE18_EXPORT_APPLICATION_LOG: export a read-only snapshot of application.log.
+        // Export a read-only snapshot of application.log.
         // Match the existing diagnostics action: release the tray menu before opening an owned dialog.
         private void _ExportApplicationLog(object sender, RoutedEventArgs e)
         {
@@ -859,9 +869,8 @@ namespace Auto_Backlight_for_ThinkPad
                 {
                     if (System.IO.File.Exists(temp)) System.IO.File.Delete(temp);
                 }
-                DiagnosticsLog.Info("Application log exported by user");
-                MessageBox.Show("Application log exported successfully.",
-                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
+                DiagnosticsLog.Info("Application log exported by user to: " + destination);
+                // SaveFileDialog already confirms the chosen destination; no success popup.
             }
             catch (Exception ex)
             {
@@ -901,7 +910,7 @@ namespace Auto_Backlight_for_ThinkPad
                 DiagnosticsReport.Write(_autoKeyboard != null, _autoScreen != null,
                     _autoKeyboard != null ? (int?)_autoKeyboard.MaximumBrightnessLevel : null,
                     _autoKeyboard != null ? _autoKeyboard.RawInputDiagnostics : null,
-                    _Phase22Report());
+                    GetStartupTimingReport());
                 var source = DiagnosticsReport.ReportPath;
                 if (!System.IO.File.Exists(source))
                     throw new System.IO.FileNotFoundException("Diagnostic report was not generated", source);
@@ -941,9 +950,8 @@ namespace Auto_Backlight_for_ThinkPad
                     (result.HasValue ? result.Value.ToString() : "null"));
                 if (result != true) return;
                 System.IO.File.Copy(source, dialog.FileName, true);
-                DiagnosticsLog.Info("Hardware diagnostic report exported by user");
-                MessageBox.Show("Diagnostic report exported successfully.",
-                    "Auto Backlight for ThinkPad", MessageBoxButton.OK, MessageBoxImage.Information);
+                DiagnosticsLog.Info("Hardware diagnostic report exported by user to: " + dialog.FileName);
+                // Successful export is silent; failures still display an error.
             }
             catch (Exception ex)
             {

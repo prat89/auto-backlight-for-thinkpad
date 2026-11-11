@@ -28,8 +28,8 @@ namespace Auto_Backlight_for_ThinkPad
     {
         public event EventHandler CaptureEvent;
         public bool IncludeExternalDevices { get; set; } = false;
-        // Phase 22.1: callback counts include rescan rebuilds; separate OS notification counts are read from RawInput.
-        // Phase 22 diagnostic counters. No device identifiers or input contents are retained.
+        // Callback counts include rescans; OS notification counts are read separately from Raw Input.
+        // Diagnostic counters do not retain device identifiers or input contents.
         private int _rescanCount, _rescanFailures, _arrivals, _removals;
         private int _lastDeviceCount = -1, _lastInternalCount, _lastExternalCount;
         private string _lastRescanTime = "not yet";
@@ -43,11 +43,11 @@ namespace Auto_Backlight_for_ThinkPad
                 "; eligible internal=" + _lastInternalCount + "; eligible external=" + _lastExternalCount +
                 "; device callbacks added=" + _arrivals + "; removed=" + _removals +
                 " (includes full enumeration rebuilds)" +
-                "; WM_DEVICE_CHANGE arrival=" + _ri.Phase221ArrivalNotifications +
-                "; removal=" + _ri.Phase221RemovalNotifications +
-                "; WM_DEVICE_CHANGE errors=" + _ri.Phase221NotificationFailures;
+                "; WM_DEVICE_CHANGE arrival=" + _ri.DeviceArrivalNotifications +
+                "; removal=" + _ri.DeviceRemovalNotifications +
+                "; WM_DEVICE_CHANGE errors=" + _ri.DeviceNotificationFailures;
         }
-        // PHASE20C1_DYNAMIC_RAWINPUT: device-independent subscription survives Bluetooth arrivals.
+        // Device-independent Raw Input subscription survives Bluetooth arrivals.
         private static bool IsEligible(Device dev, out bool internalDevice)
         {
             internalDevice = false;

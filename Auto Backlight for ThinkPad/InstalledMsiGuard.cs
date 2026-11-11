@@ -1,4 +1,4 @@
-// PHASE30B7D6A_INSTALLED_MSI_GUARD_V1
+// Check that the registered MSI product matches the running EXE.
 // Read-only inspection of the CURRENTLY REGISTERED MSI product.
 // No UAC, installer invocation, registry writes, process launches or task edits.
 using System;

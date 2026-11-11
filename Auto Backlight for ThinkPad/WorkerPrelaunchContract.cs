@@ -1,4 +1,4 @@
-// PHASE30B7D6M3F4_DETACHED_PREMSI_READONLY_CONTRACT_V1
+// Detached read-only pre-installation process gate contract.
 // This produces an independent, read-only pre-MSI process gate harness.
 // It does NOT launch an MSI or grant installation authority.
 // A successful gate is only a POINT-IN-TIME process absence observation;
@@ -12,7 +12,7 @@ namespace Auto_Backlight_for_ThinkPad
 {
     internal static class WorkerPrelaunchContract
     {
-        // The nested audit is the immutable Phase 3F.3 gate, run in a SEPARATE
+        // The nested independent process-absence audit runs in a SEPARATE
         // system PowerShell 5.1 process; no user-supplied process name on the
         // production path. The *outer* process will later be the MSI worker.
         private const string WorkerTemplate = @"# PHASE30B7D6M3F4_PREMSI_READONLY_WORKER_V1

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-// PHASE30B1_RELEASE_CHECKER: read-only GitHub Releases discovery.
-// Phase30B2 adds a throttled metadata-only startup check and separate HKCU preferences.
+// Read-only GitHub Releases discovery.
+// The metadata-only startup check is throttled and uses separate HKCU preferences.
 // No MSI download, installer launch or elevation is permitted.
 using System;
 using System.Collections.Generic;
@@ -39,6 +39,8 @@ namespace Auto_Backlight_for_ThinkPad
     {
         private const string RegistryPath = @"Software\Auto Backlight for ThinkPad";
         private const string AutoInstallValue = "AutoInstallUpdates";
+        // Never migrate the historical, explicitly inactive preference as consent.
+        private const string ActiveAutoInstallValue = "AutoInstallUpdatesOptIn";
         private const string LastCheckValue = "LastUpdateCheckUtcTicks";
         private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
 
@@ -64,6 +66,34 @@ namespace Auto_Backlight_for_ThinkPad
             {
                 if (key == null) throw new InvalidOperationException("Update settings registry key unavailable");
                 key.SetValue(AutoInstallValue, enabled ? 1 : 0, RegistryValueKind.DWord);
+                key.Flush();
+            }
+        }
+
+        /// <summary>Real auto-install opt-in, OFF by default for every existing user.</summary>
+        public static bool ReadAutomaticInstallOptIn()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistryPath, false))
+                {
+                    object value = key == null ? null : key.GetValue(ActiveAutoInstallValue, null);
+                    return value is int && (int)value == 1;
+                }
+            }
+            catch (Exception)
+            {
+                return false; // fail closed: no implicit installation consent
+            }
+        }
+
+        public static void SaveAutomaticInstallOptIn(bool enabled)
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(RegistryPath))
+            {
+                if (key == null)
+                    throw new InvalidOperationException("Automatic update preference unavailable");
+                key.SetValue(ActiveAutoInstallValue, enabled ? 1 : 0, RegistryValueKind.DWord);
                 key.Flush();
             }
         }
@@ -118,7 +148,7 @@ namespace Auto_Backlight_for_ThinkPad
             NetworkError
         }
 
-        /// <summary>Metadata only. Its Url is NEVER opened or downloaded by Phase 30B.1.</summary>
+        /// <summary>Metadata only. Its Url is never opened or downloaded by this check.</summary>
         public sealed class Downloadable
         {
             public Version Version { get; private set; }
@@ -199,7 +229,7 @@ namespace Auto_Backlight_for_ThinkPad
                 new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         }
 
-        /// <summary>Queries only release metadata; Phase 30B.2 owns the notification/UI flow.</summary>
+        /// <summary>Queries only release metadata; startup notification logic owns the UI flow.</summary>
         public Task<UpdateCheckResult> CheckForUpdatesAsync()
         {
             return CheckForUpdatesAsync(Assembly.GetExecutingAssembly().GetName().Version);
@@ -419,7 +449,7 @@ namespace Auto_Backlight_for_ThinkPad
             return result.Status == CheckStatus.UpdateAvailable ? result.Update : null;
         }
 
-        // PHASE30B4_VERIFIED_MSI_STAGING_V1
+        // Stage MSI packages only after signed-release verification.
         // Stages a downloaded MSI only; never launches msiexec, exits the app, or elevates.
         // GitHub's digest detects accidental replacement/corruption; it is NOT a publisher signature.
         private const long UpdaterMaximumMsiBytes = 128L * 1024L * 1024L;
@@ -634,7 +664,7 @@ namespace Auto_Backlight_for_ThinkPad
         }
 
 
-        // PHASE30B7C_SIGNED_RELEASE_DOWNLOAD_V1
+        // Download and verify publisher-signed release assets.
         // Verify independently signed release assets *before* downloading an MSI.
         // This path does not elevate, invoke UpdateHelper, or execute installers.
         private const string SignedManifestName = "update-manifest-v1.txt";
@@ -653,7 +683,7 @@ namespace Auto_Backlight_for_ThinkPad
             NetworkError
         }
 
-        // PHASE30B7D2_SIGNED_BUNDLE_STAGING_V1
+        // Publisher-signed update bundle staging.
         // Authenticated bytes are carried from verification to per-release staging.
         // This is STILL USER-WRITABLE staging; it is never a privilege boundary.
         public sealed class SignedManifestResult
@@ -686,7 +716,7 @@ namespace Auto_Backlight_for_ThinkPad
 
         private static Uri SignedAssetUrl(Downloadable candidate, string assetName)
         {
-            // Phase30B4ValidUpdate enforces the exact repository/tag/MSI URL shape.
+            // Release URL validation enforces the exact repository/tag/MSI URL shape.
             if (!ValidUpdate(candidate) ||
                 (assetName != SignedManifestName && assetName != SignedSignatureName))
                 throw new InvalidDataException("Release metadata does not identify a trusted asset location.");
@@ -809,7 +839,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // PHASE30B7D2_SIGNED_BUNDLE_STAGE_METHOD_V1
+        // Download and stage a signed update bundle.
         // Manifest/signature and MSI are preserved in the same GUID folder for independent helper
         // assessment. This folder is controlled by the signed-in user, NOT an elevated installer.
         private static bool ExpectedStageDirectory(string msiPath)
@@ -914,14 +944,14 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        /// <summary>Phase 30B.1 explicitly cannot download or execute an installer.</summary>
+        /// <summary>This entry point cannot download or execute an installer.</summary>
         public Task<bool> DownloadVersion(Downloadable update)
         {
             return Task.FromResult(false);
         }
 
-        // PHASE30B7B_SIGNED_MANIFEST_BRIDGE_V1 - verification only; no MSI execution.
-        // The next phase must fetch both assets from the same release and call this BEFORE trusting the MSI.
+        // Verify the publisher-signed release manifest; never execute MSI here.
+        // Download both assets from the same release and verify them BEFORE trusting the MSI.
         public static bool VerifySignedManifestForDiscoveredRelease(Downloadable candidate,
             byte[] manifestBytes, byte[] signatureBase64Bytes, out string status)
         {

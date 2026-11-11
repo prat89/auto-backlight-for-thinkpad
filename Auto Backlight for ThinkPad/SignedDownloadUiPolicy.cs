@@ -1,6 +1,6 @@
-// PHASE30B7D6M3A_SIGNED_DOWNLOAD_UI_POLICY_V1
+// Signed update download policy for the UI.
 // Explicit user-triggered signed download only. NEVER UAC, stage elevation,
-// worker handoff or MSI execution. A future phase must enable installation.
+// Worker handoff or MSI execution is controlled by a separate install authorization gate.
 using System;
 using System.Text.RegularExpressions;
 

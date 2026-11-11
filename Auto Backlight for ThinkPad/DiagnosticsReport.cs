@@ -68,7 +68,7 @@ namespace Auto_Backlight_for_ThinkPad
                 foreach (string line in BackendDetection.GetReportLines())
                     sb.AppendLine(line);
                 AppendExtendedDiagnostics(sb);
-                // PHASE20A_READ_ONLY_DRIVER_PROBE: report raw GET only when controller initialized.
+                // Report raw driver GET only when controller has initialized.
                 sb.AppendLine("--- Keyboard driver probe (read-only) ---");
                 sb.AppendLine("Backend: " + (keyboardAvailable ? KeyboardBacklightBackendFactory.ActiveBackendName : "unavailable"));
                 if (keyboardAvailable)
@@ -87,7 +87,7 @@ namespace Auto_Backlight_for_ThinkPad
             }
         }
 
-        // Phase 17: read-only diagnostic snapshot. Do not mutate Lenovo settings or service state.
+        // Read-only diagnostic snapshot; do not mutate Lenovo settings or service state.
         private static void AppendExtendedDiagnostics(StringBuilder sb)
         {
             sb.AppendLine("--- Lenovo OSD diagnostics (read-only) ---");

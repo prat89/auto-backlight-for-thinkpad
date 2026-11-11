@@ -4,7 +4,7 @@
 
 A lightweight Windows system-tray application that automatically turns a compatible Lenovo laptop keyboard backlight on when you use the computer, and off after an adjustable period of inactivity.
 
-**Current locally validated release source: v1.3.9 (8 November 2026).** This version introduces an explicitly approved, publisher-signed GitHub MSI update workflow (RSA signature and SHA-256 validation, protected staging, trusted UAC installation worker). The maintainer verified a v1.3.8 → v1.3.9 RC MSI upgrade with settings and Scheduled Task preserved. **End-to-end installation from About to a newer published release is still pending validation.** See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for **published** installers.
+**v1.4.0 release source (11 November 2026; installation validation pending).** Builds on the published v1.3.14 and the successfully tested signed MSI updater/relaunch flow. This release addresses settings persistence for assembly versions with two-digit patch numbers, adds a new opt-in startup auto-install option, and removes redundant success popups after exports. **Do not treat v1.4.0 installation or settings recovery as validated until the release acceptance test passes.** See [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) for published installers.
 
 ## Features
 
@@ -34,7 +34,7 @@ Owners of ThinkBook, IdeaPad, Yoga, Legion, LOQ, and other Lenovo laptops can he
 
 A successful scan **does not confirm hardware support**. Please review and redact the local JSON and TXT reports before voluntarily sharing them in a [compatibility report issue](https://github.com/prat89/auto-backlight-for-thinkpad/issues/new/choose); the model, BIOS version and firmware metadata can be identifying.
 
-**v1.3.10 release candidate:** prepared solely to validate the signed updater from installed v1.3.9. Do not consider the upgrade path validated before a successful, logged end-to-end installation.
+**v1.4.0 compatibility:** the backend and hardware support claims remain unchanged. The startup auto-install option and recovered settings have not yet completed release acceptance testing.
 
 ## Installation
 
@@ -51,7 +51,7 @@ A successful scan **does not confirm hardware support**. Please review and redac
 
 To uninstall, exit the application first, then use **Windows Settings > Apps > Installed apps**. Removing the MSI does not automatically erase the current user's saved registry preferences in the tested scenario.
 
-**Updates (v1.3.9):** open **About → Check for updates** to discover newer stable releases of this fork. Signed MSI download, local verification and installation require separate explicit user actions. The public-release end-to-end update path is pending validation; manual installation from [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) remains supported. The original upstream updater is disabled. Do not install upstream MSI packages as updates to this fork.
+**Updates (v1.4.0):** the application checks for newer stable releases on startup and can prompt to install a publisher-verified MSI. **About → Check for updates** changes to **Update now** when a newer version is available. An **Install updates automatically** checkbox (OFF by default, separate from the old inactive preference) enables installation at startup without an additional application prompt; Windows UAC can still require approval. Download, signature verification, SHA-256 checking, protected staging and MSI identity checks remain mandatory. Startup auto-install is new in v1.4.0 and requires real-world end-to-end validation. Manual MSI installation from [Releases](https://github.com/prat89/auto-backlight-for-thinkpad/releases) remains supported after exiting the app; never use upstream MSI releases.
 
 **v1.3.8 validated upgrade (2 November 2026):** The maintainer successfully completed a v1.3.7 → v1.3.8 MSI upgrade on the ThinkPad X1 Extreme Gen 2. The EXE extracted from the final MSI matched the tested Release EXE (SHA-256 `45510B15D235E5FD352D5BBF38922FD3C83E7E24C51CC0877273829A3406ACF8`), and all 119 application types loaded during resolver-free .NET reflection. The application, keyboard lighting, camera-controlled screen brightness, exposure restoration and startup after Windows restart were confirmed working. This does not claim comprehensive clean-install or cross-device validation; the installed EXE hash was not separately recorded for this upgrade.
 

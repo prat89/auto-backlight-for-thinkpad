@@ -1,4 +1,4 @@
-// Phase 1311: post-install relaunch belongs to the original GUI user session,
+// Post-install relaunch belongs to the original GUI user session,
 // NEVER to the elevated detached MSI worker. Only observed signed-worker results
 // from the protected transaction directory permit a relaunch.
 using System;
@@ -172,7 +172,7 @@ try {
             }
             catch (Exception ex)
             {
-                DiagnosticsLog.Error("Phase1311: post-MSI relaunch observer not armed", ex);
+                DiagnosticsLog.Error("Updater: post-MSI relaunch observer not armed", ex);
                 return false;
             }
         }

@@ -1,7 +1,7 @@
-// PHASE30B7D6M3F3_INDEPENDENT_WORKER_READ_ONLY_GATE_V1
+// Independent read-only worker process gate.
 // This builds an independent Windows PowerShell 5.1 pre-MSI process audit.
 // NO msiexec invocation, UAC, process termination, or integration with the
-// production executor is enabled by this phase.
+// Production execution requires a separately authorized installation workflow.
 // Future detached worker MUST execute the immutable production gate AFTER its
 // launcher exits and immediately BEFORE invoking msiexec. A successful scan
 // is only a point-in-time observation: coordinating app startup/locking and

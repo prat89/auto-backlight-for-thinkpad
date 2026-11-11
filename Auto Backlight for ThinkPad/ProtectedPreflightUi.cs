@@ -1,4 +1,4 @@
-// PHASE30B7D6M3D_PROTECTED_PREFLIGHT_UI_V1
+// Protected installation preflight UI.
 // Explicit, READ-ONLY protected MSI preflight, NOT installation authorization.
 // Parent and elevated child must be the ACL-audited installed EXE. No user-controlled
 // executable/path crosses the UAC boundary. No MSI execution or changes to files.

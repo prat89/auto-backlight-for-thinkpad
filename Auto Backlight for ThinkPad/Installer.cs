@@ -33,7 +33,7 @@ namespace Auto_Backlight_for_ThinkPad
     [RunInstaller(true)]
     public class Installer : System.Configuration.Install.Installer
     {
-        // PHASE30B3B_TASK_PRESERVATION_V1: save the scheduler state BEFORE
+        // Save the scheduled task state BEFORE
         // RemoveExistingProducts removes the previous MSI package.
         // Only boolean and string values are stored in the Installer state dictionary.
         private const string S_Captured = "P30B3_TaskCaptured";

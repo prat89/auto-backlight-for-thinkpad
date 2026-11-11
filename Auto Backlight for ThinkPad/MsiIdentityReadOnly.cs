@@ -1,4 +1,4 @@
-// PHASE30B7D4_NATIVE_MSI_IDENTITY_V1
+// Verify native MSI package identity.
 // Read-only inspection of an MSI database through msi.dll.
 // Never starts msiexec, requests elevation, or modifies the MSI.
 using System;
@@ -116,7 +116,7 @@ namespace Auto_Backlight_for_ThinkPad
                     throw new InvalidDataException("Invalid MSI ProductCode.");
                 if (String.Equals(productCode, BaselineProductCode, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException("Major upgrade reused the v1.3.8 ProductCode.");
-                // PHASE30B7D6A_INSTALLED_GUARD_WIRED_V1
+                // Reuse the installed MSI product identity guard.
                 // Compare with actual Windows Installer registration, not a hardcoded baseline.
                 InstalledMsiGuard.Verify(productCode, expectedVersion);
             }
